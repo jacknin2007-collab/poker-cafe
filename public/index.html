@@ -223,9 +223,32 @@ select option{background:var(--surface2);color:var(--text);}
 .queue-half-title{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;}
 .normal-title{color:var(--green);}
 .tour-title{color:#c080ff;}
+
+/* PASSWORD MODAL */
+.pwd-modal{display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;align-items:center;justify-content:center;}
+.pwd-modal.hidden{display:none;}
+.pwd-modal-content{background:var(--surface);border:2px solid var(--gold);border-radius:12px;padding:40px;width:90%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.8);}
+.pwd-modal-title{font-size:24px;font-weight:800;color:var(--gold);text-align:center;margin-bottom:8px;letter-spacing:0.05em;}
+.pwd-modal-subtitle{font-size:13px;color:var(--text3);text-align:center;margin-bottom:24px;}
+.pwd-input{width:100%;padding:12px 16px;font-size:16px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);color:var(--text);font-family:inherit;margin-bottom:16px;outline:none;letter-spacing:0.1em;}
+.pwd-input:focus{border-color:var(--gold);box-shadow:0 0 8px rgba(240,192,64,0.3);}
+.pwd-btn{width:100%;padding:12px;font-size:14px;font-weight:700;border:none;border-radius:8px;background:var(--gold);color:#1a1000;cursor:pointer;font-family:inherit;transition:all 0.15s;}
+.pwd-btn:hover{background:var(--gold-mid);transform:translateY(-2px);box-shadow:0 4px 12px rgba(240,192,64,0.3);}
+.pwd-error{color:var(--red);font-size:12px;margin-top:8px;text-align:center;font-weight:600;}
 </style>
 </head>
 <body>
+<div class="pwd-modal" id="pwd-modal">
+  <div class="pwd-modal-content">
+    <div class="pwd-modal-title">🔐 Bảo vệ</div>
+    <div class="pwd-modal-subtitle">Nhập mật khẩu để tiếp tục</div>
+    <input type="password" class="pwd-input" id="pwd-input" placeholder="Mật khẩu" autocomplete="off" onkeydown="if(event.key==='Enter')checkPwd()"/>
+    <button class="pwd-btn" id="pwd-btn" onclick="checkPwd()">Tiếp tục</button>
+    <div class="pwd-error" id="pwd-error"></div>
+  </div>
+</div>
+
+
 
 <div class="app">
 
@@ -456,6 +479,30 @@ select option{background:var(--surface2);color:var(--text);}
 </div>
 
 <script>
+// Password protection
+const PASSWORD='19842007';
+function checkPwd(){
+  const pwd=document.getElementById('pwd-input').value;
+  const err=document.getElementById('pwd-error');
+  if(pwd===PASSWORD){
+    sessionStorage.setItem('pwd-auth','1');
+    document.getElementById('pwd-modal').classList.add('hidden');
+    err.textContent='';
+  } else {
+    err.textContent='Mật khẩu không đúng';
+    document.getElementById('pwd-input').value='';
+    document.getElementById('pwd-input').focus();
+  }
+}
+window.addEventListener('load',()=>{
+  if(!sessionStorage.getItem('pwd-auth')){
+    document.getElementById('pwd-modal').classList.remove('hidden');
+    setTimeout(()=>document.getElementById('pwd-input').focus(),100);
+  } else {
+    document.getElementById('pwd-modal').classList.add('hidden');
+  }
+});
+
 const API = `https://poker-cafe.onrender.com/api`;
 const OWNER_PASS='19842007';
 let reportUnlocked=false;
@@ -1489,7 +1536,19 @@ function printBill(player,total,drink,tableName){
     .line{border-top:1px dashed #999;margin:8px 0;}
     .row{display:flex;justify-content:space-between;margin:5px 0;}
     .total{font-size:16px;font-weight:bold;}
-    .footer{text-align:center;font-size:11px;color:#666;margin-top:12px;}</style></head><body>
+    .footer{text-align:center;font-size:11px;color:#666;margin-top:12px;}
+/* PASSWORD MODAL */
+.pwd-modal{display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;align-items:center;justify-content:center;}
+.pwd-modal.hidden{display:none;}
+.pwd-modal-content{background:var(--surface);border:2px solid var(--gold);border-radius:12px;padding:40px;width:90%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.8);}
+.pwd-modal-title{font-size:24px;font-weight:800;color:var(--gold);text-align:center;margin-bottom:8px;letter-spacing:0.05em;}
+.pwd-modal-subtitle{font-size:13px;color:var(--text3);text-align:center;margin-bottom:24px;}
+.pwd-input{width:100%;padding:12px 16px;font-size:16px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);color:var(--text);font-family:inherit;margin-bottom:16px;outline:none;letter-spacing:0.1em;}
+.pwd-input:focus{border-color:var(--gold);box-shadow:0 0 8px rgba(240,192,64,0.3);}
+.pwd-btn{width:100%;padding:12px;font-size:14px;font-weight:700;border:none;border-radius:8px;background:var(--gold);color:#1a1000;cursor:pointer;font-family:inherit;transition:all 0.15s;}
+.pwd-btn:hover{background:var(--gold-mid);transform:translateY(-2px);box-shadow:0 4px 12px rgba(240,192,64,0.3);}
+.pwd-error{color:var(--red);font-size:12px;margin-top:8px;text-align:center;font-weight:600;}
+</style></head><body>
     <h2>GOLDEN COFFEE</h2><div class="sub">♠ BOARD GAME ♠</div>
     <div class="line"></div>
     <div class="row"><span>Khách:</span><span><b>${player}</b></span></div>
