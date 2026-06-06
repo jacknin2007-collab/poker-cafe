@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tournament Clock – Golden Coffee</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100vw;height:100vh;overflow:hidden;background:#111;}
+body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:column;position:relative;}
+
+#bg{position:fixed;inset:0;background-size:cover;background-position:center;opacity:0.9;z-index:0;transition:opacity 0.5s;}
+#bg-dark{position:fixed;inset:0;background:rgba(0,0,0,0.02);z-index:1;}
+.wrap{position:relative;z-index:2;display:flex;flex-direction:column;height:100vh;}
+
+/* TOP */
+.topbar{
+  background:rgba(0,0,0,0.55);
+  border-bottom:2px solid rgba(255,255,255,0.1);
+  padding:10px 30px;
+  display:flex;align-items:center;justify-content:center;gap:20px;
+  flex-shrink:0;
+}
+.top-logo{width:44px;height:44px;object-fit:contain;}
+.top-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.3em;color:#fff;text-align:center;}
+
+/* MAIN 3 COLS */
+.main{flex:1;display:flex;min-height:0;}
+
+/* SIDE PANELS */
+.side{width:230px;flex-shrink:0;padding:24px 22px;display:flex;flex-direction:column;gap:0;background:rgba(0,0,0,0.4);}
+.side.left{border-right:2px solid rgba(255,255,255,0.08);}
+.side.right{border-left:2px solid rgba(255,255,255,0.08);}
+
+.stat{padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.07);}
+.stat:last-child{border:none;}
+.stat-lbl{font-size:14px;font-weight:700;letter-spacing:0.15em;color:rgba(255,255,255,0.55);text-transform:uppercase;}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:46px;color:#fff;line-height:1.05;letter-spacing:0.03em;}
+
+/* PAYOUT */
+.payout-box{display:none;margin-top:8px;}
+.payout-box.show{display:block;}
+.payout-lbl{font-size:12px;font-weight:700;letter-spacing:0.15em;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:6px;}
+.payout-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.pr-rank{font-size:13px;color:rgba(255,255,255,0.5);}
+.pr-amt{font-size:14px;font-weight:700;color:#f0c040;}
+
+/* CENTER */
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 20px;position:relative;text-align:center;}
+
+/* BREAK */
+.break-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.9);flex-direction:column;align-items:center;justify-content:center;z-index:20;}
+.break-overlay.show{display:flex;}
+.break-title{font-family:'Bebas Neue',sans-serif;font-size:100px;letter-spacing:0.3em;color:#fff;margin-bottom:0;}
+.break-clock{font-family:'Bebas Neue',sans-serif;font-size:150px;color:#fff;letter-spacing:6px;line-height:0.9;}
+.break-next{font-size:18px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.2em;margin-top:16px;text-transform:uppercase;}
+
+/* LEVEL */
+.level-lbl{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:0.4em;color:#fff;margin-bottom:0;}
+
+/* CLOCK */
+.clock{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(120px,18vw,200px);
+  letter-spacing:6px;line-height:0.88;
+  color:#fff;
+  transition:color 0.4s;
+}
+.clock.warn{color:#ff8c00;}
+.clock.danger{color:#ff2020;animation:blink 0.8s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.5;}}
+.paused-lbl{position:absolute;font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:0.4em;color:rgba(255,255,255,0.2);display:none;}
+.paused-lbl.show{display:block;}
+
+/* BLINDS */
+.blinds-section{margin-top:12px;text-align:left;}
+.bl-row{display:flex;align-items:center;gap:24px;margin-bottom:4px;}
+.bl-label{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,4vw,48px);color:#fff;letter-spacing:0.1em;width:160px;}
+.bl-value{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,5.5vw,64px);color:#fff;letter-spacing:0.05em;}
+.bl-sep{font-family:'Bebas Neue',sans-serif;font-size:52px;color:rgba(255,255,255,0.25);padding:0 4px;}
+.next-row{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,4vw,48px);font-weight:300;font-style:italic;color:#fff;letter-spacing:0.1em;margin-top:8px;}
+.next-row span{font-style:normal;font-weight:400;color:#fff;}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div id="bg-dark"></div>
+<div class="wrap">
+  <div class="topbar">
+    <img src="/logo.png" class="top-logo" alt="" onerror="this.style.display='none'"/>
+    <div class="top-title" id="t-title">GOLDEN COFFEE – TOURNAMENT</div>
+  </div>
+  <div class="main">
+    <!-- LEFT -->
+    <div class="side left">
+      <div class="stat"><div class="stat-lbl">PLAYERS:</div><div class="stat-val" id="s-players">0/0</div></div>
+      <div class="stat"><div class="stat-lbl">AVG. STACK:</div><div class="stat-val" id="s-avg">0</div></div>
+      <div class="stat"><div class="stat-lbl">TOTAL STACK:</div><div class="stat-val" id="s-total">0</div></div>
+      <div class="stat"><div class="stat-lbl">BUY IN:</div><div class="stat-val" id="s-buyin">0</div></div>
+      <div class="stat"><div class="stat-lbl">RE BUY:</div><div class="stat-val" id="s-rebuy">0</div></div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="center">
+      <div class="break-overlay" id="break-overlay">
+        <div class="break-title">BREAK</div>
+        <div class="break-clock" id="break-clock">10:00</div>
+        <div class="break-next" id="break-next"></div>
+      </div>
+      <div class="level-lbl">LEVEL <span id="c-level">1</span></div>
+      <div class="clock" id="clock">20:00</div>
+      <div class="paused-lbl" id="paused-lbl">PAUSED</div>
+      <div class="blinds-section">
+        <div class="bl-row">
+          <div class="bl-label">BLINDS</div>
+          <div class="bl-value" id="c-sb">100</div>
+          <div class="bl-sep">–</div>
+          <div class="bl-value" id="c-bb">200</div>
+        </div>
+        <div class="bl-row">
+          <div class="bl-label">ANTE</div>
+          <div class="bl-value" id="c-ante">200</div>
+        </div>
+        <div class="next-row">NEXT BLINDS: <span id="c-next">–</span></div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="side right">
+      <div class="stat"><div class="stat-lbl">STARTING STACK:</div><div class="stat-val" id="s-sstack">50.000</div></div>
+      <div class="stat"><div class="stat-lbl">RE-BUY STACK:</div><div class="stat-val" id="s-rstack">50.000</div></div>
+      <!-- Late Reg (ẩn khi đóng buy) -->
+      <div class="stat" id="latereg-box">
+        <div class="stat-lbl">LATE REG:</div>
+        <div class="stat-val" id="s-latereg">–</div>
+      </div>
+      <!-- Payout (chỉ hiện khi đóng buy) -->
+      <div id="payout-box" style="display:none;">
+        <div class="stat-lbl" style="margin-bottom:10px;">PAYOUT:</div>
+        <div id="payout-rows" style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff;line-height:1.4;letter-spacing:0.03em;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API=`http://${window.location.hostname}:3000/api`;
+let lastUpdate=0;
+function fmtN(n){return Math.round(n||0).toLocaleString('vi');}
+function fmtT(s){s=Math.max(0,Math.floor(s||0));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+
+function render(st){
+  const lvs=st.levels||[];
+  const li=Math.min(st.levelIndex||0,lvs.length-1);
+  const lv=lvs[li]||{};
+  const isBreak=!!lv.isBreak;
+
+  if(st.bgImage) document.getElementById('bg').style.backgroundImage=`url('${st.bgImage}')`;
+  document.getElementById('t-title').textContent=st.tournamentName||'GOLDEN COFFEE – TOURNAMENT';
+
+  // Left stats
+  const players=st.players||0, total=st.totalPlayers||0;
+  document.getElementById('s-players').textContent=players+'/'+total;
+  const avg=players>0?Math.floor((st.totalStack||0)/players):0;
+  document.getElementById('s-avg').textContent=fmtN(avg);
+  document.getElementById('s-total').textContent=fmtN(st.totalStack||0);
+  document.getElementById('s-buyin').textContent=st.buyIn||0;
+  document.getElementById('s-rebuy').textContent=st.rebuy||0;
+
+  // Right stats
+  document.getElementById('s-sstack').textContent=fmtN(st.startingStack||0);
+  document.getElementById('s-rstack').textContent=fmtN(st.rebuyStack||0);
+
+  if(st.showPayout&&st.payout&&st.payout.length){
+    document.getElementById('latereg-box').style.display='none';
+    document.getElementById('payout-box').style.display='block';
+    document.getElementById('payout-rows').innerHTML=st.payout.join(' - ');
+  } else {
+    document.getElementById('latereg-box').style.display='block';
+    document.getElementById('payout-box').style.display='none';
+    window._lateRegCustom=st.lateReg&&st.lateReg!=='–';
+    if(window._lateRegCustom) document.getElementById('s-latereg').textContent=st.lateReg;
+  }
+
+  // Break overlay
+  const bo=document.getElementById('break-overlay');
+  if(isBreak){
+    bo.classList.add('show');
+    document.getElementById('break-clock').textContent=fmtT(st.timeLeft||0);
+    const nextReal=lvs.slice(li+1).find(x=>!x.isBreak);
+    document.getElementById('break-next').textContent=nextReal?('NEXT: '+fmtN(nextReal.sb)+' / '+fmtN(nextReal.bb)+' ANTE '+fmtN(nextReal.ante)):'FINAL';
+    const bt=st.timeLeft||0;
+    document.getElementById('break-clock').style.color=bt<=60?'#ff2020':bt<=180?'#ff8c00':'#fff';
+  } else bo.classList.remove('show');
+
+  // Clock
+  const t=st.timeLeft||0;
+  const clk=document.getElementById('clock');
+  clk.textContent=fmtT(t);
+  clk.className='clock'+(t<=60?' danger':t<=180?' warn':'');
+  document.getElementById('paused-lbl').className='paused-lbl'+(st.running?'':' show');
+
+  // Level number
+  let realN=0; for(let i=0;i<=li;i++) if(!lvs[i]?.isBreak) realN++;
+  document.getElementById('c-level').textContent=realN||1;
+
+  // Blinds
+  document.getElementById('c-sb').textContent=fmtN(lv.sb||0);
+  document.getElementById('c-bb').textContent=fmtN(lv.bb||0);
+  document.getElementById('c-ante').textContent=fmtN(lv.ante||0);
+
+  // Next blinds
+  const nextReal=lvs.slice(li+1).find(x=>!x.isBreak);
+  const nextBreak=!isBreak&&lvs[li+1]?.isBreak?lvs[li+1]:null;
+  let nextTxt='–';
+  if(nextBreak) nextTxt='BREAK ('+fmtT((nextBreak.duration||10)*60)+')';
+  else if(nextReal) nextTxt=fmtN(nextReal.sb)+' – '+fmtN(nextReal.bb)+' ('+fmtN(nextReal.ante)+')';
+  document.getElementById('c-next').textContent=nextTxt;
+}
+
+async function poll(){
+  try{
+    const r=await fetch(API+'/clock');
+    const st=await r.json();
+    if(st.updatedAt!==lastUpdate){lastUpdate=st.updatedAt;
+      // Fetch tournament stats để update players, stacks
+      try{
+        const rStats=await fetch(API+'/tournament/stats');
+        const stats=await rStats.json();
+        st.players=stats.playersOnTables||0;
+        st.totalPlayers=stats.totalPlayers||0;
+        st.buyIn=stats.buyIns||0;
+        st.rebuy=stats.reBuys||0;
+        // Calculate total stack = (buy-ins × starting stack) + (re-buys × re-buy stack)
+        const sstack=st.startingStack||50000;
+        const rstack=st.rebuyStack||50000;
+        st.totalStack=(stats.buyIns||0)*sstack+(stats.reBuys||0)*rstack;
+      }catch(e){}
+      render(st);
+    }
+  }catch(e){}
+}
+poll();setInterval(poll,1000);
+
+// Cập nhật giờ hiện tại mỗi giây
+setInterval(()=>{
+  const el=document.getElementById('s-latereg');
+  if(el&&(!window._lateRegCustom)){
+    const now=new Date();
+    el.textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+  }
+},1000);
+</script>
+</body>
+</html>

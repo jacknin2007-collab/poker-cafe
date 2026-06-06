@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Báo cáo – Golden Coffee</title>
+<link rel="manifest" href="/report-manifest.json"/>
+<meta name="theme-color" content="#1a1400"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="GC Báo cáo"/>
+<link rel="apple-touch-icon" href="/apple-icon.png"/>
+<link rel="icon" type="image/png" href="/apple-icon.png"/>
+<style>
+:root{
+  --bg:#1a1400;--surface:#2a2000;--surface2:#332800;
+  --border:#4a3800;--border2:#5c4800;--gold:#f0c040;--gold-dim:#3d2e00;
+  --gold-mid:#d4a020;--gold-light:#ffe080;--text:#fff8e0;--text2:#c8b878;
+  --text3:#806840;--green:#22c97a;--green-bg:#002818;--green-border:#1a6040;
+  --red:#ff5555;--red-bg:#2a0808;--red-border:#6a2020;
+  --blue:#60a8ff;--blue-bg:#08142a;--blue-border:#1a3868;
+  --purple:#c080ff;--purple-bg:#180828;--purple-border:#4a1878;
+  --radius:8px;--radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:15px;}
+.header{background:var(--surface);border-bottom:2px solid var(--gold-dim);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;}
+.header img{width:34px;height:34px;object-fit:contain;}
+.h-title{flex:1;}.h-name{font-size:17px;font-weight:800;color:var(--gold);}
+.h-line{height:1.5px;background:linear-gradient(90deg,var(--gold),transparent);margin:2px 0;}
+.h-sub{font-size:10px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;}
+.body{padding:14px;max-width:480px;margin:0 auto;padding-bottom:40px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:12px;}
+.card-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.metric-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;}
+.metric-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:4px;}
+.metric-val{font-size:22px;font-weight:900;color:var(--text);}.gold{color:var(--gold);}
+input,select{width:100%;padding:0 11px;font-size:14px;height:38px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-family:inherit;outline:none;margin-bottom:8px;}
+input:focus,select:focus{border-color:var(--gold);}input::placeholder{color:var(--text3);}select option{background:var(--surface2);}
+.btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;font-size:14px;font-weight:700;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;color:var(--text2);font-family:inherit;width:100%;margin-bottom:6px;}
+.btn:active{opacity:0.7;}.btn-gold{background:var(--gold);color:#1a1000;border-color:var(--gold-mid);}
+.btn-red{background:var(--red-bg);color:var(--red);border-color:var(--red-border);}
+.btn-sm{padding:7px 12px;font-size:13px;width:auto;margin:0;}
+.btn-row{display:flex;gap:8px;}
+.tx-row{display:flex;justify-content:space-between;padding:7px 0;font-size:13px;border-bottom:1px solid var(--border);}
+.tx-row:last-child{border-bottom:none;}.tx-time{color:var(--text3);flex:1;padding-right:8px;font-size:12px;}
+.tx-amt{font-weight:700;color:var(--green);flex-shrink:0;}
+.li{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;}
+.li:last-child{border-bottom:none;}.empty-msg{font-size:13px;color:var(--text3);padding:4px 0;}
+#login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;}
+.login-logo{width:90px;height:90px;object-fit:contain;margin-bottom:16px;filter:drop-shadow(0 0 16px rgba(240,192,64,0.4));}
+.login-title{font-size:26px;font-weight:900;color:var(--gold);margin-bottom:2px;}
+.login-sub{font-size:11px;color:var(--text3);letter-spacing:0.15em;margin-bottom:24px;}
+.login-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:20px;width:100%;max-width:340px;}
+.cust-row{border-bottom:1px solid var(--border);}.cust-header{display:flex;align-items:center;gap:8px;padding:9px 0;}
+.cust-info{flex:1;min-width:0;}.cust-name-sm{font-size:14px;font-weight:700;}.cust-stats{font-size:12px;color:var(--text3);margin-top:2px;}
+.edit-panel{display:none;background:var(--surface2);border-radius:var(--radius);padding:10px;margin-bottom:8px;}
+.edit-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;}
+.edit-cell{text-align:center;background:var(--surface);border-radius:6px;padding:6px 2px;}
+.edit-label{font-size:9px;font-weight:700;letter-spacing:0.04em;margin-bottom:2px;}
+.edit-val{font-size:15px;font-weight:900;margin-bottom:3px;}
+.edit-btns{display:flex;gap:2px;justify-content:center;}
+.ebt{padding:3px 8px;font-size:13px;font-weight:700;border-radius:5px;border:1px solid;cursor:pointer;font-family:inherit;}
+.ebt-m{background:var(--red-bg);color:var(--red);border-color:var(--red-border);}
+.ebt-p{background:var(--gold);color:#1a1000;border-color:var(--gold-mid);}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;align-items:flex-start;justify-content:center;padding:60px 16px;}
+.overlay.show{display:flex;}.dialog{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:20px;width:100%;max-width:340px;}
+.dlg-title{font-size:16px;font-weight:800;margin-bottom:6px;}.dlg-body{font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5;}
+.status-bar{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;font-size:12px;display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}.dot-green{background:var(--green);}.dot-red{background:var(--red);}.dot-amber{background:var(--gold);}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 18px;font-size:14px;font-weight:600;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}.toast.success{border-color:var(--green-border);color:var(--green);background:var(--green-bg);}
+.toast.error{border-color:var(--red-border);color:var(--red);background:var(--red-bg);}
+.loading{display:flex;align-items:center;gap:8px;color:var(--text3);font-size:13px;padding:8px 0;}
+.spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <img src="/logo.png" class="login-logo" alt="" onerror="this.style.display='none'"/>
+  <div class="login-title">Golden Coffee</div>
+  <div class="login-sub">BÁO CÁO & QUẢN LÝ</div>
+  <div class="login-box">
+    <input type="password" id="pass-input" placeholder="Nhập mật khẩu..." onkeydown="if(event.key==='Enter')doLogin()"/>
+    <div style="color:var(--red);font-size:13px;margin-bottom:8px;min-height:18px;" id="pass-err"></div>
+    <button class="btn btn-gold" onclick="doLogin()">🔐 Đăng nhập</button>
+  </div>
+</div>
+
+<div id="report-screen" style="display:none;">
+  <div class="header">
+    <img src="/logo.png" alt="" onerror="this.style.display='none'"/>
+    <div class="h-title"><div class="h-name">Golden Coffee</div><div class="h-line"></div><div class="h-sub">Báo cáo</div></div>
+    <button class="btn btn-sm" onclick="doLogout()">Thoát</button>
+  </div>
+  <div class="body">
+    <div class="status-bar" id="conn-status">
+      <div class="status-dot dot-amber" id="conn-dot"></div>
+      <span id="conn-text">Đang kết nối...</span>
+      <button class="btn btn-sm" style="margin-left:auto;padding:4px 10px;font-size:11px;" onclick="loadAll()">↺ Làm mới</button>
+    </div>
+    <div class="metric-grid">
+      <div class="metric-card"><div class="metric-label">Bàn thường</div><div class="metric-val" id="table-normal">--</div></div>
+      <div class="metric-card"><div class="metric-label">Bàn tour</div><div class="metric-val" id="table-tour">--</div></div>
+      <div class="metric-card"><div class="metric-label">Hàng chờ thường</div><div class="metric-val" id="queue-normal">--</div></div>
+      <div class="metric-card"><div class="metric-label">Hàng chờ tour</div><div class="metric-val" id="queue-tour">--</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tiêu thụ kho hôm nay</div>
+      <div id="stock-consumed"><div class="empty-msg">Chưa có</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Toàn bộ khách hàng</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input id="cust-search" placeholder="Nhập ID hoặc tên..." autocomplete="off" style="margin:0;flex:1;"/>
+        <button class="btn btn-gold btn-sm" onclick="searchCustomers()" style="flex-shrink:0;margin:0;">🔍 Search</button>
+      </div>
+      <div id="cust-list"><div class="empty-msg">Nhập và bấm Search để tìm khách hàng</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Tự động dò URL server
+// - Nếu mở qua ngrok → dùng ngrok URL
+// - Nếu mở qua IP local → dùng IP đó
+// - Nếu localhost → dùng localhost
+const API = window.location.hostname.includes('ngrok')
+  ? `https://${window.location.hostname}/api`
+  : `http://192.168.1.146:3000/api`;
+const OWNER_PASS='19842007';
+const RESET_PASS='20071984';
+
+let transactions=[],stock=[],customers=[],tableState=null;
+const fmtAmt=n=>Number(n).toLocaleString('vi')+' ₫';
+const todayISO=()=>new Date().toISOString().slice(0,10);
+
+function showToast(msg,type='success'){const el=document.getElementById('toast');el.textContent=msg;el.className='toast show '+type;setTimeout(()=>el.className='toast',2500);}
+function closeDlg(id){document.getElementById(id).classList.remove('show');}
+function openDlg(id){document.getElementById(id).classList.add('show');}
+
+async function apiGet(path){
+  try{
+    const r=await fetch(API+path,{signal:AbortSignal.timeout(8000)});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return await r.json();
+  }catch(e){setConnStatus('error','Lỗi: '+e.message);return null;}
+}
+async function apiPut(path,body){
+  try{const r=await fetch(API+path,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});return await r.json();}
+  catch(e){showToast('Lỗi lưu','error');return null;}
+}
+
+function setConnStatus(state,text){
+  document.getElementById('conn-text').textContent=text;
+  document.getElementById('conn-dot').className='status-dot '+(state==='ok'?'dot-green':state==='error'?'dot-red':'dot-amber');
+}
+
+function doLogin(){
+  if(document.getElementById('pass-input').value===OWNER_PASS){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('report-screen').style.display='block';
+    loadAll();
+  }else{document.getElementById('pass-err').textContent='Sai mật khẩu!';}
+}
+function doLogout(){
+  document.getElementById('report-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('pass-input').value='';
+  document.getElementById('pass-err').textContent='';
+}
+
+async function loadAll(){
+  setConnStatus('amber','Đang kết nối...');
+  const [stk,custs,ts]=await Promise.all([apiGet('/stock'),apiGet('/customers'),apiGet('/table-state').catch(()=>null)]);
+  if(!stk&&!custs){setConnStatus('error','Không kết nối được — kiểm tra cùng WiFi');return;}
+  setConnStatus('ok','OK · '+new Date().toLocaleTimeString('vi'));
+  if(stk)stock=stk;
+  if(custs)customers=custs;
+  if(ts)tableState=ts;
+
+  // Cleanup khách hàng 3 tháng không tăng top
+  try {
+    await fetch(API+'/customers/cleanup',{method:'POST'});
+  } catch(e) {}
+
+  renderMetrics();renderStockConsumed();
+  document.getElementById('cust-list').innerHTML='<div class="empty-msg">Nhập và bấm Search để tìm khách hàng</div>';
+}
+
+function searchCustomers(){
+  const val=document.getElementById('cust-search').value.trim();
+  if(!val){
+    document.getElementById('cust-list').innerHTML='<div class="empty-msg">Nhập ID hoặc tên để tìm</div>';
+    return;
+  }
+  const v=val.toLowerCase();
+  const filtered=customers.filter(c=>c.phone.includes(v)||c.name.toLowerCase().includes(v));
+  renderCustomers(filtered);
+}
+
+function renderMetrics(){
+  if(tableState){
+    const normal=tableState.tablesNormal||[];
+    const tour=tableState.tablesTour||[];
+    const normalActive=normal.filter(t=>t.status==='active').length;
+    const tourActive=tour.filter(t=>t.status==='active').length;
+
+    document.getElementById('table-normal').textContent=normalActive+'/3';
+    document.getElementById('table-tour').textContent=tourActive+'/3';
+    document.getElementById('queue-normal').textContent=(tableState.queue||[]).length;
+    document.getElementById('queue-tour').textContent=(tableState.queueTour||[]).length;
+  }
+}
+
+
+async function renderStockConsumed(){
+  try{
+    const rows=await apiGet('/stock-daily');
+    document.getElementById('stock-consumed').innerHTML=(rows&&rows.length)
+      ?rows.map(s=>`<div class="li"><span style="font-weight:700;">${s.name}</span><span style="display:flex;align-items:center;gap:8px;"><span style="font-weight:800;color:var(--red);">−${s.qty}</span>${s.price?`<span style="font-size:12px;color:var(--text3);">${fmtAmt(s.qty*s.price)}</span>`:''}</span></div>`).join('')
+      :'<div class="empty-msg">Chưa có hôm nay</div>';
+  }catch(e){
+    document.getElementById('stock-consumed').innerHTML='<div class="empty-msg">Chưa có hôm nay</div>';
+  }
+}
+
+
+function renderCustomers(list){
+  const el=document.getElementById('cust-list');
+  if(!list.length){el.innerHTML='<div class="empty-msg">Không tìm thấy</div>';return;}
+  const sorted=[...list].sort((a,b)=>(b.rounds||0)-(a.rounds||0));
+  el.innerHTML=`<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">${list.length} khách hàng</div>`
+    +sorted.map(c=>{const last4=c.phone.slice(-4);
+      return `<div class="cust-row"><div class="cust-header"><div class="cust-info"><div class="cust-name-sm">${c.name}</div><div class="cust-stats">···${last4} | 🥇<b style="color:var(--gold);">${c.top1||0}</b> 🥈<b style="color:#ccc;">${c.top2||0}</b> 🥉<b style="color:#e08040;">${c.top3||0}</b> 🎮<b style="color:var(--blue);">${c.rounds||0}</b> 🥤<b style="color:var(--purple);">${c.drinks||0}</b></div></div><div style="display:flex;gap:5px;flex-shrink:0;"><button class="btn btn-sm" onclick="toggleEdit('ep-${c.phone}')">✏️</button><button class="btn btn-sm btn-red" onclick="confirmDeleteCust('${c.phone}','${c.name.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">✕</button></div></div>
+      <div class="edit-panel" id="ep-${c.phone}"><div style="font-size:10px;color:var(--text3);margin-bottom:7px;font-weight:700;">SỬA — ${c.name}</div>
+      <div class="edit-grid">${[{f:'top1',l:'TOP 1',col:'var(--gold)',v:c.top1||0},{f:'top2',l:'TOP 2',col:'#cccccc',v:c.top2||0},{f:'top3',l:'TOP 3',col:'#e08040',v:c.top3||0},{f:'rounds',l:'ROUND',col:'var(--blue)',v:c.rounds||0},{f:'drinks',l:'NƯỚC',col:'var(--purple)',v:c.drinks||0}]
+      .map(x=>`<div class="edit-cell"><div class="edit-label" style="color:${x.col};">${x.l}</div><div class="edit-val" style="color:${x.col};" id="rp-${x.f}-${c.phone}">${x.v}</div><div class="edit-btns"><button class="ebt ebt-m" onclick="rpAdj('${c.phone}','${x.f}',-1)">−</button><button class="ebt ebt-p" onclick="rpAdj('${c.phone}','${x.f}',1)">+</button></div></div>`).join('')}
+      </div></div></div>`;
+    }).join('');
+}
+function toggleEdit(id){const el=document.getElementById(id);if(el)el.style.display=el.style.display==='none'?'block':'none';}
+
+function confirmDeleteCust(phone, name){
+  if(confirm(`Xác nhận xóa khách hàng "${name}"?\n\nThao tác này không thể hoàn tác.`)){
+    deleteCust(phone, name);
+  }
+}
+
+async function deleteCust(phone, name){
+  try{
+    const r=await fetch(API+'/customers/'+phone,{method:'DELETE'});
+    const data=await r.json();
+    if(data.ok){
+      customers=customers.filter(c=>c.phone!==phone);
+      renderCustomers(customers);
+      showToast(`Đã xóa ${name}`);
+    }else{
+      showToast('Lỗi xóa khách hàng','error');
+    }
+  }catch(e){showToast('Lỗi kết nối','error');}
+}
+async function rpAdj(phone,field,delta){
+  const c=customers.find(x=>x.phone===phone);if(!c)return;
+  const nv=Math.max(0,(c[field]||0)+delta);c[field]=nv;
+  const el=document.getElementById(`rp-${field}-${phone}`);if(el)el.textContent=nv;
+  await apiPut('/customers/'+phone,{top1:c.top1||0,top2:c.top2||0,top3:c.top3||0,rounds:c.rounds||0,drinks:c.drinks||0});
+  // Thêm nút OK nếu chưa có
+  const panelId=`ep-${phone}`;
+  const okId=`ok-btn-${phone}`;
+  if(!document.getElementById(okId)){
+    const btn=document.createElement('button');
+    btn.id=okId;
+    btn.textContent='✓ OK';
+    btn.className='btn btn-gold';
+    btn.style.cssText='margin-top:8px;margin-bottom:0;';
+    btn.onclick=()=>{
+      document.getElementById(panelId).style.display='none';
+    };
+    document.getElementById(panelId)?.appendChild(btn);
+  }
+}
+
+// Auto-refresh mỗi 10 giây
+setInterval(async()=>{
+  if(document.getElementById('report-screen').style.display==='none')return;
+  const [stk,ts]=await Promise.all([apiGet('/stock'),apiGet('/table-state').catch(()=>null)]);
+  if(stk)stock=stk;
+  if(ts)tableState=ts;
+  renderMetrics();
+  await renderStockConsumed();
+},10000);
+</script>
+</body>
+</html>

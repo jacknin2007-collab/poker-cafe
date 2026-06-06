@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Dealer – Golden Coffee</title>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="GC Dealer"/>
+<meta name="theme-color" content="#1a1400"/>
+<link rel="apple-touch-icon" href="/apple-icon.png"/>
+<style>
+:root{
+  --bg:#1a1400;--surface:#2a2000;--surface2:#332800;
+  --border:#4a3800;--border2:#5c4800;--gold:#f0c040;--gold-dim:#3d2e00;
+  --gold-mid:#d4a020;--text:#fff8e0;--text2:#c8b878;--text3:#806840;
+  --green:#22c97a;--green-bg:#002818;--green-border:#1a6040;
+  --red:#ff5555;--red-bg:#2a0808;--red-border:#6a2020;
+  --blue:#60a8ff;--blue-bg:#08142a;--blue-border:#1a3868;
+  --purple:#c080ff;--purple-bg:#180828;--purple-border:#4a1878;
+  --radius:8px;--radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:15px;}
+.header{background:var(--surface);border-bottom:2px solid var(--gold-dim);padding:10px 14px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:10;}
+.header img{width:30px;height:30px;object-fit:contain;}
+.h-name{font-size:15px;font-weight:800;color:var(--gold);flex:1;}
+.h-dealer{font-size:12px;font-weight:700;color:var(--green);background:var(--green-bg);border:1px solid var(--green-border);padding:3px 10px;border-radius:20px;}
+.body{padding:12px;max-width:480px;margin:0 auto;padding-bottom:60px;}
+/* TAB */
+.tab-bar{display:flex;gap:6px;margin-bottom:12px;}
+.tab-btn{flex:1;padding:9px;font-size:13px;font-weight:700;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;color:var(--text3);font-family:inherit;text-align:center;}
+.tab-btn.active{background:var(--gold);color:#1a1000;border-color:var(--gold-mid);}
+.tab-btn.active.tour{background:#c080ff;color:#100818;border-color:#4a1878;}
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:10px;}
+.card-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;}
+/* SEATS */
+.seats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.seat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 4px;text-align:center;cursor:pointer;transition:all 0.15s;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;}
+.seat:active{opacity:0.7;}
+.seat.occ{background:var(--gold-dim);border-color:var(--border2);}
+.seat.move-src{border:2px solid #c080ff;opacity:0.5;}
+.seat.move-tgt{border:2px dashed #c080ff;background:#100818;animation:blink 1s ease-in-out infinite;}
+@keyframes blink{0%,100%{border-color:#c080ff;}50%{border-color:transparent;}}
+.seat-num{font-size:10px;color:var(--text3);}
+.seat-name{font-size:12px;font-weight:700;color:var(--gold);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px;}
+.seat-empty{font-size:11px;color:var(--border2);}
+/* MOVE BANNER */
+.move-banner{background:#1a0828;border:2px solid #c080ff;border-radius:var(--radius);padding:9px 12px;margin-bottom:10px;font-size:13px;font-weight:700;color:#c080ff;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+/* STATUS */
+.status-bar{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;font-size:12px;display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dot-g{background:var(--green);}.dot-a{background:var(--gold);}.dot-r{background:var(--red);}
+/* OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;align-items:flex-end;justify-content:center;}
+.overlay.show{display:flex;}
+.sheet{background:var(--surface);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;border-top:2px solid var(--border2);max-height:85vh;overflow-y:auto;}
+.sheet-title{font-size:16px;font-weight:800;margin-bottom:4px;}
+.sheet-sub{font-size:12px;color:var(--text3);margin-bottom:14px;}
+/* BTN */
+.btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:10px 14px;font-size:14px;font-weight:700;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;color:var(--text2);font-family:inherit;width:100%;margin-bottom:6px;}
+.btn:active{opacity:0.7;}
+.btn-gold{background:var(--gold);color:#1a1000;border-color:var(--gold-mid);}
+.btn-red{background:var(--red-bg);color:var(--red);border-color:var(--red-border);}
+.btn-green{background:var(--green-bg);color:var(--green);border-color:var(--green-border);}
+.btn-blue{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-border);}
+.btn-sm{padding:6px 12px;font-size:12px;width:auto;margin:0;}
+.btn-row{display:flex;gap:6px;}
+/* INPUT */
+input,select{width:100%;padding:0 11px;font-size:14px;height:38px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-family:inherit;outline:none;margin-bottom:8px;}
+input:focus{border-color:var(--gold);}input::placeholder{color:var(--text3);}
+/* LOGIN */
+#login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;}
+.login-logo{width:80px;height:80px;object-fit:contain;margin-bottom:16px;filter:drop-shadow(0 0 16px rgba(240,192,64,0.4));}
+.login-title{font-size:24px;font-weight:900;color:var(--gold);margin-bottom:2px;}
+.login-sub{font-size:11px;color:var(--text3);letter-spacing:0.15em;margin-bottom:24px;}
+.login-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:20px;width:100%;max-width:340px;}
+/* TOP */
+.top-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px;}
+.top-btn{padding:10px 4px;text-align:center;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;}
+.top-btn:active{opacity:0.7;}
+.top-btn.t1{color:var(--gold);border-color:var(--gold-mid);}
+.top-btn.t2{color:#ccc;border-color:#555;}
+.top-btn.t3{color:#e08040;border-color:#804020;}
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 18px;font-size:14px;font-weight:600;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+.toast.s{border-color:var(--green-border);color:var(--green);background:var(--green-bg);}
+.toast.e{border-color:var(--red-border);color:var(--red);background:var(--red-bg);}
+.empty-msg{font-size:13px;color:var(--text3);text-align:center;padding:8px 0;}
+.spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sugg-item{padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;margin-bottom:4px;cursor:pointer;font-size:13px;}
+.sugg-item:active{background:var(--border);}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <img src="/logo.png" class="login-logo" alt="" onerror="this.style.display='none'"/>
+  <div class="login-title">Golden Coffee</div>
+  <div class="login-sub">DEALER APP</div>
+  <div class="login-box">
+    <div style="font-size:13px;color:var(--text3);margin-bottom:8px;">Chọn dealer:</div>
+    <select id="dealer-select" style="margin-bottom:12px;"><option value="">-- Chọn --</option></select>
+    <div style="color:var(--red);font-size:13px;margin-bottom:8px;min-height:18px;" id="login-err"></div>
+    <button class="btn btn-gold" onclick="doLogin()">✅ Vào làm việc</button>
+  </div>
+</div>
+
+<div id="main-screen" style="display:none;">
+  <div class="header">
+    <img src="/logo.png" alt="" onerror="this.style.display='none'"/>
+    <div class="h-name">Golden Coffee</div>
+    <div class="h-dealer" id="dealer-badge">Dealer</div>
+    <button class="btn btn-sm" style="margin-left:6px;" onclick="doLogout()">Thoát</button>
+  </div>
+  <div class="body">
+    <div class="status-bar">
+      <div class="dot dot-a" id="conn-dot"></div>
+      <span id="conn-text">Đang kết nối...</span>
+      <button class="btn btn-sm" style="margin-left:auto;padding:4px 8px;font-size:11px;" onclick="loadState()">↺</button>
+    </div>
+    <!-- Tab bàn thường / tour -->
+    <div class="tab-bar">
+      <div class="tab-btn active" id="tab-normal" onclick="switchTableTab('normal')">🎮 Bàn thường</div>
+      <div class="tab-btn" id="tab-tour" onclick="switchTableTab('tour')">🏆 Bàn tour</div>
+    </div>
+    <div class="move-banner" id="move-banner" style="display:none;">
+      <span>✋ Chuyển: <b id="move-name-txt"></b></span>
+      <button class="btn btn-sm btn-red" onclick="cancelMove()">Huỷ</button>
+    </div>
+    <div id="tables-area"><div style="text-align:center;padding:20px;"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
+<!-- SEAT MENU -->
+<div class="overlay" id="seat-overlay">
+  <div class="sheet">
+    <div class="sheet-title" id="sh-title">Ghế</div>
+    <div class="sheet-sub" id="sh-sub"></div>
+    <div id="sh-actions"></div>
+    <button class="btn" onclick="closeSheet('seat-overlay')">Đóng</button>
+  </div>
+</div>
+
+<!-- ADD PLAYER -->
+<div class="overlay" id="add-overlay">
+  <div class="sheet">
+    <div class="sheet-title">➕ Cho khách ngồi</div>
+    <div class="sheet-sub" id="add-sub"></div>
+    <input id="add-name" placeholder="Tên khách..." autocomplete="off" autocapitalize="words" oninput="suggestNames(this.value)"/>
+    <div id="add-sugg"></div>
+    <div class="btn-row">
+      <button class="btn btn-gold" style="flex:1;" onclick="confirmAdd()">✅ Xác nhận</button>
+      <button class="btn" style="flex:1;" onclick="closeSheet('add-overlay')">Huỷ</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOP SELECTION (chỉ bàn thường) -->
+<div class="overlay" id="top-overlay">
+  <div class="sheet">
+    <div class="sheet-title">🏆 Chọn Top</div>
+    <div class="sheet-sub" id="top-sub">Chọn top cho người chơi</div>
+    <div class="top-grid" id="top-grid"></div>
+    <button class="btn" onclick="closeSheet('top-overlay')">Đóng</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Auto-detect API URL — cùng WiFi dùng IP máy chủ
+const API=`http://${window.location.hostname}:3000/api`;
+
+let dealerName='', myTables=[], tableState=null, allCustomers=[];
+let moveMode=null, addTarget=null, topTarget=null;
+let activeTableTab='normal'; // 'normal' | 'tour'
+let pollTimer=null;
+
+function showToast(msg,type='s'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='toast show '+type;
+  setTimeout(()=>el.className='toast',2500);
+}
+function closeSheet(id){document.getElementById(id).classList.remove('show');}
+function openSheet(id){document.getElementById(id).classList.add('show');}
+
+async function api(path,opts={}){
+  try{
+    const r=await fetch(API+path,{...opts,signal:AbortSignal.timeout(6000)});
+    const json=await r.json();
+    if(!r.ok){console.error('[API ERROR]',path,r.status,json);return null;}
+    return json;
+  }catch(e){console.error('[API CATCH]',path,e.message);return null;}
+}
+
+function setConn(state,text){
+  document.getElementById('conn-dot').className='dot '+(state==='ok'?'dot-g':state==='error'?'dot-r':'dot-a');
+  document.getElementById('conn-text').textContent=text;
+}
+
+// ── LOGIN ──────────────────────────────────────────────────────
+async function initLogin(){
+  const dealers=await api('/dealers');
+  if(!dealers){document.getElementById('login-err').textContent='Không kết nối được server!';return;}
+  const sel=document.getElementById('dealer-select');
+  dealers.forEach(d=>{
+    const o=document.createElement('option');
+    o.value=d.name;
+    const tableNames=d.tables.map(id=>{
+      if(id<=3)return 'Bàn '+id;
+      return 'Tour '+(id-3);
+    }).join(', ');
+    o.textContent=d.name+' ('+tableNames+')';
+    sel.appendChild(o);
+  });
+}
+
+function doLogin(){
+  const val=document.getElementById('dealer-select').value;
+  if(!val){document.getElementById('login-err').textContent='Vui lòng chọn!';return;}
+  dealerName=val;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('main-screen').style.display='block';
+  document.getElementById('dealer-badge').textContent=dealerName;
+  loadAll();
+  pollTimer=setInterval(loadState,2000);
+}
+
+function doLogout(){
+  clearInterval(pollTimer);dealerName='';myTables=[];tableState=null;moveMode=null;
+  document.getElementById('main-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+
+async function loadAll(){
+  const info=await api('/dealers/'+encodeURIComponent(dealerName)+'/tables');
+  if(info)myTables=info.tables;
+  const custs=await api('/customers');
+  if(custs)allCustomers=custs;
+  await loadState();
+}
+
+async function loadState(){
+  const state=await api('/table-state');
+  if(!state){setConn('error','Mất kết nối');return;}
+  setConn('ok',new Date().toLocaleTimeString('vi'));
+  if(state.updatedAt&&state.updatedAt===(window._dealerLastUpdate||0))return;
+  window._dealerLastUpdate=state.updatedAt;
+  tableState=state;renderTables();
+}
+
+// ── SYNC DATA BETWEEN APPS ────────────────────────────────────────
+async function refreshAllCustomers(){
+  const custs=await api('/customers');
+  if(custs)allCustomers=custs;
+}
+
+// Auto-refresh data mỗi 3 giây để sync với app khác
+setInterval(refreshAllCustomers, 3000);
+
+// ── TAB ────────────────────────────────────────────────────────
+function switchTableTab(tab){
+  activeTableTab=tab;
+  document.getElementById('tab-normal').className='tab-btn'+(tab==='normal'?' active':'');
+  document.getElementById('tab-tour').className='tab-btn'+(tab==='tour'?' active tour':'');
+  cancelMove();
+  renderTables();
+}
+
+// ── RENDER ─────────────────────────────────────────────────────
+function getMyTablesForTab(){
+  const allT=[...(tableState?.tablesNormal||[]),...(tableState?.tablesTour||[])];
+  return allT.filter(t=>myTables.includes(t.id)&&t.type===(activeTableTab==='normal'?'normal':'tour'));
+}
+
+function renderTables(){
+  if(!tableState){document.getElementById('tables-area').innerHTML='<div class="empty-msg">Đang tải...</div>';return;}
+  const tabs=getMyTablesForTab();
+  if(!tabs.length){document.getElementById('tables-area').innerHTML='<div class="empty-msg">Không có bàn '+(activeTableTab==='normal'?'thường':'tour')+' nào</div>';return;}
+  document.getElementById('tables-area').innerHTML=tabs.map(t=>`
+    <div class="card">
+      <div class="card-title">${t.name} ${t.status==='active'?'<span style="color:var(--green);">● Đang mở</span>':'<span style="color:var(--text3);">○ Chưa mở</span>'}</div>
+      ${t.status!=='active'?'<div class="empty-msg">Bàn chưa mở</div>':`<div class="seats-grid">${t.seats.map((n,si)=>renderSeat(t,si,n)).join('')}</div>`}
+    </div>`).join('');
+}
+
+function renderSeat(t,si,name){
+  const isSrc=moveMode&&moveMode.fromTableId===t.id&&moveMode.fromSeatIndex===si;
+  const isTgt=moveMode&&!isSrc;
+  if(isSrc)return`<div class="seat move-src"><div class="seat-num">G${si+1}</div><div class="seat-name" style="color:#c080ff;">${name}</div></div>`;
+  if(name){
+    if(isTgt)return`<div class="seat occ move-tgt" onclick="doMoveTo(${t.id},${si})"><div class="seat-num">G${si+1}</div><div class="seat-name">${name}</div></div>`;
+    return`<div class="seat occ" onclick="openSeatMenu(${t.id},${si},'${name.replace(/'/g,"\\'")}','${t.type}')"><div class="seat-num">G${si+1}</div><div class="seat-name">${name}</div></div>`;
+  }
+  if(isTgt)return`<div class="seat move-tgt" onclick="doMoveTo(${t.id},${si})"><div class="seat-num">G${si+1}</div><div class="seat-empty">↓ Chuyển vào</div></div>`;
+  return`<div class="seat" onclick="openEmptySeat(${t.id},${si})"><div class="seat-num">G${si+1}</div><div class="seat-empty">+ Trống</div></div>`;
+}
+
+// ── SEAT MENU ──────────────────────────────────────────────────
+let activeSeat=null;
+
+function openSeatMenu(tableId,seatIndex,name,tableType){
+  if(moveMode){doMoveTo(tableId,seatIndex);return;}
+  activeSeat={tableId,seatIndex,name,tableType};
+  document.getElementById('sh-title').textContent='Ghế '+(seatIndex+1)+' — '+name;
+  document.getElementById('sh-sub').textContent='Chọn hành động:';
+  const isNormal=tableType==='normal';
+  document.getElementById('sh-actions').innerHTML=`
+    <button class="btn btn-red" onclick="outPlayer()">🚪 Out khỏi bàn</button>
+    <button class="btn btn-blue" onclick="startMove()">↕ Chuyển bàn / đổi ghế</button>
+    ${isNormal?`<button class="btn btn-gold" onclick="openTopSelect('${name.replace(/'/g,"\\'")}','${tableId}')">🏆 Chọn Top</button>`:''}
+  `;
+  openSheet('seat-overlay');
+}
+
+function openEmptySeat(tableId,seatIndex){
+  if(moveMode){doMoveTo(tableId,seatIndex);return;}
+  addTarget={tableId,seatIndex};
+  const allT=[...(tableState.tablesNormal||[]),...(tableState.tablesTour||[])];
+  const t=allT.find(x=>x.id===tableId);
+  document.getElementById('add-sub').textContent=(t?.name||'')+' — Ghế '+(seatIndex+1);
+  document.getElementById('add-name').value='';
+  document.getElementById('add-sugg').innerHTML='';
+  openSheet('add-overlay');
+  setTimeout(()=>document.getElementById('add-name').focus(),200);
+}
+
+function outPlayer(){
+  closeSheet('seat-overlay');
+  const {tableId,seatIndex,name}=activeSeat;
+  if(!confirm(`Out "${name}" khỏi bàn?`))return;
+  updateSeat(tableId,seatIndex,'');
+  showToast(name+' đã out');
+}
+
+function startMove(){
+  closeSheet('seat-overlay');
+  moveMode={...activeSeat,fromTableId:activeSeat.tableId,fromSeatIndex:activeSeat.seatIndex};
+  document.getElementById('move-name-txt').textContent=activeSeat.name;
+  document.getElementById('move-banner').style.display='flex';
+  renderTables();
+}
+
+function cancelMove(){
+  moveMode=null;
+  document.getElementById('move-banner').style.display='none';
+  renderTables();
+}
+
+function doMoveTo(toTableId,toSeatIndex){
+  if(!moveMode)return;
+  const {fromTableId,fromSeatIndex,name}=moveMode;
+  const allT=[...(tableState.tablesNormal||[]),...(tableState.tablesTour||[])];
+  const toTable=allT.find(x=>x.id===toTableId);
+  const existing=toTable?.seats[toSeatIndex]||'';
+  updateSeat(toTableId,toSeatIndex,name);
+  updateSeat(fromTableId,fromSeatIndex,existing);
+  cancelMove();
+  showToast(`${name} → ${toTable?.name||''} G${toSeatIndex+1}`);
+}
+
+// ── ADD PLAYER ─────────────────────────────────────────────────
+function suggestNames(val){
+  const v=val.toLowerCase().trim();
+  const el=document.getElementById('add-sugg');
+  if(!v){el.innerHTML='';return;}
+  const matches=allCustomers.filter(c=>c.name.toLowerCase().includes(v)||c.phone.includes(v)).slice(0,5);
+  el.innerHTML=matches.map(c=>`<div class="sugg-item" onclick="selectName('${c.name.replace(/'/g,"\\'")}')"><b>${c.name}</b> <span style="color:var(--text3);">···${c.phone.slice(-4)}</span></div>`).join('');
+}
+
+function selectName(name){
+  document.getElementById('add-name').value=name;
+  document.getElementById('add-sugg').innerHTML='';
+}
+
+function confirmAdd(){
+  const name=document.getElementById('add-name').value.trim();
+  if(!name){showToast('Nhập tên khách!','e');return;}
+  closeSheet('add-overlay');
+  updateSeat(addTarget.tableId,addTarget.seatIndex,name);
+  showToast(name+' đã ngồi G'+(addTarget.seatIndex+1));
+}
+
+// ── TOP (chỉ bàn thường) ───────────────────────────────────────
+function openTopSelect(name,tableId){
+  closeSheet('seat-overlay');
+  topTarget={name,tableId};
+  document.getElementById('top-sub').textContent='Trao top cho: '+name;
+  document.getElementById('top-grid').innerHTML=`
+    <button class="top-btn t1" onclick="giveTop('${name.replace(/'/g,"\\'")}',1)">🥇 Top 1<br><span style="font-size:11px;font-weight:400;color:var(--text3);">+2R +2N</span></button>
+    <button class="top-btn t2" onclick="giveTop('${name.replace(/'/g,"\\'")}',2)">🥈 Top 2<br><span style="font-size:11px;font-weight:400;color:var(--text3);">+1R +1N</span></button>
+    <button class="top-btn t3" onclick="giveTop('${name.replace(/'/g,"\\'")}',3)">🥉 Top 3<br><span style="font-size:11px;font-weight:400;color:var(--text3);">+1N</span></button>
+  `;
+  openSheet('top-overlay');
+}
+
+async function giveTop(name,topNum){
+  closeSheet('top-overlay');
+  // Fetch dữ liệu mới nhất từ server để tránh xung đột với app index
+  await refreshAllCustomers();
+  const c=allCustomers.find(x=>x.name===name);
+  if(!c){showToast('Không tìm thấy khách!','e');return;}
+  const rewards=topNum===1?{top1:1,top2:0,top3:0,rounds:2,drinks:2}:topNum===2?{top1:0,top2:1,top3:0,rounds:1,drinks:1}:{top1:0,top2:0,top3:1,rounds:0,drinks:1};
+  const c1=(c.top1??0)||0, c2=(c.top2??0)||0, c3=(c.top3??0)||0;
+  const cr=(c.rounds??0)||0, cd=(c.drinks??0)||0;
+  const updated={
+    top1:c1+rewards.top1,
+    top2:c2+rewards.top2,
+    top3:c3+rewards.top3,
+    rounds:cr+rewards.rounds,
+    drinks:cd+rewards.drinks
+  };
+  const r=await api('/customers/'+c.phone,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(updated)
+  });
+  if(r){
+    const bounty = updated.top1*30 + updated.top2*20 + updated.top3*10;
+    showToast(`${name}: Top ${topNum} — Bounty: ${bounty} ✅`);
+    if(activeSeat){updateSeat(activeSeat.tableId,activeSeat.seatIndex,'');}
+    await refreshAllCustomers();
+  }else showToast('Lỗi lưu!','e');
+}
+
+// ── UPDATE SEAT ────────────────────────────────────────────────
+async function updateSeat(tableId,seatIndex,playerName){
+  const allT=[...(tableState?.tablesNormal||[]),...(tableState?.tablesTour||[])];
+  const t=allT.find(x=>x.id===tableId);
+  if(t)t.seats[seatIndex]=playerName||'';
+  renderTables();
+  await api('/dealer/seat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tableId,seatIndex,playerName:playerName||''})});
+  await api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...tableState,updatedAt:Date.now()})});
+}
+
+initLogin();
+</script>
+</body>
+</html>

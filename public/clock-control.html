@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Clock Control – Golden Coffee</title>
+<style>
+:root{
+  --bg:#0f0e14;--surface:#1a1928;--surface2:#22203a;
+  --border:#2e2c4a;--border2:#3e3c5a;
+  --gold:#f0c040;--gold-mid:#d4a020;--gold-dim:#2a2000;
+  --text:#e8e4ff;--text2:#8884aa;--text3:#555570;
+  --green:#22c97a;--green-bg:#001810;--green-border:#0a4028;
+  --red:#ff4444;--red-bg:#1a0808;--red-border:#4a1010;
+  --blue:#60a8ff;--purple:#c080ff;
+  --radius:8px;--radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif;font-size:14px;min-height:100vh;}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;}
+.h-title{font-size:16px;font-weight:800;color:var(--gold);}
+.h-status{font-size:12px;margin-left:auto;font-weight:700;}
+.body{padding:14px;max-width:780px;margin:0 auto;padding-bottom:60px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:12px;}
+.card-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 14px;font-size:13px;font-weight:700;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;color:var(--text2);font-family:inherit;transition:opacity 0.15s;}
+.btn:active{opacity:0.7;}
+.btn-gold{background:var(--gold);color:#1a1000;border-color:var(--gold-mid);}
+.btn-red{background:var(--red-bg);color:var(--red);border-color:var(--red-border);}
+.btn-green{background:var(--green-bg);color:var(--green);border-color:var(--green-border);}
+.btn-blue{background:#08142a;color:var(--blue);border-color:#1a3868;}
+.btn-purple{background:#100820;color:var(--purple);border-color:#3a1868;}
+.btn-lg{padding:14px 20px;font-size:18px;flex:1;}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-full{width:100%;}
+.row{display:flex;gap:8px;flex-wrap:wrap;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+input,select{width:100%;padding:8px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-family:inherit;outline:none;}
+input:focus,select:focus{border-color:var(--gold);}
+label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;font-weight:600;letter-spacing:0.05em;}
+.f-group{margin-bottom:8px;}
+/* BIG CLOCK */
+.big-clock{
+  font-size:56px;font-weight:900;color:var(--gold);
+  text-align:center;letter-spacing:4px;
+  font-family:monospace;padding:4px 0;
+  text-shadow:0 0 30px rgba(240,192,64,0.3);
+}
+.level-info{text-align:center;color:var(--text2);font-size:13px;font-weight:700;margin-bottom:10px;letter-spacing:0.05em;}
+/* LEVELS TABLE */
+.levels-header{
+  display:grid;
+  grid-template-columns:28px 1fr 1fr 1fr 55px 70px 36px;
+  gap:4px;margin-bottom:4px;padding:0 2px;
+}
+.levels-header span{font-size:10px;color:var(--text3);font-weight:700;letter-spacing:0.1em;text-align:center;}
+.level-row{
+  display:grid;
+  grid-template-columns:28px 1fr 1fr 1fr 55px 70px 36px;
+  gap:4px;margin-bottom:3px;padding:3px;
+  border-radius:6px;align-items:center;
+}
+.level-row.active{background:rgba(240,192,64,0.08);border:1px solid rgba(240,192,64,0.2);}
+.level-row.break-row{background:rgba(96,168,255,0.06);border:1px solid rgba(96,168,255,0.15);}
+.level-num{text-align:center;font-size:11px;color:var(--text3);font-weight:700;}
+.level-row input{margin:0;padding:5px 6px;font-size:12px;text-align:center;}
+.break-label{grid-column:2/6;font-size:12px;font-weight:700;color:var(--blue);text-align:center;letter-spacing:0.1em;}
+/* TABS */
+.tabs{display:flex;gap:4px;margin-bottom:12px;}
+.tab{padding:7px 14px;font-size:12px;font-weight:700;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2);cursor:pointer;color:var(--text3);}
+.tab.active{background:var(--gold);color:#1a1000;border-color:var(--gold-mid);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+/* PAYOUT */
+.payout-row-ui{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.payout-row-ui label{width:60px;flex-shrink:0;margin:0;}
+.payout-row-ui input{flex:1;margin:0;}
+.payout-row-ui span{font-size:13px;font-weight:700;color:var(--gold);width:100px;text-align:right;}
+/* TOGGLE */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.toggle-row:last-child{border:none;}
+.toggle-label{font-size:14px;font-weight:700;}
+.toggle-sub{font-size:11px;color:var(--text2);}
+.switch{position:relative;width:44px;height:24px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;inset:0;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;cursor:pointer;transition:0.3s;}
+.slider:before{content:'';position:absolute;width:18px;height:18px;left:2px;top:2px;background:var(--text3);border-radius:50%;transition:0.3s;}
+.switch input:checked+.slider{background:var(--green-bg);border-color:var(--green);}
+.switch input:checked+.slider:before{transform:translateX(20px);background:var(--green);}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="h-title">⏱ Clock Control</div>
+  <div class="h-status" id="h-status">🔴 Đang kết nối...</div>
+</div>
+<div class="body">
+
+<!-- MAIN CONTROLS -->
+<div class="card">
+  <div class="big-clock" id="ctrl-clock">00:00</div>
+  <div class="level-info" id="ctrl-level-info">–</div>
+  <div class="row" style="margin-bottom:8px;">
+    <button class="btn btn-green btn-lg" onclick="doAction('start')">▶ START</button>
+    <button class="btn btn-red btn-lg" onclick="doAction('pause')">⏸ PAUSE</button>
+  </div>
+  <div class="row" style="margin-bottom:8px;">
+    <button class="btn btn-lg" style="flex:1;" onclick="doAction('prev')">⏮ Prev</button>
+    <button class="btn btn-lg" style="flex:1;" onclick="doAction('next')">Next ⏭</button>
+  </div>
+  <div class="row">
+    <button class="btn btn-blue btn-sm" onclick="addTime(-300)">−5m</button>
+    <button class="btn btn-blue btn-sm" onclick="addTime(-60)">−1m</button>
+    <button class="btn btn-blue btn-sm" onclick="addTime(-30)">−30s</button>
+    <button class="btn btn-blue btn-sm" onclick="addTime(30)">+30s</button>
+    <button class="btn btn-blue btn-sm" onclick="addTime(60)">+1m</button>
+    <button class="btn btn-blue btn-sm" onclick="addTime(300)">+5m</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('info')">📋 Giải đấu</div>
+  <div class="tab" onclick="switchTab('levels')">📊 Blind Levels</div>
+  <div class="tab" onclick="switchTab('settings')">⚙️ Cài đặt</div>
+</div>
+
+<!-- TAB: TOURNAMENT INFO -->
+<div class="tab-content active" id="tab-info">
+  <div class="card">
+    <div class="card-title">Thông tin giải đấu</div>
+    <div class="f-group"><label>Tên giải đấu</label><input id="f-name" value="GOLDEN COFFEE TOURNAMENT"/></div>
+    <div class="grid2">
+      <div class="f-group"><label>Players còn lại (trên bàn)</label><input id="f-players" type="number" value="0" readonly style="background:var(--surface2);color:var(--gold);"/></div>
+      <div class="f-group"><label>Tổng players (Buy-in + Re-buy)</label><input id="f-total" type="number" value="0" readonly style="background:var(--surface2);color:var(--gold);"/></div>
+    </div>
+    <div class="grid2">
+      <div class="f-group"><label>Buy In (từ hàng chờ)</label><input id="f-buyin" type="number" value="0" readonly style="background:var(--surface2);color:var(--blue);"/></div>
+      <div class="f-group"><label>Re-buy (từ hàng chờ)</label><input id="f-rebuy" type="number" value="0" readonly style="background:var(--surface2);color:var(--blue);"/></div>
+    </div>
+    <div class="grid2">
+      <div class="f-group"><label>Starting Stack</label><input id="f-sstack" type="number" value="50000"/></div>
+      <div class="f-group"><label>Re-buy Stack</label><input id="f-rstack" type="number" value="50000"/></div>
+    </div>
+    <div class="f-group"><label>Late Reg (ví dụ: Level 5 hoặc 02:30:00)</label><input id="f-latereg" placeholder="–"/></div>
+    <div class="f-group"><label>Total Stack (tự tính hoặc nhập)</label><input id="f-tstack" type="number" value="0" placeholder="0 = tự tính"/></div>
+    <div class="f-group"><label>Payout</label><input id="f-payout" type="number" value="0" placeholder="–" oninput="updatePayoutFromInput()"/></div>
+    <div id="payout-preview-box" style="display:none;padding:8px;background:var(--surface2);border-radius:var(--radius);margin-bottom:8px;">
+      <div style="font-size:11px;color:var(--text2);font-weight:700;">Preview Payout:</div>
+      <div id="payout-preview-text" style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);margin-top:4px;">–</div>
+    </div>
+    <button class="btn btn-green btn-full" onclick="saveInfo()">💾 Lưu thông tin</button>
+  </div>
+</div>
+
+<!-- TAB: BLIND LEVELS -->
+<div class="tab-content" id="tab-levels">
+  <div class="card">
+    <div class="card-title">
+      Blind Levels
+      <button class="btn btn-sm btn-green" style="float:right;margin-left:6px;" onclick="addLevel()">+ Level</button>
+      <button class="btn btn-sm btn-blue" style="float:right;" onclick="addBreak()">☕ Break</button>
+    </div>
+    <div class="levels-header">
+      <span></span><span>SB</span><span>BB</span><span>Ante</span><span>Phút</span><span>Loại</span><span></span>
+    </div>
+    <div id="levels-list"></div>
+    <button class="btn btn-green btn-full" style="margin-top:8px;" onclick="saveLevels()">💾 Lưu blind levels</button>
+  </div>
+</div>
+
+<!-- TAB: SETTINGS -->
+<div class="tab-content" id="tab-settings">
+  <div class="card">
+    <div class="card-title">Ảnh nền màn hình TV</div>
+    <!-- Drag & Drop zone -->
+    <div id="drop-zone" style="
+      border:2px dashed var(--border2);border-radius:var(--radius);
+      padding:30px;text-align:center;cursor:pointer;
+      background:var(--surface2);margin-bottom:10px;
+      transition:all 0.2s;
+    " onclick="document.getElementById('img-file').click()"
+       ondragover="event.preventDefault();this.style.borderColor='var(--gold)';this.style.background='rgba(240,192,64,0.05)'"
+       ondragleave="this.style.borderColor='var(--border2)';this.style.background='var(--surface2)'"
+       ondrop="handleImgDrop(event)">
+      <div style="font-size:32px;margin-bottom:8px;">🖼</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text2);">Kéo ảnh vào đây hoặc nhấn để chọn</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;">JPG, PNG, WebP — tối đa 10MB</div>
+    </div>
+    <input type="file" id="img-file" accept="image/*" style="display:none;" onchange="uploadImg(this.files[0])"/>
+    <div id="img-preview" style="display:none;margin-bottom:10px;text-align:center;">
+      <img id="img-preview-el" style="max-width:100%;max-height:120px;border-radius:6px;border:1px solid var(--border);"/>
+      <div style="font-size:11px;color:var(--green);margin-top:4px;" id="img-status"></div>
+    </div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">Hoặc nhập URL:</div>
+    <div style="display:flex;gap:6px;">
+      <input id="f-bg" placeholder="https://..." style="flex:1;"/>
+      <button class="btn btn-gold" onclick="saveBgUrl()">Đặt</button>
+    </div>
+    <button class="btn btn-red btn-full" style="margin-top:8px;" onclick="clearBg()">✕ Xóa ảnh nền</button>
+  </div>
+
+  <!-- RESET DAY -->
+  <div class="card">
+    <div class="card-title">Reset Giải Đấu</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:12px;">
+      Reset toàn bộ clock, blinds, players, payout để bắt đầu giải đấu mới. <br/>
+      <strong>⚠️ Hành động này không thể hoàn tác</strong>
+    </div>
+    <button class="btn btn-red btn-full" onclick="resetDay()">🔄 Reset Ngay Bây Giờ</button>
+  </div>
+</div>
+
+</div><!-- /body -->
+
+<script>
+const API=`http://${window.location.hostname}:3000/api`;
+let state=null,lastUpdate=0,loaded=false;
+
+function fmtTime(s){s=Math.max(0,s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+function fmtN(n){return Math.round(n).toLocaleString('vi');}
+
+function switchTab(t){
+  document.querySelectorAll('.tab,.tab-content').forEach(el=>{
+    el.classList.remove('active');
+  });
+  document.querySelectorAll('.tab').forEach((el,i)=>['info','levels','settings'][i]===t&&el.classList.add('active'));
+  document.getElementById('tab-'+t)?.classList.add('active');
+}
+
+async function doAction(action){
+  const r=await fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});
+  state=await r.json();renderCtrl();
+}
+
+async function addTime(sec){
+  const r=await fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'addTime',seconds:sec})});
+  state=await r.json();renderCtrl();
+}
+
+async function toggleBuys(){
+  const closed=document.getElementById('f-buysclosed').checked;
+  const r=await fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',buysClosed:closed})});
+  state=await r.json();
+}
+
+async function saveInfo(){
+  const sstack=parseInt(document.getElementById('f-sstack').value)||0;
+  const rstack=parseInt(document.getElementById('f-rstack').value)||0;
+  const buyin=parseInt(document.getElementById('f-buyin').value)||0;
+  const rebuy=parseInt(document.getElementById('f-rebuy').value)||0;
+  const payout=parseInt(document.getElementById('f-payout').value)||0;
+  const body={
+    action:'update',
+    tournamentName:document.getElementById('f-name').value,
+    players:parseInt(document.getElementById('f-players').value)||0,
+    totalPlayers:parseInt(document.getElementById('f-total').value)||0,
+    buyIn:buyin, rebuy,
+    startingStack:sstack, rebuyStack:rstack,
+    lateReg:document.getElementById('f-latereg').value||'–',
+    prizePool:payout*1000000,
+  };
+  const r=await fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  state=await r.json();renderCtrl();
+  alert('Đã lưu!');
+}
+
+async function saveBgUrl(){
+  const bg=document.getElementById('f-bg').value.trim();
+  await fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',bgImage:bg})});
+  alert('Đã đặt ảnh nền!');
+}
+
+async function clearBg(){
+  document.getElementById('img-preview').style.display='none';
+  document.getElementById('f-bg').value='';
+  await fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',bgImage:''})});
+  alert('Đã xóa ảnh nền!');
+}
+
+function handleImgDrop(e){
+  e.preventDefault();
+  document.getElementById('drop-zone').style.borderColor='var(--border2)';
+  document.getElementById('drop-zone').style.background='var(--surface2)';
+  const file=e.dataTransfer.files[0];
+  if(file&&file.type.startsWith('image/')) uploadImg(file);
+}
+
+async function uploadImg(file){
+  if(!file)return;
+  // Preview
+  const reader=new FileReader();
+  reader.onload=e=>{
+    document.getElementById('img-preview').style.display='block';
+    document.getElementById('img-preview-el').src=e.target.result;
+    document.getElementById('img-status').textContent='Đang tải lên...';
+  };
+  reader.readAsDataURL(file);
+  // Upload
+  const fd=new FormData();fd.append('image',file);
+  try{
+    const r=await fetch(API+'/upload-bg',{method:'POST',body:fd});
+    const data=await r.json();
+    if(data.ok){
+      document.getElementById('img-status').textContent='✅ Đã đặt ảnh nền!';
+      document.getElementById('f-bg').value=data.url;
+    }
+  }catch(e){document.getElementById('img-status').textContent='❌ Lỗi tải ảnh';}
+}
+
+// LEVELS
+function addLevel(){
+  if(!state)return;
+  const last=state.levels.filter(l=>!l.isBreak).slice(-1)[0]||{sb:0,bb:0,ante:0};
+  state.levels.push({sb:Math.round(last.sb*1.5),bb:Math.round(last.bb*1.5),ante:Math.round(last.ante*1.5),duration:20});
+  renderLevels();
+}
+
+function addBreak(){
+  if(!state)return;
+  state.levels.push({isBreak:true,duration:15});
+  renderLevels();
+}
+
+function removeLevel(i){
+  if(!state||state.levels.length<=1)return;
+  state.levels.splice(i,1);renderLevels();
+}
+
+function moveLevel(i,dir){
+  if(!state)return;
+  const j=i+dir;
+  if(j<0||j>=state.levels.length)return;
+  [state.levels[i],state.levels[j]]=[state.levels[j],state.levels[i]];
+  renderLevels();
+}
+
+function renderLevels(){
+  if(!state)return;
+  let realN=0;
+  document.getElementById('levels-list').innerHTML=state.levels.map((lv,i)=>{
+    if(!lv.isBreak)realN++;
+    const isActive=i===state.levelIndex;
+    const cls='level-row'+(isActive?' active':'')+(lv.isBreak?' break-row':'');
+    if(lv.isBreak) return `<div class="${cls}">
+      <div class="level-num">☕</div>
+      <div class="break-label">BREAK</div>
+      <input type="number" value="${lv.duration||15}" style="text-align:center;" onchange="state.levels[${i}].duration=parseInt(this.value)||15" placeholder="min"/>
+      <span style="font-size:11px;color:var(--text3);text-align:center;">min</span>
+      <button class="btn btn-red btn-sm" onclick="removeLevel(${i})">✕</button>
+    </div>`;
+    return `<div class="${cls}">
+      <div class="level-num" style="color:${isActive?'var(--gold)':'var(--text3)'};">${realN}</div>
+      <input type="number" value="${lv.sb}" onchange="state.levels[${i}].sb=parseInt(this.value)||0" style="text-align:center;"/>
+      <input type="number" value="${lv.bb}" onchange="state.levels[${i}].bb=parseInt(this.value)||0" style="text-align:center;"/>
+      <input type="number" value="${lv.ante||0}" onchange="state.levels[${i}].ante=parseInt(this.value)||0" style="text-align:center;"/>
+      <input type="number" value="${lv.duration||20}" onchange="state.levels[${i}].duration=parseInt(this.value)||20" style="text-align:center;"/>
+      <div style="display:flex;gap:2px;">
+        <button class="btn btn-sm" style="padding:4px 5px;" onclick="moveLevel(${i},-1)">↑</button>
+        <button class="btn btn-sm" style="padding:4px 5px;" onclick="moveLevel(${i},1)">↓</button>
+      </div>
+      <button class="btn btn-red btn-sm" onclick="removeLevel(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+async function saveLevels(){
+  const rows=document.querySelectorAll('.level-row');
+  // levels already updated via onchange
+  const r=await fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',levels:state.levels})});
+  state=await r.json();renderLevels();
+  alert('Đã lưu blind levels!');
+}
+
+// PAYOUT
+function renderPayoutInputs(){ updatePayoutPreview(); }
+
+function updatePctTotal(){ updatePayoutPreview(); }
+
+function updatePayoutPreview(){
+  const prize=parseInt(document.getElementById('f-prize')?.value)||state?.prizePool||0;
+  const units=Math.floor(prize/100000);
+  const pcts=[33,25,17,11,8,6];
+  const vals=pcts.map(p=>Math.round(units*p/100));
+  const el=document.getElementById('payout-preview');
+  if(el) el.textContent=vals.join(' - ');
+}
+
+function updatePayoutFromInput(){
+  const payout=parseInt(document.getElementById('f-payout').value)||0;
+  if(payout<=0){
+    document.getElementById('payout-preview-box').style.display='none';
+    return;
+  }
+  const pcts=[33,25,17,11,8,6];
+  const vals=pcts.map(p=>Math.round(payout*p/100));
+  document.getElementById('payout-preview-box').style.display='block';
+  document.getElementById('payout-preview-text').textContent=vals.join(' - ');
+}
+
+async function savePayout(){
+  const prize=parseInt(document.getElementById('f-prize').value)||0;
+  const r=await fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'update',prizePool:prize})});
+  state=await r.json();
+  updatePayoutPreview();
+  alert('Đã lưu!');
+}
+
+async function savePrizePool(){ await savePayout(); }
+
+function renderCtrl(){
+  if(!state)return;
+  const lv=state.levels?.[state.levelIndex]||{};
+  document.getElementById('ctrl-clock').textContent=fmtTime(state.timeLeft||0);
+  let realN=0;
+  for(let i=0;i<=state.levelIndex;i++) if(!state.levels?.[i]?.isBreak)realN++;
+  const label=lv.isBreak?'☕ BREAK':'LEVEL '+realN+' — '+fmtN(lv.sb||0)+'/'+fmtN(lv.bb||0);
+  document.getElementById('ctrl-level-info').textContent=label;
+  document.getElementById('h-status').textContent=state.running?'🟢 Đang chạy':'🟡 Paused';
+}
+
+// ── TOURNAMENT BUY-IN TRACKING (from queueTour) ────────────────
+let tournamentStats = {buyIns:0,reBuys:0,playersOnTables:0};
+let statsLocked = false; // Lock stats update khi reset
+
+async function fetchTournamentStats(){
+  if(statsLocked) return; // Không update stats khi lock
+
+  try{
+    const r=await fetch(API+'/tournament/stats');
+    tournamentStats=await r.json();
+    // Update fields
+    document.getElementById('f-buyin').value=tournamentStats.buyIns||0;
+    document.getElementById('f-rebuy').value=tournamentStats.reBuys||0;
+    document.getElementById('f-players').value=tournamentStats.playersOnTables||0;
+    document.getElementById('f-total').value=tournamentStats.totalPlayers||0;
+    // Update total stack
+    const sstack=parseInt(document.getElementById('f-sstack').value)||50000;
+    const rstack=parseInt(document.getElementById('f-rstack').value)||50000;
+    const tstack=(tournamentStats.buyIns||0)*sstack+(tournamentStats.reBuys||0)*rstack;
+    document.getElementById('f-tstack').value=tstack;
+    // Update late reg with real time
+    const lr=document.getElementById('f-latereg');
+    if(lr&&!lr.value){
+      const now=new Date();
+      lr.value=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+    }
+  }catch(e){}
+}
+
+function populateForm(){
+  if(!state)return;
+  document.getElementById('f-name').value=state.tournamentName||'GOLDEN COFFEE TOURNAMENT';
+  document.getElementById('f-sstack').value=state.startingStack||50000;
+  document.getElementById('f-rstack').value=state.rebuyStack||50000;
+  if(document.getElementById('f-prize')) document.getElementById('f-prize').value=state.prizePool||0;
+  // Chỉ update f-payout khi user không đang focus
+  if(document.activeElement.id!=='f-payout'){
+    const payoutMillion=Math.round((state.prizePool||0)/1000000);
+    document.getElementById('f-payout').value=payoutMillion||0;
+  }
+  // Update tournament stats từ state (không fetch từ server liên tục)
+  document.getElementById('f-buyin').value=state.buyIn||0;
+  document.getElementById('f-rebuy').value=state.rebuy||0;
+  document.getElementById('f-players').value=state.players||0;
+  document.getElementById('f-total').value=state.totalPlayers||0;
+  const sstack=parseInt(document.getElementById('f-sstack').value)||50000;
+  const rstack=parseInt(document.getElementById('f-rstack').value)||50000;
+  const tstack=(state.buyIn||0)*sstack+(state.rebuy||0)*rstack;
+  document.getElementById('f-tstack').value=tstack;
+
+  if(loaded===false){
+    updatePayoutPreview();
+    const buysClosed=document.getElementById('f-buysclosed');
+    if(buysClosed) buysClosed.checked=state.buysClosed||false;
+    document.getElementById('f-bg').value=state.bgImage||'';
+    renderPayoutInputs();
+    renderLevels();
+    loaded=true;
+  }
+}
+
+async function poll(){
+  try{
+    const r=await fetch(API+'/clock');
+    const st=await r.json();
+    if(st.updatedAt!==lastUpdate){lastUpdate=st.updatedAt;state=st;renderCtrl();populateForm();renderLevels();}
+  }catch(e){document.getElementById('h-status').textContent='🔴 Mất kết nối';}
+}
+poll();setInterval(poll,1000);
+// Không fetch tournament stats liên tục — lấy dữ liệu từ state object
+
+// Update late reg time every second
+setInterval(()=>{
+  const lr=document.getElementById('f-latereg');
+  if(lr&&!lr.value.includes('Level')){
+    const now=new Date();
+    lr.value=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+  }
+},1000);
+
+// RESET DAY
+async function resetDay(){
+  console.log('🔄 resetDay() called');
+  const confirmed = confirm('⚠️ Bạn chắc chắn muốn reset toàn bộ giải đấu?\n\nToàn bộ dữ liệu (clock, blinds, players, payout) sẽ bị xóa và reset về trạng thái ban đầu.\n\nHành động này KHÔNG thể hoàn tác!');
+  console.log('User confirmed:', confirmed);
+  if(!confirmed) return;
+
+  try{
+    console.log('📤 Sending reset request to', API+'/clock/reset');
+    const r=await fetch(API+'/clock/reset',{method:'POST',headers:{'Content-Type':'application/json'}});
+    console.log('📥 Reset response:', r.status, r.ok);
+    if(r.ok){
+      state=await r.json();
+      console.log('✅ New state after reset:', state);
+      renderCtrl();
+      populateForm();
+      alert('✅ Đã reset giải đấu thành công! Tất cả dữ liệu quay về 0.');
+    } else {
+      alert('❌ Lỗi reset');
+    }
+  }catch(e){
+    console.error('❌ Reset error:', e);
+    alert('❌ Không thể kết nối: '+e.message);
+  }
+}
+</script>
+</body>
+</html>

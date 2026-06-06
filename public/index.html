@@ -1,0 +1,2181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Golden Coffee – Board Game</title>
+<link rel="icon" type="image/png" href="/apple-icon.png"/>
+<link rel="apple-touch-icon" href="/apple-icon.png"/>
+<style>
+:root{
+  --bg:#1a1400;
+  --bg2:#231a00;
+  --surface:#2a2000;
+  --surface2:#332800;
+  --border:#4a3800;
+  --border2:#5c4800;
+  --gold:#f0c040;
+  --gold-dim:#3d2e00;
+  --gold-mid:#d4a020;
+  --gold-light:#ffe080;
+  --text:#fff8e0;
+  --text2:#c8b878;
+  --text3:#806840;
+  --green:#22c97a;
+  --green-bg:#002818;
+  --green-border:#1a6040;
+  --red:#ff5555;
+  --red-bg:#2a0808;
+  --red-border:#6a2020;
+  --blue:#60a8ff;
+  --blue-bg:#08142a;
+  --blue-border:#1a3868;
+  --purple:#c080ff;
+  --purple-bg:#180828;
+  --purple-border:#4a1878;
+  --radius:8px;
+  --radius-lg:12px;
+  --shadow:0 2px 8px rgba(0,0,0,0.4);
+  --shadow-md:0 4px 20px rgba(0,0,0,0.5);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;font-size:15px;line-height:1.5;}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+.app{display:flex;height:100vh;overflow:hidden;}
+
+/* LEFT 80% */
+.lp{width:70%;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.lp-header{padding:14px 24px;background:var(--surface);border-bottom:2px solid var(--gold-dim);display:flex;align-items:center;gap:16px;box-shadow:0 2px 12px rgba(0,0,0,0.5);}
+.logo-block{text-align:left;}
+.logo-name{font-size:22px;font-weight:800;color:var(--gold);letter-spacing:0.5px;}
+.logo-line{width:100%;height:1.5px;background:linear-gradient(90deg,var(--gold),transparent);margin:3px 0;}
+.logo-sub{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:0.15em;text-transform:uppercase;}
+.lp-body{flex:1;display:flex;overflow:hidden;}
+.tables-area{flex:1;padding:18px;overflow-y:auto;}
+.tables-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+
+/* Queue sidebar */
+.queue-sidebar{width:210px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
+.queue-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;}
+.qitem{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:9px 10px;display:flex;justify-content:space-between;align-items:center;}
+.qitem-name{font-size:14px;font-weight:700;color:var(--text);}
+.qitem-sub{font-size:12px;color:var(--text3);}
+.empty-msg{font-size:13px;color:var(--text3);padding:4px 0;}
+
+/* RIGHT 20% */
+.rp{width:30%;flex-shrink:0;background:var(--surface);border-left:2px solid var(--gold-dim);display:flex;flex-direction:column;overflow:hidden;}
+.rp-nav{padding:12px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:4px;}
+.rp-nav-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;padding:4px 0 8px;}
+.nav-btn{padding:9px 12px;font-size:14px;font-weight:600;border-radius:var(--radius);border:none;background:transparent;cursor:pointer;color:var(--text2);font-family:inherit;text-align:left;transition:all 0.15s;}
+.nav-btn:hover{background:var(--surface2);color:var(--text);}
+.nav-btn.active{background:var(--gold-dim);color:var(--gold);border:1px solid var(--border2);}
+.rp-body{flex:1;overflow-y:auto;padding:14px;}
+.page{display:none;}.page.active{display:block;}
+
+/* TABLE CARD */
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;box-shadow:var(--shadow);}
+.table-card.active-table{border-color:var(--gold-dim);background:var(--bg2);}
+.table-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.table-name{font-size:16px;font-weight:800;color:var(--text);}
+.table-info{font-size:12px;color:var(--text3);margin-top:2px;}
+.table-actions{display:flex;gap:6px;margin-top:10px;}
+
+/* BADGE */
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;}
+.b-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.b-gray{background:var(--surface2);color:var(--text3);border:1px solid var(--border);}
+.b-amber{background:var(--gold-dim);color:var(--gold);border:1px solid var(--border2);}
+.b-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);}
+.b-blue{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border);}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 14px;font-size:13px;font-weight:700;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;color:var(--text2);font-family:inherit;transition:all 0.15s;box-shadow:var(--shadow);}
+.btn:hover{background:var(--border);color:var(--text);}
+.btn-green{background:var(--green);color:#001a0c;border-color:var(--green);}
+.btn-green:hover{background:#1ab068;color:#000;}
+.btn-red{background:var(--red-bg);color:var(--red);border-color:var(--red-border);}
+.btn-red:hover{background:#400f0f;}
+.btn-gold{background:var(--gold);color:#1a1000;border-color:var(--gold-mid);}
+.btn-gold:hover{background:var(--gold-light);color:#000;}
+.btn-gold:disabled{background:var(--surface2);color:var(--text3);border-color:var(--border);cursor:not-allowed;opacity:0.5;}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-xs{padding:3px 8px;font-size:11px;}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);}
+.card-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;}
+
+/* INPUTS */
+input,select,textarea{width:100%;padding:0 11px;font-size:14px;height:36px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-family:inherit;margin-bottom:8px;outline:none;transition:border 0.15s;}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);}
+input::placeholder{color:var(--text3);}
+textarea{height:auto;padding:9px 11px;resize:none;}
+select option{background:var(--surface2);color:var(--text);}
+.row{display:flex;gap:7px;align-items:center;margin-bottom:8px;}
+.row input,.row select{margin-bottom:0;}
+.inp-group{position:relative;}
+.inp-suffix{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text3);pointer-events:none;}
+
+.qr-box{width:105px;height:105px;margin:8px auto;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;}
+
+/* CUSTOMER CARD */
+.cust-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:12px;box-shadow:var(--shadow-md);}
+.cust-name{font-size:17px;font-weight:800;color:var(--text);margin-bottom:2px;}
+.cust-phone{font-size:13px;color:var(--text3);margin-bottom:12px;}
+
+/* ACHIEVEMENT STATS - nổi bật */
+.stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px;}
+.stat-box{border-radius:10px;padding:10px 4px;text-align:center;border:2px solid transparent;}
+.stat-box.top1{background:linear-gradient(160deg,#332200,#221500);border-color:#c8a000;box-shadow:0 0 12px rgba(200,160,0,0.25);}
+.stat-box.top2{background:linear-gradient(160deg,#252525,#1a1a1a);border-color:#888;box-shadow:0 0 10px rgba(140,140,140,0.2);}
+.stat-box.top3{background:linear-gradient(160deg,#2a1500,#1a0e00);border-color:#c06820;box-shadow:0 0 10px rgba(180,100,30,0.2);}
+.stat-box.rounds{background:var(--blue-bg);border-color:#2050a0;}
+.stat-box.drinks{background:var(--purple-bg);border-color:#601890;}
+.stat-icon{font-size:18px;margin-bottom:3px;}
+.stat-label{font-size:10px;font-weight:700;letter-spacing:0.05em;margin-bottom:2px;}
+.stat-box.top1 .stat-label{color:#c8a000;}
+.stat-box.top2 .stat-label{color:#999;}
+.stat-box.top3 .stat-label{color:#c06820;}
+.stat-box.rounds .stat-label{color:var(--blue);}
+.stat-box.drinks .stat-label{color:var(--purple);}
+.stat-value{font-size:22px;font-weight:900;}
+.stat-box.top1 .stat-value{color:#f0c840;}
+.stat-box.top2 .stat-value{color:#cccccc;}
+.stat-box.top3 .stat-value{color:#e08040;}
+.stat-box.rounds .stat-value{color:var(--blue);}
+.stat-box.drinks .stat-value{color:var(--purple);}
+
+.cust-btns{display:flex;gap:6px;margin-bottom:7px;}
+.cust-btn{flex:1;padding:10px 6px;border-radius:var(--radius);border:1px solid transparent;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.15s;}
+.cb-blue{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-border);}
+.cb-blue:hover{background:#0c1e3a;}
+.cb-amber{background:var(--gold-dim);color:var(--gold);border-color:var(--border2);}
+.cb-amber:hover{background:#4a3a00;}
+.cb-green{background:var(--green-bg);color:var(--green);border-color:var(--green-border);}
+.cb-green:hover{background:#003820;}
+.cb-gray{background:var(--surface2);color:var(--text2);border-color:var(--border);}
+.cb-gray:hover{background:var(--border);}
+.cb-disabled{background:var(--surface2);color:var(--text3);border-color:var(--border);cursor:not-allowed;opacity:0.5;}
+.warn-box{background:var(--gold-dim);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 11px;font-size:13px;color:var(--gold);margin-bottom:10px;font-weight:600;}
+
+/* LIST */
+.li{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;}
+.li:last-child{border-bottom:none;}
+.tx-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border);}
+.tx-row:last-child{border-bottom:none;}
+.tx-time{color:var(--text3);}
+.tx-amt{font-weight:700;color:var(--green);}
+
+/* METRICS */
+.metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+.metric-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;}
+.metric-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;}
+.metric-val{font-size:22px;font-weight:900;color:var(--text);}
+.metric-val.gold{color:var(--gold);}
+
+/* OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:flex-start;justify-content:center;padding-top:80px;}
+.overlay.show{display:flex;}
+.dialog{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:22px;width:300px;box-shadow:var(--shadow-md);}
+.dlg-title{font-size:16px;font-weight:800;margin-bottom:8px;color:var(--text);}
+.dlg-body{font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.5;}
+.dlg-btns{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:11px 18px;font-size:14px;font-weight:600;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;box-shadow:var(--shadow-md);}
+.toast.show{opacity:1;}
+.toast.success{border-color:var(--green-border);color:var(--green);background:var(--green-bg);}
+.toast.error{border-color:var(--red-border);color:var(--red);background:var(--red-bg);}
+.loading{display:flex;align-items:center;justify-content:center;height:50px;color:var(--text3);font-size:14px;gap:8px;}
+.spinner{width:15px;height:15px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.divider{border:none;border-top:1px solid var(--border);margin:10px 0;}
+.tab-btn{padding:7px 16px;font-size:13px;font-weight:700;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;color:var(--text3);font-family:inherit;transition:all 0.15s;}
+.tab-btn:hover{background:var(--border);color:var(--text);}
+.tab-btn.active{background:var(--gold);color:#1a1000;border-color:var(--gold-mid);}
+.tab-label{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;margin-bottom:10px;}
+.tab-label.normal{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.tab-label.tour{background:#1a0828;color:#c080ff;border:1px solid #4a1878;}
+.suggest-item{padding:9px 12px;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.suggest-item:last-child{border-bottom:none;}
+.suggest-item:hover{background:var(--border);}
+.suggest-item span{font-size:12px;color:var(--text3);}
+.qitem{cursor:grab;transition:opacity 0.15s,transform 0.15s;}
+.qitem.dragging{opacity:0.4;transform:scale(0.97);}
+.qitem.drag-over{border-color:var(--gold);background:var(--gold-dim);}
+.drag-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#1c1a0e;border:1px solid #3a3010;border-radius:16px;font-size:13px;font-weight:600;color:var(--text);cursor:grab;user-select:none;transition:opacity 0.15s;}
+.drag-chip:hover{background:#282410;border-color:var(--gold);}
+.drag-chip.dragging{opacity:0.25;}
+.chip-row{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0 3px;}
+.player-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface);border:1px solid var(--border2);border-radius:20px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;transition:all 0.15s;box-shadow:var(--shadow);}
+.player-chip:hover{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);}
+.player-chip .chip-table{font-size:10px;color:var(--text3);font-weight:500;}
+.seat-drop-row{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin-bottom:4px;}
+.seat-drop-cell{height:24px;border:1px solid var(--border);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--text2);transition:background 0.12s,border-color 0.12s;overflow:hidden;}
+.seat-drop-cell.occ{background:var(--gold-dim);border-color:var(--border2);color:var(--gold);}
+.seat-drop-cell.drag-over{background:var(--border2);border-color:var(--gold);outline:2px solid var(--gold);}
+.lp-tabs{padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;gap:8px;}
+.queue-half{flex:1;padding:12px;overflow-y:auto;min-height:0;}
+.queue-half.drag-over-section{outline:2px solid var(--gold);background:var(--gold-dim);}
+.queue-half-title{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;}
+.normal-title{color:var(--green);}
+.tour-title{color:#c080ff;}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- LEFT 80% -->
+  <div class="lp">
+    <div class="lp-header">
+      <div class="logo-block" style="display:flex;align-items:center;gap:10px;">
+        <img src="/logo.png" alt="Logo" style="width:44px;height:44px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 0 6px rgba(240,192,64,0.4));"/>
+        <div>
+          <div class="logo-name">Golden Coffee</div>
+          <div class="logo-line"></div>
+          <div class="logo-sub">Board Game</div>
+        </div>
+      </div>
+    </div>
+    <div class="lp-tabs">
+      <button class="tab-btn active" id="tab-normal" onclick="switchTab('normal')">🎮 Bàn thường</button>
+      <button class="tab-btn" id="tab-tour" onclick="switchTab('tour')">🏆 Bàn tour</button>
+    </div>
+    <div class="lp-body">
+      <div class="tables-area">
+        <div class="tables-grid" id="tables-left"></div>
+        <div id="players-panel" style="margin-top:16px;display:none;">
+          <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">🏆 Người chơi đang trên bàn — nhấn để trao thưởng</div>
+          <div id="players-list" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+        </div>
+      </div>
+      <!-- QUEUE SIDEBAR: 2 khu vực riêng -->
+      <div class="queue-sidebar" style="display:flex;flex-direction:column;gap:0;padding:0;overflow:hidden;">
+        <!-- Hàng chờ thường -->
+        <div class="queue-half"
+          ondragover="DG.overQueueSection(event,'normal')"
+          ondragleave="DG.leaveQueueSection(event,'normal')"
+          ondrop="DG.dropQueueSection(event,'normal')"
+          id="queue-half-normal">
+          <div class="queue-half-title normal-title">🎮 Hàng chờ thường</div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:5px;">Kéo sang tour ↓</div>
+          <div id="queue-list-normal"><div class="empty-msg">Chưa có ai</div></div>
+        </div>
+        <!-- Divider -->
+        <div style="height:1px;background:var(--border2);flex-shrink:0;"></div>
+        <!-- Hàng chờ tour -->
+        <div class="queue-half"
+          ondragover="DG.overQueueSection(event,'tour')"
+          ondragleave="DG.leaveQueueSection(event,'tour')"
+          ondrop="DG.dropQueueSection(event,'tour')"
+          id="queue-half-tour">
+          <div class="queue-half-title tour-title">🏆 Hàng chờ tour</div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:5px;">Kéo sang thường ↑</div>
+          <div id="queue-list-tour"><div class="empty-msg">Chưa có ai</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT 20% -->
+  <div class="rp">
+    <div class="rp-nav">
+      <div class="rp-nav-label">Menu</div>
+      <button class="nav-btn active" onclick="showPage('customers')">👤 Khách hàng</button>
+      <button class="nav-btn" onclick="showPage('inventory')">📦 Kho hàng</button>
+    </div>
+    <div class="rp-body">
+
+<div class="page active" id="page-customers">
+        <div class="card">
+          <div class="card-title">Tìm khách</div>
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <input id="search-phone" maxlength="4" placeholder="4 số cuối SĐT..." style="margin:0;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter')doSearch()"/>
+            <button class="btn btn-gold btn-sm" style="white-space:nowrap;" onclick="doSearch()">Search</button>
+          </div>
+          <div id="customer-result"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Thêm khách mới</div>
+          <input id="new-name" placeholder="Họ và tên"/>
+          <input id="new-phone" placeholder="Số điện thoại" maxlength="10"/>
+          <button class="btn btn-gold" style="width:100%;" onclick="addCustomer()">Tạo khách hàng</button>
+          <div id="new-msg" style="margin-top:6px;font-size:13px;"></div>
+        </div>
+      </div>
+
+      <div class="page" id="page-inventory">
+        <div class="card">
+          <div class="card-title">Nhập kho</div>
+          <input id="item-name" placeholder="Tên sản phẩm"/>
+          <div class="row">
+            <input id="item-qty" type="number" placeholder="Số lượng" style="margin:0;flex:1;"/>
+            <input id="item-cost" type="number" min="0" value="1" placeholder="Tiêu hao" style="margin:0;flex:1;"/>
+          </div>
+          <button class="btn btn-gold" style="width:100%;margin-top:8px;" onclick="addStock()">Nhập kho</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Tồn kho</div>
+          <div id="stock-list"><div class="loading"><div class="spinner"></div>Đang tải...</div></div>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+</div>
+
+<!-- DIALOGS -->
+<div class="overlay" id="confirm-dialog">
+  <div class="dialog">
+    <div class="dlg-title" id="dlg-title"></div>
+    <div class="dlg-body" id="dlg-body"></div>
+    <div class="dlg-btns" id="dlg-btns"></div>
+  </div>
+</div>
+<div class="overlay" id="history-dialog">
+  <div class="dialog" style="width:340px;">
+    <div class="dlg-title" id="hist-title"></div>
+    <div id="hist-body" style="max-height:320px;overflow-y:auto;margin-bottom:16px;"></div>
+    <button class="btn" style="width:100%;" onclick="document.getElementById('history-dialog').classList.remove('show')">Đóng</button>
+  </div>
+</div>
+<div class="overlay" id="pass-dialog">
+  <div class="dialog">
+    <div class="dlg-title">🔐 Xác nhận chủ quán</div>
+    <div class="dlg-body">Nhập mật khẩu để vào báo cáo:</div>
+    <input id="pass-input" type="password" placeholder="Mật khẩu..." onkeydown="if(event.key==='Enter')checkPass()"/>
+    <div id="pass-err" style="font-size:13px;color:var(--red);margin-bottom:8px;"></div>
+    <div class="dlg-btns">
+      <button class="btn btn-gold" onclick="checkPass()">Vào</button>
+      <button class="btn" onclick="document.getElementById('pass-dialog').classList.remove('show')">Huỷ</button>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="note-dialog">
+  <div class="dialog" style="max-height:85vh;overflow-y:auto;">
+    <div class="dlg-title" id="note-dlg-title"></div>
+    <div class="dlg-body" id="note-dlg-body"></div>
+    <!-- Chế độ ghi chú thường -->
+    <div id="note-input-wrap">
+      <input id="note-input-text" type="text" placeholder="Nhập ghi chú..." style="margin-bottom:4px;" oninput="handleNoteInput(this.value)"/>
+      <div id="note-suggestions" style="display:none;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;"></div>
+    </div>
+    <!-- Chế độ đổi nước (nhiều loại + số lượng) -->
+    <div id="drink-input-wrap" style="display:none;">
+      <div id="drink-list" style="margin-bottom:8px;"></div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
+        <input id="drink-search" type="text" placeholder="Nhập nước... (Enter để thêm)" style="margin:0;flex:1;"
+          oninput="handleDrinkSearch(this.value)"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addDrinkItem();}"/>
+        <input id="drink-qty" type="number" min="1" value="1" style="margin:0;width:60px;text-align:center;"/>
+      </div>
+      <div id="drink-suggestions" style="display:none;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;max-height:120px;overflow-y:auto;"></div>
+    </div>
+    <div class="dlg-btns">
+      <button class="btn btn-gold" id="note-confirm-btn">Xác nhận</button>
+      <button class="btn" onclick="document.getElementById('note-dialog').classList.remove('show')">Huỷ</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="reset-dialog">
+  <div class="dialog">
+    <div class="dlg-title">🔄 Reset dữ liệu ngày</div>
+    <div class="dlg-body">Nhập mật khẩu để xác nhận reset. Thao tác này sẽ xoá toàn bộ giao dịch hôm nay và reset tiêu thụ kho.</div>
+    <input id="reset-pass-input" type="password" placeholder="Mật khẩu reset..." onkeydown="if(event.key==='Enter')confirmResetDay()"/>
+    <div id="reset-pass-err" style="font-size:13px;color:var(--red);margin-bottom:8px;"></div>
+    <div class="dlg-btns">
+      <button class="btn btn-red" onclick="confirmResetDay()">Xác nhận Reset</button>
+      <button class="btn" onclick="document.getElementById('reset-dialog').classList.remove('show')">Huỷ</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="award-dialog">
+  <div class="dialog" style="width:320px;">
+    <div class="dlg-title" id="award-title">🏆 Trao thưởng</div>
+    <div class="dlg-body" id="award-body">Chọn hạng cho người chơi này:</div>
+    <!-- Bàn thường: chọn top -->
+    <div id="award-normal-section" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+      <button class="btn" style="justify-content:space-between;padding:12px 16px;border-color:#f0c840;background:linear-gradient(135deg,#332200,#221500);" onclick="giveAward(1)">
+        <span style="font-size:16px;">🥇 Top 1</span>
+        <span style="font-size:12px;color:var(--gold);">+2 Round &nbsp; +2 Nước</span>
+      </button>
+      <button class="btn" style="justify-content:space-between;padding:12px 16px;border-color:#aaa;background:linear-gradient(135deg,#252525,#1a1a1a);" onclick="giveAward(2)">
+        <span style="font-size:16px;">🥈 Top 2</span>
+        <span style="font-size:12px;color:#ccc;">+1 Round &nbsp; +1 Nước</span>
+      </button>
+      <button class="btn" style="justify-content:space-between;padding:12px 16px;border-color:#c06820;background:linear-gradient(135deg,#2a1500,#1a0e00);" onclick="giveAward(3)">
+        <span style="font-size:16px;">🥉 Top 3</span>
+        <span style="font-size:12px;color:#e08040;">+1 Nước</span>
+      </button>
+    </div>
+    <!-- Bàn tour: nhập số round -->
+    <div id="award-tour-section" style="display:none;margin-bottom:14px;">
+      <div style="font-size:13px;color:var(--text3);margin-bottom:8px;">Nhập số Round thưởng:</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <button class="btn btn-red" style="width:44px;height:44px;flex-shrink:0;padding:0;font-size:20px;" onclick="adjustTourRound(-1)">−</button>
+        <input id="tour-round-input" type="number" min="0" max="99" value="1"
+          style="text-align:center;font-size:24px;font-weight:900;color:var(--gold);height:44px;width:100%;"/>
+        <button class="btn btn-gold" style="width:44px;height:44px;flex-shrink:0;padding:0;font-size:20px;" onclick="adjustTourRound(1)">+</button>
+      </div>
+      <button class="btn btn-gold" onclick="giveTourRound()">✅ Trao Round</button>
+    </div>
+    <button class="btn" style="width:100%;" onclick="document.getElementById('award-dialog').classList.remove('show')">Huỷ</button>
+  </div>
+</div>
+
+<div class="overlay" id="randseat-dialog">
+  <div class="dialog" style="width:320px;">
+    <div class="dlg-title" id="randseat-title">🎲 Vào bàn ngẫu nhiên</div>
+    <div class="dlg-body" id="randseat-body"></div>
+    <div id="randseat-options" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+    <div class="dlg-btns">
+      <button class="btn" onclick="document.getElementById('randseat-dialog').classList.remove('show')">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="allcust-dialog">
+  <div class="dialog" style="width:360px;max-height:80vh;display:flex;flex-direction:column;">
+    <div class="dlg-title">👥 Toàn bộ khách hàng</div>
+    <div style="display:flex;gap:6px;margin-bottom:8px;">
+      <input id="allcust-search" placeholder="Tìm tên hoặc SĐT..." style="margin:0;flex:1;" oninput="filterAllCustomers(this.value)" autocomplete="off"/>
+    </div>
+    <div id="allcust-list" style="flex:1;overflow-y:auto;max-height:50vh;"></div>
+    <div style="margin-top:12px;">
+      <button class="btn" style="width:100%;" onclick="document.getElementById('allcust-dialog').classList.remove('show')">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = `http://${window.location.hostname}:3000/api`;
+const OWNER_PASS='19842007';
+let reportUnlocked=false;
+
+const tablesNormal=[
+  {id:1,name:'Bàn 1',status:'idle',seats:Array(9).fill(''),started:null,type:'normal'},
+  {id:2,name:'Bàn 2',status:'idle',seats:Array(9).fill(''),started:null,type:'normal'},
+  {id:3,name:'Bàn 3',status:'idle',seats:Array(9).fill(''),started:null,type:'normal'},
+];
+const tablesTour=[
+  {id:4,name:'Tour 1',status:'idle',seats:Array(9).fill(''),started:null,type:'tour'},
+  {id:5,name:'Tour 2',status:'idle',seats:Array(9).fill(''),started:null,type:'tour'},
+  {id:6,name:'Tour 3',status:'idle',seats:Array(9).fill(''),started:null,type:'tour'},
+];
+// Tất cả bàn (dùng cho isOnTable, getTableOf)
+const tables=[...tablesNormal,...tablesTour];
+let activeTab='normal'; // 'normal' | 'tour'
+
+function getActiveTables(){ return activeTab==='normal'?tablesNormal:tablesTour; }
+
+function switchTab(tab){
+  activeTab=tab;
+  document.getElementById('tab-normal').classList.toggle('active',tab==='normal');
+  document.getElementById('tab-tour').classList.toggle('active',tab==='tour');
+  renderTablesLeft();
+  renderQueue();
+}
+let customers=[],stock=[],transactions=[],queue=[],queueTour=[];
+let pendingPayPlayer='',pendingPayPhone='',pendingPayTable=null;
+
+// ── Tiêu thụ hằng ngày ─────────────────────────────────────
+let dailyConsumed = {}; // {name: count}
+let dailyConsumedDate = ''; // sẽ init khi gọi lần đầu
+
+function getDailyConsumed(){
+  const today = new Date().toISOString().slice(0,10);
+  if(dailyConsumedDate !== today){
+    dailyConsumed = {};
+    dailyConsumedDate = today;
+  }
+  return dailyConsumed;
+}
+
+function addDailyConsumed(name){
+  getDailyConsumed();
+  dailyConsumed[name] = (dailyConsumed[name]||0)+1;
+}
+
+function getActiveQueue(){ return activeTab==='normal'?queue:queueTour; }
+function setActiveQueue(q){ if(activeTab==='normal') queue=q; else queueTour=q; }
+
+const fmtAmt=n=>Number(n).toLocaleString('vi');
+const nowTime=()=>new Date().toLocaleTimeString('vi',{hour:'2-digit',minute:'2-digit'});
+const nowDate=()=>new Date().toLocaleDateString('vi',{day:'2-digit',month:'2-digit',year:'numeric'});
+const nowMonth=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');};
+const todayISO=()=>new Date().toISOString().slice(0,10);
+const isOnTable=name=>tables.some(t=>t.status==='active'&&t.seats.some(s=>s&&s.trim().toLowerCase()===name.trim().toLowerCase()));
+const getTableOf=name=>{const t=tables.find(t=>t.status==='active'&&t.seats.some(s=>s&&s.trim().toLowerCase()===name.trim().toLowerCase()));return t?t.name:null;};
+
+function showToast(msg,type='success'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='toast show '+type;
+  setTimeout(()=>el.className='toast',2500);
+}
+function formatAmtInput(el){
+  el.value=el.value.replace(/[^0-9]/g,'');
+  updatePayTotal();
+}
+function getRealAmt(){return parseInt((document.getElementById('pay-amount').value||'0').replace(/[^0-9]/g,''))*1000;}
+
+async function apiGet(path){
+  try{const r=await fetch(API+path);return await r.json();}
+  catch{showToast('Lỗi kết nối server','error');return null;}
+}
+async function apiPost(path,body){
+  try{const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return await r.json();}
+  catch{showToast('Lỗi kết nối server','error');return null;}
+}
+async function apiPut(path,body){
+  try{
+    const r=await fetch(API+path,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok){console.error('[PUT ERROR]',path,r.status);return null;}
+    return await r.json();
+  }catch(e){console.error('[PUT CATCH]',path,e.message);showToast('Lỗi kết nối server','error');return null;}
+}
+async function saveTableState(){
+  const state={
+    tablesNormal: tablesNormal.map(t=>({id:t.id,name:t.name,status:t.status,seats:[...t.seats],started:t.started,type:t.type})),
+    tablesTour:   tablesTour.map(t=>({id:t.id,name:t.name,status:t.status,seats:[...t.seats],started:t.started,type:t.type})),
+    queue:        [...queue],
+    queueTour:    [...queueTour],
+    activeTab:    activeTab,
+    updatedAt:    Date.now()
+  };
+  window._mainLastUpdate=state.updatedAt;
+  try{ sessionStorage.setItem('gcTableState', JSON.stringify(state)); }catch(e){}
+  try{
+    await fetch(API+'/table-state',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(state)
+    });
+  }catch(e){}
+}
+
+async function loadAll(){
+  const [custs,txs,stk]=await Promise.all([
+    apiGet('/customers'),
+    apiGet('/transactions'),
+    apiGet('/stock')
+  ]);
+  if(custs)customers=custs;
+  if(txs)transactions=txs;
+  if(stk)stock=stk;
+
+  // Xóa sessionStorage để khôi phục trạng thái sạch mỗi lần load trang
+  try{ sessionStorage.removeItem('gcTableState'); }catch(e){}
+
+  // Chỉ lấy trạng thái bàn từ server (không restore queue/queueTour)
+  let savedState = null;
+  try{
+    const r = await fetch(API+'/table-state');
+    if(r.ok) savedState = await r.json();
+  }catch(e){}
+
+  if(savedState){
+    if(savedState.tablesNormal){
+      savedState.tablesNormal.forEach(t=>{
+        const found=tablesNormal.find(x=>x.id===t.id);
+        if(found){found.status=t.status;found.seats=t.seats;found.started=t.started;}
+      });
+    }
+    if(savedState.tablesTour){
+      savedState.tablesTour.forEach(t=>{
+        const found=tablesTour.find(x=>x.id===t.id);
+        if(found){found.status=t.status;found.seats=t.seats;found.started=t.started;}
+      });
+    }
+    // ⚠️ Không restore queue/queueTour từ lưu trữ — luôn bắt đầu sạch
+    if(savedState.activeTab){
+      activeTab=savedState.activeTab;
+      document.getElementById('tab-normal').classList.toggle('active',activeTab==='normal');
+      document.getElementById('tab-tour').classList.toggle('active',activeTab==='tour');
+    }
+  }
+
+  // Reset queue/queueTour để bắt đầu sạch (không lưu người cũ từ lần trước)
+  queue = [];
+  queueTour = [];
+
+  // Luôn bắt đầu với tab bàn thường
+  activeTab = 'normal';
+  document.getElementById('tab-normal').classList.add('active');
+  document.getElementById('tab-tour').classList.remove('active');
+
+  renderTablesLeft();renderQueue();renderStock();
+}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>{if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes(id))b.classList.add('active');});
+  if(id==='inventory')renderStock();
+  if(id==='report')renderReport();
+}
+function tryReport(){
+  if(reportUnlocked){showPage('report');return;}
+  document.getElementById('pass-input').value='';
+  document.getElementById('pass-err').textContent='';
+  document.getElementById('pass-dialog').classList.add('show');
+}
+function checkPass(){
+  if(document.getElementById('pass-input').value===OWNER_PASS){
+    reportUnlocked=true;document.getElementById('pass-dialog').classList.remove('show');showPage('report');
+  }else document.getElementById('pass-err').textContent='Sai mật khẩu!';
+}
+function lockReport(){reportUnlocked=false;showPage('customers');}
+
+function tryResetDay(){
+  document.getElementById('reset-pass-input').value='';
+  document.getElementById('reset-pass-err').textContent='';
+  document.getElementById('reset-dialog').classList.add('show');
+  setTimeout(()=>document.getElementById('reset-pass-input').focus(),100);
+}
+async function confirmResetDay(){
+  const RESET_PASS='20071984';
+  const val=document.getElementById('reset-pass-input').value;
+  if(val!==RESET_PASS){
+    document.getElementById('reset-pass-err').textContent='Sai mật khẩu!';
+    return;
+  }
+  document.getElementById('reset-dialog').classList.remove('show');
+  // Reset giao dịch hôm nay trong bộ nhớ
+  const today=todayISO();
+  transactions=transactions.filter(t=>(t.created_at||'').slice(0,10)!==today);
+  // Reset tiêu thụ kho
+  stock.forEach(s=>{s.consumed=0;});
+  dailyConsumed={};dailyConsumedDate=new Date().toISOString().slice(0,10);
+  try{sessionStorage.removeItem('gcTableState');}catch(e){}
+  // Reset queue và bàn chơi
+  queue=[];
+  tables.forEach(t=>{t.status='idle';t.seats=Array(9).fill('');t.started=null;});
+  renderTablesLeft();renderQueue();renderStock();renderReport();
+  showToast('Đã reset dữ liệu ngày!');
+}
+
+function seatPositions(cx,cy,rx,ry,n){
+  return Array.from({length:n},(_,i)=>{
+    const a=(2*Math.PI*i/n)-Math.PI/2;
+    return{x:cx+rx*Math.cos(a),y:cy+ry*Math.sin(a)};
+  });
+}
+
+function renderTableSVG(t){
+  const W=300,H=188,cx=W/2,cy=H/2;
+  const ow=108,oh=60;
+  const seatR=16;
+  const all=seatPositions(cx,cy,ow+seatR+7,oh+seatR+7,10);
+  const dealerP=all[0];
+  const playerP=all.slice(1);
+  const isActive=t.status==='active';
+
+  // Màu theo vị trí bàn (1=xanh, 2=đen, 3=đỏ) — giống nhau cho cả bàn thường và tour
+  let railColor,feltOuter,feltInner,feltBorder,centerTextColor,seatOccFill,seatOccStroke,seatOccText;
+  const colorIdx = ((t.id-1)%3);
+  if(colorIdx===0){
+    railColor=isActive?'#b89030':'#3a4050';
+    feltOuter=isActive?'#1a5c3a':'#2a3540';
+    feltInner=isActive?'#1e6a42':'#303f4a';
+    feltBorder=isActive?'#2a7a50':'#405060';
+    centerTextColor=isActive?'#f0d060':'#8090a0';
+    seatOccFill='#003820';seatOccStroke='#22c97a';seatOccText='#22c97a';
+  } else if(colorIdx===1){
+    railColor=isActive?'#555':'#2a2a2a';
+    feltOuter=isActive?'#111':'#1a1a1a';
+    feltInner=isActive?'#1a1a1a':'#222';
+    feltBorder=isActive?'#444':'#333';
+    centerTextColor=isActive?'#ddd':'#555';
+    seatOccFill='#222';seatOccStroke='#aaa';seatOccText='#ddd';
+  } else {
+    railColor=isActive?'#8b1a1a':'#3a1010';
+    feltOuter=isActive?'#5c1010':'#2a1010';
+    feltInner=isActive?'#6e1515':'#301010';
+    feltBorder=isActive?'#8a2020':'#501010';
+    centerTextColor=isActive?'#ffaaaa':'#805050';
+    seatOccFill='#380808';seatOccStroke='#ff5555';seatOccText='#ff8888';
+  }
+
+  let svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;">
+    <ellipse cx="${cx}" cy="${cy}" rx="${ow+16}" ry="${oh+16}" fill="${railColor}" opacity="0.85"/>
+    <ellipse cx="${cx}" cy="${cy}" rx="${ow+8}" ry="${oh+8}" fill="${feltOuter}"/>
+    <ellipse cx="${cx}" cy="${cy}" rx="${ow}" ry="${oh}" fill="${feltInner}" stroke="${feltBorder}" stroke-width="1.5"/>
+    <ellipse cx="${cx}" cy="${cy}" rx="${ow-22}" ry="${oh-18}" fill="none" stroke="${feltBorder}" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+    <text x="${cx}" y="${cy-5}" text-anchor="middle" font-size="12" fill="${centerTextColor}" font-family="-apple-system,sans-serif" font-weight="700">${t.name}</text>
+    <text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="9" fill="${isActive?'#aaa':'#607080'}" font-family="-apple-system,sans-serif">${isActive?t.started+' · '+t.seats.filter(s=>s).length+'/9':'Nhấn Mở bàn'}</text>
+    <circle cx="${dealerP.x.toFixed(1)}" cy="${dealerP.y.toFixed(1)}" r="${seatR}" fill="#c8a010" stroke="#907010" stroke-width="1.5"/>
+    <text x="${dealerP.x.toFixed(1)}" y="${(dealerP.y+5).toFixed(1)}" text-anchor="middle" font-size="11" fill="#1a1000" font-family="-apple-system,sans-serif" font-weight="900" style="pointer-events:none;">D</text>`;
+
+  playerP.forEach((p,i)=>{
+    const name=t.seats[i]||'';
+    const occ=!!name;
+    const fillC=occ?seatOccFill:'#1a2a30';
+    const strokeC=occ?seatOccStroke:'#405060';
+    const textC=occ?seatOccText:'#607080';
+    const label=occ?(name.length>4?name.slice(0,4):name):`${i+1}`;
+
+    if(isActive&&occ){
+      // Không còn ô vuông trong SVG — drag dùng chip HTML bên dưới
+    }
+
+    svg+=`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${seatR}" fill="${fillC}" stroke="${strokeC}" stroke-width="${occ?2:1}" style="cursor:${isActive?'pointer':'default'};" class="sc" data-tid="${t.id}" data-si="${i}"/>
+<text x="${p.x.toFixed(1)}" y="${(p.y+5).toFixed(1)}" text-anchor="middle" font-size="${occ?8:10}" fill="${textC}" font-family="-apple-system,sans-serif" font-weight="${occ?'700':'400'}" style="pointer-events:none;">${label}</text>`;
+  });
+
+  return svg+'</svg>';
+}
+
+function bindSeats(){
+  document.querySelectorAll('.sc').forEach(el=>{
+    el.onclick=function(){
+      const tid=parseInt(el.getAttribute('data-tid'));
+      const si=parseInt(el.getAttribute('data-si'));
+      clickSeat(tid,si);
+    };
+  });
+}
+
+function renderTablesLeft(){
+  const activeTables=getActiveTables();
+  document.getElementById('tables-left').innerHTML=activeTables.map(t=>`
+    <div class="table-card ${t.status==='active'?'active-table':''}">
+      <div class="table-top">
+        <div>
+          <div class="table-name">${t.name}</div>
+          <div class="table-info">${t.status==='active'?'Bắt đầu: '+t.started+' · '+t.seats.filter(s=>s).length+'/9 người':'Bàn trống'}</div>
+        </div>
+        <span class="badge ${t.status==='active'?'b-green':'b-gray'}">${t.status==='active'?'Đang chơi':'Trống'}</span>
+      </div>
+      ${renderTableSVG(t)}
+      ${t.status==='active'?renderSeatDragList(t):''}
+      <div class="table-actions">
+        ${t.status==='active'?`<button class="btn btn-sm" onclick="randomSeats(${t.id})">Random</button>`:''}
+        ${t.status==='idle'
+          ?`<button class="btn btn-gold btn-sm" style="width:100%;" onclick="openTable(${t.id})">Mở bàn</button>`
+          :`<button class="btn btn-red btn-sm" onclick="closeTable(${t.id})">Đóng bàn</button>`}
+      </div>
+    </div>`).join('');
+  bindSeats();
+  renderPlayersPanel();
+}
+
+function renderSeatDragList(t){
+  return `<div class="chip-row">
+    ${t.seats.map((name,i)=> name
+      ? `<div class="drag-chip" draggable="true"
+           ondragstart="DG.start(event,'seat','${name.replace(/'/g,"\\'")}',${t.id},${i})"
+           ondragend="DG.end(event)">⠿ ${name}</div>`
+      : ''
+    ).join('')}
+  </div>
+  <div class="seat-drop-row">
+    ${Array.from({length:9},(_,i)=>{
+      const occ=t.seats[i];
+      return `<div class="seat-drop-cell ${occ?'occ':''}"
+        ondragover="DG.over(event)"
+        ondragleave="DG.leave(event)"
+        ondrop="DG.drop(event,${t.id},${i})">
+        <span>${occ ? occ.slice(0,4) : (i+1)}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ── DRAG ENGINE ─────────────────────────────────────────────
+const DG = {
+  src: null, // {type:'seat'|'queue', name, tid, si, qi}
+
+  start(e, type, name, tid, si){
+    DG.src = {type, name, tid: tid||null, si: si!=null?si:null, qi: null};
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', name);
+    e.currentTarget.style.opacity = '0.3';
+  },
+
+  startQueue(e, qi){
+    const q = getActiveQueue()[qi];
+    if(!q) return;
+    DG.src = {type:'queue', name:q.name, tid:null, si:null, qi, qTab:activeTab};
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', q.name);
+    e.currentTarget.style.opacity = '0.3';
+  },
+
+  startQueueItem(e, tab, qi){
+    const q = (tab==='normal'?queue:queueTour)[qi];
+    if(!q) return;
+    DG.src = {type:'queue', name:q.name, tid:null, si:null, qi, qTab:tab};
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', q.name);
+    e.currentTarget.style.opacity = '0.3';
+  },
+
+  end(e){
+    e.currentTarget.style.opacity = '';
+    document.querySelectorAll('.seat-drop-cell.drag-over').forEach(c=>c.classList.remove('drag-over'));
+    document.getElementById('queue-list').style.outline = '';
+  },
+
+  over(e){
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.add('drag-over');
+  },
+
+  leave(e){
+    e.currentTarget.classList.remove('drag-over');
+  },
+
+  drop(e, destTid, destSi){
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.remove('drag-over');
+    const src = DG.src;
+    if(!src) return;
+    const destTable = tables.find(x=>x.id===destTid);
+    if(!destTable || destTable.status!=='active') return;
+    const aq = getActiveQueue();
+
+    if(src.type === 'seat'){
+      const srcTable = tables.find(x=>x.id===src.tid);
+      if(!srcTable) return;
+      if(src.tid===destTid && src.si===destSi) return;
+      const destCurrent = destTable.seats[destSi];
+      destTable.seats[destSi] = src.name;
+      srcTable.seats[src.si] = destCurrent || '';
+      renderTablesLeft();
+      renderQueue();
+      showToast(destCurrent ? `${src.name} ↔ ${destCurrent}` : `${src.name} → ${destTable.name} ghế ${destSi+1}`);
+      saveTableState();
+    } else if(src.type === 'queue'){
+      const srcQ = src.qTab==='normal' ? queue : queueTour;
+      const existing = destTable.seats[destSi];
+      destTable.seats[destSi] = src.name;
+      if(src.qi >= 0) srcQ.splice(src.qi, 1);
+      if(existing && !srcQ.find(q=>q.name===existing))
+        srcQ.unshift({name:existing, table:destTable.name, time:nowTime()});
+      renderTablesLeft();
+      renderQueue();
+      showToast(`${src.name} → ${destTable.name} ghế ${destSi+1}`);
+      saveTableState();
+    }
+    DG.src = null;
+  },
+
+  overQueueSection(e, tab){
+    e.preventDefault();
+    const el=document.getElementById('queue-half-'+tab);
+    if(el) el.classList.add('drag-over-section');
+  },
+
+  leaveQueueSection(e, tab){
+    const el=document.getElementById('queue-half-'+tab);
+    if(el&&!el.contains(e.relatedTarget)) el.classList.remove('drag-over-section');
+  },
+
+  dropQueueSection(e, tab){
+    e.preventDefault();
+    const el=document.getElementById('queue-half-'+tab);
+    if(el) el.classList.remove('drag-over-section');
+    const src = DG.src;
+    if(!src) return;
+
+    if(src.type==='seat'){
+      // Kéo từ ghế → hàng chờ (tab tương ứng)
+      const srcTable = tables.find(x=>x.id===src.tid);
+      if(srcTable){ srcTable.seats[src.si]=''; renderTablesLeft(); }
+      const destQ = tab==='normal' ? queue : queueTour;
+      if(!destQ.find(q=>q.name===src.name))
+        destQ.unshift({name:src.name, table:srcTable?.name||'', time:nowTime()});
+      renderQueue();
+      showToast(`${src.name} → hàng chờ ${tab==='normal'?'thường':'tour'}`);
+      saveTableState();
+
+    } else if(src.type==='queue'){
+      // Kéo từ hàng chờ section này → section kia (hoặc cùng section)
+      const srcQ = src.qTab==='normal' ? queue : queueTour;
+      const destQ = tab==='normal' ? queue : queueTour;
+      if(src.qTab===tab) return; // cùng section, không làm gì
+      // Chuyển sang section kia
+      const item = srcQ.splice(src.qi,1)[0];
+      if(item && !destQ.find(q=>q.name===item.name)){
+        destQ.push(item);
+        renderQueue();
+        showToast(`${item.name} → hàng chờ ${tab==='normal'?'thường':'tour'}`);
+      } else {
+        // Hoàn lại nếu trùng
+        if(item) srcQ.splice(src.qi,0,item);
+        renderQueue();
+      }
+    }
+    DG.src = null;
+  },
+
+  // Legacy overQueue/dropQueue kept for seat→queue drops (no section specified)
+  overQueue(e){ e.preventDefault(); },
+  leaveQueue(e){},
+  dropQueue(e){ DG.dropQueueSection(e, activeTab); },
+
+  reorderQueue(e, tab, toQi){
+    e.preventDefault();
+    const src = DG.src;
+    if(!src || src.type!=='queue' || src.qTab!==tab || src.qi===toQi) return;
+    const q = tab==='normal' ? queue : queueTour;
+    const moved = q.splice(src.qi,1)[0];
+    q.splice(toQi,0,moved);
+    renderQueueSection(tab);
+    DG.src = null;
+  },
+
+  reorder(e, toQi){ DG.reorderQueue(e, activeTab, toQi); }
+};
+
+// ── PLAYERS PANEL & AWARD ───────────────────────────────────
+let awardTarget = null; // {name, phone, tid, si}
+
+function renderPlayersPanel(){
+  const panel = document.getElementById('players-panel');
+  const list  = document.getElementById('players-list');
+  const activeTables = getActiveTables();
+
+  const hasPlayers = activeTables.some(t=>t.status==='active'&&t.seats.some(s=>s));
+  if(!hasPlayers){ panel.style.display='none'; list.innerHTML=''; return; }
+
+  panel.style.display='block';
+
+  const rows = activeTables.filter(t=>t.status==='active'&&t.seats.some(s=>s)).map(t=>{
+    const chips = t.seats.map((name,si)=>{
+      if(!name) return '';
+      const c = customers.find(x=>x.name.trim().toLowerCase()===name.trim().toLowerCase());
+      const last4 = c ? c.phone.slice(-4) : '????';
+      const safeN = name.replace(/'/g,"\\'");
+      return `<div class="player-chip" onclick="openAward('${safeN}','${t.name}',${t.id},${si})" title="${name} — ghế ${si+1}">
+        <span style="font-size:11px;color:var(--text3);font-weight:500;">G${si+1}</span>
+        <span style="font-weight:700;">${name}</span>
+        <span style="font-size:11px;color:var(--gold);font-family:monospace;">···${last4}</span>
+      </div>`;
+    }).filter(s=>s).join('');
+    return `<div style="width:100%;margin-bottom:6px;">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">${t.name}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">${chips}</div>
+    </div>`;
+  }).join('');
+
+  list.innerHTML = rows;
+}
+
+function openAward(name, tableName, tid, si){
+  const c = customers.find(x=>x.name.trim().toLowerCase()===name.trim().toLowerCase());
+  const last4 = c ? c.phone.slice(-4) : '????';
+  awardTarget = {name, phone: c?.phone||null, customer: c, tid, si};
+
+  // Kiểm tra bàn thường hay tour
+  const t = tables.find(x=>x.id===tid);
+  const isTour = t && t.type==='tour';
+
+  document.getElementById('award-title').textContent = isTour ? '🏆 Trao Round (Tour)' : '🏆 Trao thưởng';
+  const topInfo = c
+    ? `<div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap;">
+        <span class="badge b-amber">🥇 ${c.top1||0}</span>
+        <span class="badge b-gray">🥈 ${c.top2||0}</span>
+        <span class="badge b-red">🥉 ${c.top3||0}</span>
+        <span class="badge b-blue">🎮 ${c.rounds||0}</span>
+        <span class="badge b-green">🥤 ${c.drinks||0}</span>
+       </div>`
+    : `<div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Chưa có tài khoản</div>`;
+  document.getElementById('award-body').innerHTML =
+    `<div style="margin-bottom:8px;">
+      <div style="font-size:13px;color:var(--text3);">${tableName} · Ghế ${si+1}</div>
+      <div style="font-size:17px;font-weight:800;color:var(--text);">${name}</div>
+      <div style="font-size:13px;color:var(--gold);font-family:monospace;">···${last4}</div>
+    </div>
+    ${topInfo}
+    <div style="font-size:12px;color:var(--text3);margin-bottom:4px;">${isTour?'Nhập số round thưởng cho người chơi:':'Chọn hạng — sau khi chọn khách sẽ tự out bàn:'}</div>`;
+
+  // Hiện/ẩn section phù hợp
+  document.getElementById('award-normal-section').style.display = isTour ? 'none' : 'flex';
+  document.getElementById('award-tour-section').style.display   = isTour ? 'block' : 'none';
+  if(isTour) document.getElementById('tour-round-input').value = '1';
+
+  document.getElementById('award-dialog').classList.add('show');
+}
+
+function adjustTourRound(delta){
+  const inp = document.getElementById('tour-round-input');
+  const v = Math.max(0, (parseInt(inp.value)||0) + delta);
+  inp.value = v;
+}
+
+async function giveTourRound(){
+  document.getElementById('award-dialog').classList.remove('show');
+  if(!awardTarget) return;
+  const {name, customer, tid, si} = awardTarget;
+  const roundsToAdd = parseInt(document.getElementById('tour-round-input').value) || 0;
+  if(roundsToAdd <= 0){ showToast('Số round phải lớn hơn 0!','error'); return; }
+
+  const srcTable = tables.find(x=>x.id===tid);
+  if(srcTable && si>=0 && srcTable.seats[si]===name) srcTable.seats[si]='';
+
+  if(customer){
+    customer.rounds = (customer.rounds||0) + roundsToAdd;
+    customer.top1 = (customer.top1||0) + roundsToAdd;
+    const r=await apiPut('/customers/'+customer.phone,{
+      top1:customer.top1, top2:customer.top2||0, top3:customer.top3||0,
+      rounds:customer.rounds, drinks:customer.drinks||0
+    });
+    if(!r){showToast('Lỗi lưu dữ liệu!','error');return;}
+    await apiPost('/transactions',{
+      payer:name, phone:customer.phone, amount:0,
+      table_name:srcTable?.name||'', note: `Trao +${roundsToAdd} Round (Tour) = +${roundsToAdd} TOP 1`
+    });
+    // Refresh ngay lập tức sau update để sync với app dealer
+    await refreshCustomers();
+  }
+
+  showToast(`${name}: +${roundsToAdd} Round = +${roundsToAdd} TOP 1 (Bounty +${roundsToAdd*30}) — đã out bàn`);
+  renderTablesLeft();
+  renderQueue();
+  saveTableState();
+  const cur = document.getElementById('search-phone').value;
+  if(cur.length>=4) doSearch();
+  awardTarget = null;
+}
+
+async function giveAward(top){
+  document.getElementById('award-dialog').classList.remove('show');
+  if(!awardTarget) return;
+  const {name, tid, si} = awardTarget;
+  // Fetch dữ liệu mới nhất từ server để tránh xung đột với app dealer
+  await refreshCustomers();
+  let customer=customers.find(x=>x.name===name);
+  if(!customer){showToast('Không tìm thấy khách!','error');return;}
+
+  const rewards = top===1 ? {top1:1,top2:0,top3:0,rounds:2,drinks:2,label:'🥇 Top 1 — +2 Round, +2 Nước'}
+                : top===2 ? {top1:0,top2:1,top3:0,rounds:1,drinks:1,label:'🥈 Top 2 — +1 Round, +1 Nước'}
+                :            {top1:0,top2:0,top3:1,rounds:0,drinks:1,label:'🥉 Top 3 — +1 Nước'};
+
+  // Auto-remove player from table
+  const srcTable = tables.find(x=>x.id===tid);
+  if(srcTable && si>=0 && srcTable.seats[si]===name){
+    srcTable.seats[si] = '';
+  }
+
+  if(customer){
+    const c1=(customer.top1??0)||0, c2=(customer.top2??0)||0, c3=(customer.top3??0)||0;
+    const cr=(customer.rounds??0)||0, cd=(customer.drinks??0)||0;
+    const updated={
+      top1:c1+rewards.top1,
+      top2:c2+rewards.top2,
+      top3:c3+rewards.top3,
+      rounds:cr+rewards.rounds,
+      drinks:cd+rewards.drinks
+    };
+
+    const r=await apiPut('/customers/'+customer.phone,{
+      top1:updated.top1, top2:updated.top2, top3:updated.top3,
+      rounds:updated.rounds, drinks:updated.drinks
+    });
+    if(!r){showToast('Lỗi lưu dữ liệu!','error');return;}
+
+    Object.assign(customer,updated);
+    await apiPost('/transactions',{
+      payer:name, phone:customer.phone, amount:0,
+      table_name:srcTable?.name||'', note: rewards.label
+    });
+    const bounty=updated.top1*30+updated.top2*20+updated.top3*10;
+    showToast(`${name}: ${rewards.label} — Bounty: ${bounty} ✅`);
+    // Refresh ngay lập tức sau update để sync với app dealer
+    await refreshCustomers();
+  } else {
+    showToast(`${name}: ${rewards.label} — đã out bàn`);
+  }
+  renderTablesLeft();
+  renderQueue();
+  saveTableState();
+  // Update search result ngay lập tức
+  const searchBox = document.getElementById('search-phone');
+  if(searchBox && searchBox.value.length>=4) doSearch();
+  awardTarget = null;
+}
+
+function clickSeat(tid,si){
+  const t=tables.find(x=>x.id===tid);
+  if(!t||t.status!=='active')return;
+  const name=t.seats[si];
+  if(name){
+    showConfirm('Loại khỏi bàn?',`Xác nhận loại "${name}" khỏi ghế ${si+1}?`,[
+      {label:'Loại',cls:'btn btn-red',cb:()=>{t.seats[si]='';closeDialog();renderTablesLeft();autoFillFromQueue(tid);saveTableState();}},
+      {label:'Huỷ',cls:'btn',cb:closeDialog},
+    ]);
+  } else {
+    if(queue.length>0){
+      const next=queue[0];
+      showConfirm('Xếp từ hàng chờ',`Cho "${next.name}" vào ghế ${si+1}?`,[
+        {label:'Xác nhận',cls:'btn btn-gold',cb:()=>{t.seats[si]=next.name;queue.splice(0,1);closeDialog();renderTablesLeft();renderQueue();}},
+        {label:'Nhập tên khác',cls:'btn',cb:()=>{closeDialog();showInputDialog(`Ghế ${si+1}`,'Nhập tên:',(val)=>{if(val&&val.trim())t.seats[si]=val.trim();closeDialog();renderTablesLeft();});}},
+        {label:'Huỷ',cls:'btn',cb:closeDialog},
+      ]);
+    } else {
+      showInputDialog(`Thêm vào ghế ${si+1}`,'Nhập tên:',(val)=>{if(val&&val.trim())t.seats[si]=val.trim();closeDialog();renderTablesLeft();});
+    }
+  }
+}
+
+function autoFillFromQueue(tid){
+  if(!queue.length)return;
+  const t=tables.find(x=>x.id===tid);if(!t||t.status!=='active')return;
+  const ei=t.seats.findIndex(s=>!s);if(ei===-1)return;
+  const next=queue[0];
+  setTimeout(()=>{
+    showConfirm('Hàng chờ','Ghế trống — cho "'+next.name+'" vào ghế '+(ei+1)+'?',[
+      {label:'Xác nhận',cls:'btn btn-gold',cb:()=>{t.seats[ei]=next.name;queue.splice(0,1);closeDialog();renderTablesLeft();renderQueue();}},
+      {label:'Bỏ qua',cls:'btn',cb:closeDialog},
+    ]);
+  },350);
+}
+
+function randomSeats(tid){
+  const t=tables.find(x=>x.id===tid);
+  const existing=t.seats.filter(s=>s);
+  if(!existing.length){showToast('Chưa có ai trên bàn!','error');return;}
+  const empties=Array(9-existing.length).fill('');
+  const combined=[...existing,...empties];
+  for(let i=combined.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [combined[i],combined[j]]=[combined[j],combined[i]];
+  }
+  t.seats=combined;
+  renderTablesLeft();
+  showToast('Đã random vị trí '+existing.length+' người!');
+  saveTableState();
+}
+function openTable(id){
+  const t=tables.find(x=>x.id===id);t.status='active';t.started=nowTime();
+  renderTablesLeft();showToast(t.name+' đã mở!');
+  saveTableState();
+}
+function closeTable(id){
+  showConfirm('Đóng bàn?','Xác nhận đóng '+tables.find(x=>x.id===id).name+'?',[
+    {label:'Đóng bàn',cls:'btn btn-red',cb:()=>{
+      const t=tables.find(x=>x.id===id);t.status='idle';t.seats=Array(9).fill('');t.started=null;
+      closeDialog();renderTablesLeft();showToast(t.name+' đã đóng!');
+      saveTableState();
+    }},
+    {label:'Huỷ',cls:'btn',cb:closeDialog},
+  ]);
+}
+
+function openPayment(pName,pPhone,tid){
+  pendingPayPlayer=pName;pendingPayPhone=pPhone||'';pendingPayTable=tid;
+  document.getElementById('pay-player-name').textContent=pName;
+  document.getElementById('payment-section').style.display='block';
+  document.getElementById('qr-area').style.display='none';
+  document.getElementById('pay-amount').value='';
+  document.getElementById('pay-preview').textContent='';
+  document.getElementById('pay-join-queue').checked=true;
+  // Reset drink list
+  payDrinkItems=[];
+  document.getElementById('pay-drink-search').value='';
+  document.getElementById('pay-drink-qty').value='1';
+  document.getElementById('pay-drink-list').innerHTML='';
+  document.getElementById('pay-drink-suggestions').style.display='none';
+  updatePayTotal();
+}
+
+let payDrinkItems=[]; // [{name, qty, price, cost}]
+
+function handlePayDrinkSearch(val){
+  const sug=document.getElementById('pay-drink-suggestions');
+  if(!val.trim()){sug.style.display='none';sug.innerHTML='';return;}
+  const matches=stock.filter(s=>s.qty>0&&s.name.toLowerCase().includes(val.toLowerCase()));
+  if(!matches.length){sug.style.display='none';return;}
+  sug.style.display='block';
+  sug.innerHTML=matches.map(s=>`
+    <div class="suggest-item" onclick="selectPayDrinkSearch('${s.name.replace(/'/g,"\\'")}')">
+      📦 ${s.name} — ${s.price?fmtAmt(s.price)+' ₫':''} (còn ${s.qty})
+    </div>`).join('');
+}
+
+function selectPayDrinkSearch(name){
+  document.getElementById('pay-drink-search').value=name;
+  document.getElementById('pay-drink-suggestions').style.display='none';
+}
+
+function addPayDrinkItem(){
+  const name=document.getElementById('pay-drink-search').value.trim();
+  const qty=parseInt(document.getElementById('pay-drink-qty').value)||1;
+  if(!name)return;
+  const s=stock.find(x=>x.name.toLowerCase()===name.toLowerCase());
+  const exist=payDrinkItems.find(x=>x.name.toLowerCase()===name.toLowerCase());
+  if(exist){exist.qty+=qty;}
+  else payDrinkItems.push({name:s?s.name:name,qty,price:s?s.price||0:0,cost:s?s.cost||0:0});
+  document.getElementById('pay-drink-search').value='';
+  document.getElementById('pay-drink-qty').value='1';
+  document.getElementById('pay-drink-suggestions').style.display='none';
+  renderPayDrinkList();
+  updatePayTotal();
+  document.getElementById('pay-drink-search').focus();
+}
+
+function removePayDrinkItem(idx){
+  payDrinkItems.splice(idx,1);
+  renderPayDrinkList();
+  updatePayTotal();
+}
+
+function renderPayDrinkList(){
+  const el=document.getElementById('pay-drink-list');
+  if(!payDrinkItems.length){el.innerHTML='';return;}
+  el.innerHTML=payDrinkItems.map((item,i)=>`
+    <div style="display:flex;align-items:center;gap:5px;padding:5px 7px;background:var(--surface2);border-radius:var(--radius);margin-bottom:3px;">
+      <span style="flex:1;font-size:12px;font-weight:700;">${item.name}</span>
+      <span style="font-size:11px;color:var(--text3);">×${item.qty}</span>
+      ${item.price?`<span style="font-size:11px;color:var(--gold);">${fmtAmt(item.price*item.qty)} ₫</span>`:''}
+      <button onclick="removePayDrinkItem(${i})" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);border-radius:4px;padding:1px 6px;cursor:pointer;font-size:11px;font-family:inherit;">✕</button>
+    </div>`).join('');
+}
+
+function getPayDrinkTotal(){ return payDrinkItems.reduce((s,x)=>s+(x.price||0)*x.qty,0); }
+function getPayDrinkNames(){ return payDrinkItems.map(x=>`${x.name}×${x.qty}`).join(', '); }
+
+function updatePayTotal(){
+  const base=getRealAmt();
+  const drinkTotal=getPayDrinkTotal();
+  const total=base+drinkTotal;
+  const prev=document.getElementById('pay-preview');
+  if(!base&&!drinkTotal){prev.textContent='';return;}
+  let parts=[];
+  if(base)parts.push('Phiên: '+fmtAmt(base)+' ₫');
+  if(drinkTotal)parts.push('Nước: '+fmtAmt(drinkTotal)+' ₫');
+  prev.innerHTML=parts.join(' + ')+(total>0?` <strong style="color:var(--gold);">= ${fmtAmt(total)} ₫</strong>`:'');
+}
+
+// ── CẤU HÌNH NGÂN HÀNG ───────────────────────────────────────
+const TCB = {
+  bankId:  'MB',
+  account: '0773727403',
+  name:    'Phuong Nguyen',
+};
+
+let pollingTimer = null;
+let pendingAmount = 0;
+let pendingStartTime = 0;
+let pendingCode = '';
+
+// SePay API Token
+const SEPAY_TOKEN = '4VFJGSRQHxD6WC1KVNSMIxLTCLGDUZADQIKZ5BY1XFGNAP2ET5WVVRMCBBKZ7WR0';
+
+function genQR(){
+  const base=getRealAmt();
+  const drink=getPayDrinkNames();
+  if(!drink){showToast('Bắt buộc phải chọn nước uống!','error');document.getElementById('pay-drink-search').focus();return;}
+  const drinkPrice=getPayDrinkTotal();
+  const total=base+drinkPrice;
+  if(!total){showToast('Tổng tiền phải lớn hơn 0!','error');return;}
+
+  pendingAmount=total;
+  pendingStartTime=Date.now();
+  // Mã đơn duy nhất 6 ký tự — khách ghi vào nội dung chuyển khoản
+  pendingCode='GC'+Math.floor(100000+Math.random()*900000);
+
+  const qrUrl=`https://img.vietqr.io/image/${TCB.bankId}-${TCB.account}-compact2.png`
+    +`?amount=${total}`
+    +`&addInfo=${encodeURIComponent(pendingCode)}`
+    +`&accountName=${encodeURIComponent(TCB.name)}`;
+
+  // Cập nhật màn hình phụ
+  fetch(API+'/display',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({mode:'qr',qrUrl,amount:total,payer:pendingPayPlayer,drink})
+  }).catch(()=>{});
+
+  document.getElementById('qr-area').style.display='block';
+  document.getElementById('qr-box').innerHTML=
+    `<img src="${qrUrl}" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"
+     onerror="this.parentElement.innerHTML='<div style=\'font-size:11px;color:var(--text3);\'>Lỗi tải QR</div>'" />`;
+  document.getElementById('qr-status').innerHTML=
+    `<div style="font-size:15px;font-weight:800;color:var(--gold);">${total.toLocaleString('vi')} ₫</div>`
+    +`<span class="badge b-amber" style="margin-top:4px;">⏳ Chờ khách quét...</span>`;
+
+  if(pollingTimer)clearInterval(pollingTimer);
+  pollingTimer=setInterval(checkPaymentSePay,3000);
+}
+
+async function checkPaymentSePay(){
+  if(!pendingAmount||!pendingStartTime)return;
+  try{
+    const r=await fetch(API+'/sepay-check');
+    if(!r.ok)return;
+    const data=await r.json();
+    const txs=data.transactions||[];
+
+    const found=txs.find(tx=>{
+      const dateStr=(tx.transaction_date||'').replace(' ','T');
+      const txTime=new Date(dateStr).getTime();
+      const amountIn=parseInt(tx.amount_in||0);
+      const content=(tx.transaction_content||'').toUpperCase();
+      // Khớp theo mã đơn (ưu tiên) hoặc số tiền + thời gian
+      const codeOK=pendingCode&&content.includes(pendingCode.toUpperCase());
+      const amountOK=Math.abs(amountIn-pendingAmount)<2000;
+      const timeOK=txTime>=(pendingStartTime-120000);
+      return amountIn>0&&(codeOK||(amountOK&&timeOK));
+    });
+
+    if(found){
+      clearInterval(pollingTimer);pollingTimer=null;
+      pendingAmount=0;pendingStartTime=0;pendingCode='';
+      onPaymentSuccess();
+    }
+  }catch(e){ console.log('[SEPAY]',e.message); }
+}
+
+async function checkPayment(){
+  // Không dùng nữa — giữ lại để tránh lỗi nếu còn reference
+}
+
+
+async function payCash(){
+  const base=getRealAmt();
+  const drink=getPayDrinkNames();
+  if(!drink){showToast('Bắt buộc phải chọn nước uống!','error');document.getElementById('pay-drink-search').focus();return;}
+  const drinkPrice=getPayDrinkTotal();
+  const total=base+drinkPrice;
+  if(!total){showToast('Tổng tiền phải lớn hơn 0!','error');return;}
+
+  // Dùng activeTab để xác định bàn thường hay tour — đơn giản và chính xác nhất
+  const isTour = activeTab==='tour';
+  console.log('[CASH] isTour='+isTour+' activeTab='+activeTab);
+
+  showConfirm(
+    '💵 Xác nhận tiền mặt',
+    `${pendingPayPlayer} — Tổng: ${total.toLocaleString('vi')} ₫\n(Phiên: ${base.toLocaleString('vi')} + Nước ${drink}: ${drinkPrice.toLocaleString('vi')} ₫)`,
+    [
+      {label:'✅ Xác nhận nhận tiền', cls:'btn btn-green', cb:()=>{
+        closeDialog();
+        (async()=>{
+          try{
+            await fetch(API+'/open-drawer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+            showToast('Khay tiền đang mở!');
+          }catch(e){ showToast('Không mở được khay','error'); }
+          if(isTour){
+            // Bàn tour + tiền mặt — lưu với tag [TIEN_MAT_TOUR]
+            for(const item of payDrinkItems){
+              const s=stock.find(x=>x.name.toLowerCase()===item.name.toLowerCase());
+              if(s&&s.qty>=item.qty){
+                s.qty-=item.qty;s.consumed=(s.consumed||0)+item.qty;
+                for(let i=0;i<item.qty;i++){addDailyConsumed(s.name);await fetch(API+'/stock/'+encodeURIComponent(s.name)+'/use',{method:'PUT'});}
+              }
+            }
+            const tbl=tables.find(x=>x.id===pendingPayTable)||tables.find(x=>x.status==='active'&&x.type==='tour'&&x.seats&&x.seats.includes(pendingPayPlayer));
+            const tableName=tbl?tbl.name:(activeTab==='tour'?'Tour 1':'');
+            const joinQueue=document.getElementById('pay-join-queue')?.checked;
+            const noPlayTag=joinQueue?'':'[NOPLAY] ';
+            await apiPost('/transactions',{payer:pendingPayPlayer,phone:pendingPayPhone,amount:total,table_name:tableName,note:`[TIEN_MAT_TOUR] ${noPlayTag}Phiên ${base.toLocaleString('vi')} ₫ · Nước: ${drink}`});
+            transactions.unshift({payer:pendingPayPlayer,amount:total,table_name:tableName,note:`[TIEN_MAT_TOUR] ${noPlayTag}Phiên ${base.toLocaleString('vi')} ₫ · Nước: ${drink}`,created_at:new Date().toISOString(),phone:pendingPayPhone});
+            if(joinQueue&&!isOnTable(pendingPayPlayer)&&!isInQueue(pendingPayPlayer))
+              getActiveQueue().push({name:pendingPayPlayer,table:tableName,time:nowTime()});
+            renderQueue();saveTableState();clearSearch();
+            showToast('Đã thu tiền mặt!');
+            setTimeout(hidePayment,1500);
+          } else {
+            // Bàn thường — lưu giao dịch bình thường
+            await processPaid(total,`Phien ${base.toLocaleString('vi')} + Nuoc: ${drink} [TIEN MAT]`);
+          }
+        })();
+      }},
+      {label:'Huỷ', cls:'btn', cb:closeDialog}
+    ]
+  );
+}
+
+async function onPaymentSuccess(savedByWebhook=false){
+  const drink=getPayDrinkNames();
+  const drinkPrice=getPayDrinkTotal();
+  const base=getRealAmt();
+  const total=pendingAmount||base+drinkPrice;
+
+  // Hiện thành công đẹp trên màn hình chính
+  document.getElementById('qr-box').innerHTML=`
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;height:100%;padding:10px;">
+      <svg width="60" height="60" viewBox="0 0 90 90">
+        <circle cx="45" cy="45" r="40" fill="none" stroke="rgba(34,201,122,0.3)" stroke-width="1.5"/>
+        <polyline points="26,46 38,58 64,32" fill="none" stroke="#22c97a" stroke-width="4.5"
+          stroke-linecap="round" stroke-linejoin="round"
+          style="stroke-dasharray:60;stroke-dashoffset:0;"/>
+      </svg>
+      <div style="font-size:16px;font-weight:900;color:#22c97a;text-shadow:0 0 20px rgba(34,201,122,0.5);">Thanh toán thành công!</div>
+      <div style="font-size:18px;font-weight:900;color:#f0c040;">${total.toLocaleString('vi')} ₫</div>
+    </div>`;
+  document.getElementById('qr-status').innerHTML='';
+
+  // Cập nhật màn hình phụ thành công
+  fetch(API+'/display',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({mode:'success',amount:total,payer:pendingPayPlayer,drink:''})
+  }).catch(()=>{});
+
+  // QR bàn tour vẫn lưu giao dịch (chỉ tiền mặt tour mới không lưu)
+  await processPaid(total,`Phien ${base.toLocaleString('vi')} + Nuoc: ${drink}`, savedByWebhook, false);
+}
+
+async function checkPayment(){
+  if(!currentOrderId)return;
+  try{
+    const r=await fetch(API+'/check-order/'+currentOrderId);
+    const data=await r.json();
+    if(data.paid){
+      clearInterval(pollingTimer);pollingTimer=null;
+      onPaymentSuccess(data.savedByWebhook);
+    }
+    if(data.expired){clearInterval(pollingTimer);pollingTimer=null;}
+  }catch(e){}
+}
+
+async function processPaid(total, note, savedByWebhook=false, skipTransaction=false){
+  const drink=getPayDrinkNames();
+  const drinkPrice=getPayDrinkTotal();
+  const base=total-drinkPrice;
+  const t=tables.find(x=>x.id===pendingPayTable)||tables.find(x=>x.seats&&x.seats.includes(pendingPayPlayer));
+  const isTourPay=t?t.type==='tour':activeTab==='tour';
+  const tableName=t?t.name:(isTourPay?'Tour 1':'');
+  const joinQueue=document.getElementById('pay-join-queue').checked;
+  const noPlayTag=joinQueue?'':'[NOPLAY] ';
+  const tourTag=isTourPay&&!noPlayTag?'[TOUR] ':'';
+  const fullNote=`${noPlayTag}${tourTag}Phiên ${base.toLocaleString('vi')} ₫ · Nước: ${drink}${drinkPrice?' ('+drinkPrice.toLocaleString('vi')+' ₫)':''}`;
+
+  if(!skipTransaction&&!savedByWebhook){
+    const result=await apiPost('/transactions',{payer:pendingPayPlayer,phone:pendingPayPhone,amount:total,table_name:tableName,note:fullNote});
+    if(!result){setTimeout(hidePayment,2000);return;}
+  }
+  if(!skipTransaction){
+    transactions.unshift({payer:pendingPayPlayer,amount:total,table_name:tableName,note:fullNote,created_at:new Date().toISOString(),phone:pendingPayPhone});
+  }
+
+  // Trừ kho từng loại nước
+  for(const item of payDrinkItems){
+    const s=stock.find(x=>x.name.toLowerCase()===item.name.toLowerCase());
+    if(s&&s.qty>=item.qty){
+      s.qty-=item.qty;
+      s.consumed=(s.consumed||0)+item.qty;
+      for(let i=0;i<item.qty;i++){
+        addDailyConsumed(s.name);
+        await fetch(API+'/stock/'+encodeURIComponent(s.name)+'/use',{method:'PUT'});
+      }
+    }
+  }
+  if(joinQueue&&!isOnTable(pendingPayPlayer)&&!isInQueue(pendingPayPlayer))
+    getActiveQueue().push({name:pendingPayPlayer,table:tableName,time:nowTime()});
+  renderQueue();clearSearch();saveTableState();
+  if(!skipTransaction) printBill(pendingPayPlayer,total,drink,tableName);
+  showToast('Thanh toán thành công! '+total.toLocaleString('vi')+' ₫');
+  setTimeout(hidePayment,2000);
+}
+
+function printBill(player,total,drink,tableName){
+  const w=window.open('','_blank','width=320,height=500');
+  if(!w)return;
+  const time=new Date().toLocaleString('vi',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+    <style>body{font-family:monospace;font-size:13px;padding:14px;max-width:280px;margin:auto;}
+    h2{text-align:center;font-size:17px;margin:0 0 2px;}
+    .sub{text-align:center;font-size:11px;color:#666;margin-bottom:10px;}
+    .line{border-top:1px dashed #999;margin:8px 0;}
+    .row{display:flex;justify-content:space-between;margin:5px 0;}
+    .total{font-size:16px;font-weight:bold;}
+    .footer{text-align:center;font-size:11px;color:#666;margin-top:12px;}</style></head><body>
+    <h2>GOLDEN COFFEE</h2><div class="sub">♠ BOARD GAME ♠</div>
+    <div class="line"></div>
+    <div class="row"><span>Khách:</span><span><b>${player}</b></span></div>
+    <div class="row"><span>Bàn:</span><span>${tableName||'—'}</span></div>
+    <div class="row"><span>Thời gian:</span><span>${time}</span></div>
+    <div class="line"></div>
+    <div class="row"><span>Nước uống:</span><span>${drink}</span></div>
+    <div class="line"></div>
+    <div class="row total"><span>TỔNG:</span><span>${Number(total).toLocaleString('vi')} ₫</span></div>
+    <div class="line"></div>
+    <div class="footer">MB Bank · ${TCB.account}<br>Cảm ơn quý khách! ♠</div>
+    <script>window.onload=function(){window.print();setTimeout(()=>window.close(),1000);}<\/script>
+    </body></html>`);
+  w.document.close();
+}
+
+function hidePayment(){
+  if(pollingTimer){clearInterval(pollingTimer);pollingTimer=null;}
+  pendingAmount=0;pendingStartTime=0;pendingCode='';
+  document.getElementById('payment-section').style.display='none';
+  fetch(API+'/display',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'idle'})}).catch(()=>{});
+}
+
+// ── CHIP DRAG — event delegation, cross-table reliable ──────
+function renderQueue(){
+  renderQueueSection('normal');
+  renderQueueSection('tour');
+}
+
+function renderQueueSection(tab){
+  const q = tab==='normal' ? queue : queueTour;
+  const el = document.getElementById('queue-list-'+tab);
+  if(!el) return;
+  if(!q.length){el.innerHTML='<div class="empty-msg">Chưa có ai</div>';return;}
+  el.innerHTML=q.map((item,i)=>`
+    <div class="qitem" draggable="true"
+      ondragstart="DG.startQueueItem(event,'${tab}',${i})"
+      ondragend="DG.end(event)"
+      ondragover="event.preventDefault()"
+      ondrop="DG.reorderQueue(event,'${tab}',${i})">
+      <div style="flex:1;min-width:0;">
+        <div class="qitem-name">⠿ ${item.name}</div>
+        <div class="qitem-sub">${item.table} · ${item.time}</div>
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        <button class="btn btn-gold btn-xs" onclick="openRandSeat('${tab}',${i})" title="Random vào bàn">🎲</button>
+        <button class="btn btn-red btn-xs" onclick="removeQueueItem('${tab}',${i})">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function removeQueueItem(tab, i){
+  if(tab==='normal') queue.splice(i,1); else queueTour.splice(i,1);
+  renderQueueSection(tab);
+  saveTableState();
+}
+
+function removeQueue(i){ removeQueueItem(activeTab, i); }
+
+function openRandSeat(tab, qi){
+  const q=(tab==='normal'?queue:queueTour)[qi];
+  if(!q)return;
+  // Chỉ hiện bàn của tab tương ứng
+  const correctTables = tab==='normal' ? tablesNormal : tablesTour;
+  const activeTables=correctTables.filter(t=>t.status==='active');
+  if(!activeTables.length){showToast('Chưa có bàn '+(tab==='normal'?'thường':'tour')+' nào mở!','error');return;}
+
+  document.getElementById('randseat-title').textContent='🎲 Xếp ngẫu nhiên — '+q.name;
+  document.getElementById('randseat-body').textContent='Chọn bàn '+(tab==='normal'?'thường':'tour')+':';
+
+  const opts=document.getElementById('randseat-options');
+  opts.innerHTML=activeTables.map(t=>{
+    const freeSeats=t.seats.map((s,i)=>({s,i})).filter(x=>!x.s);
+    const taken=t.seats.filter(s=>s).length;
+    return `<button class="btn ${freeSeats.length?'btn-gold':''}"
+      style="width:100%;justify-content:space-between;padding:10px 14px;"
+      ${freeSeats.length?'':'disabled'}
+      onclick="doRandSeat('${tab}',${qi},${t.id})">
+      <span style="font-weight:700;">${t.name}</span>
+      <span style="font-size:12px;opacity:0.8;">${freeSeats.length} ghế trống / ${taken} người</span>
+    </button>`;
+  }).join('');
+
+  document.getElementById('randseat-dialog').classList.add('show');
+}
+
+function doRandSeat(tab, qi, tid){
+  const aq=tab==='normal'?queue:queueTour;
+  const q=aq[qi];
+  if(!q)return;
+  const t=tables.find(x=>x.id===tid);
+  if(!t||t.status!=='active')return;
+  const freeSlots=t.seats.map((s,i)=>i).filter(i=>!t.seats[i]);
+  if(!freeSlots.length){showToast(t.name+' đã đầy!','error');return;}
+  const randSi=freeSlots[Math.floor(Math.random()*freeSlots.length)];
+  t.seats[randSi]=q.name;
+  aq.splice(qi,1);
+  document.getElementById('randseat-dialog').classList.remove('show');
+  renderTablesLeft();
+  renderQueue();
+  showToast(`${q.name} → ${t.name} ghế ${randSi+1} (random)!`);
+  saveTableState();
+}
+
+function doSearch(){
+  const val=document.getElementById('search-phone').value.trim();
+  const el=document.getElementById('customer-result');
+  if(val.length<4){el.innerHTML='<div style="font-size:13px;color:var(--text3);">Nhập đủ 4 số cuối SĐT</div>';return;}
+  const found=customers.filter(c=>c.phone.slice(-4)===val);
+  if(!found.length){el.innerHTML=`<div style="font-size:13px;color:var(--text3);">Không tìm thấy "${val}"</div>`;return;}
+  el.innerHTML=found.map(c=>renderCustomerCard(c)).join('');
+}
+
+const isInQueue=name=>[...queue,...queueTour].some(q=>q.name.trim().toLowerCase()===name.trim().toLowerCase());
+
+function clearSearch(){
+  document.getElementById('search-phone').value='';
+  document.getElementById('customer-result').innerHTML='';
+}
+
+function renderCustomerCard(c){
+  const last4=c.phone.slice(-4);
+  const onTable=isOnTable(c.name);
+  const inQueue=isInQueue(c.name);
+  const tableName=getTableOf(c.name);
+  const blockRound=onTable||inQueue;
+  const statusMsg=onTable?`⚠ Đang chơi tại ${tableName}`:inQueue?'⏳ Đang trong hàng chờ':'';
+  return `<div class="cust-card">
+    <div class="cust-name">${c.name} <span style="font-size:13px;color:var(--text3);">(${last4})</span></div>
+    <div class="cust-phone">${c.phone}</div>
+    ${statusMsg?`<div class="warn-box">${statusMsg}</div>`:''}
+    <div class="stat-grid">
+      <div class="stat-box top1"><div class="stat-icon">🥇</div><div class="stat-label">TOP 1</div><div class="stat-value">${c.top1||0}</div></div>
+      <div class="stat-box top2"><div class="stat-icon">🥈</div><div class="stat-label">TOP 2</div><div class="stat-value">${c.top2||0}</div></div>
+      <div class="stat-box top3"><div class="stat-icon">🥉</div><div class="stat-label">TOP 3</div><div class="stat-value">${c.top3||0}</div></div>
+      <div class="stat-box rounds"><div class="stat-icon">🎮</div><div class="stat-label">ROUND</div><div class="stat-value">${c.rounds||0}</div></div>
+      <div class="stat-box drinks"><div class="stat-icon">🥤</div><div class="stat-label">NƯỚC</div><div class="stat-value">${c.drinks||0}</div></div>
+    </div>
+    <div style="background:linear-gradient(135deg,#2a1a00,#1a1000);border:1px solid var(--gold-mid);border-radius:var(--radius);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:22px;">💰</span>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:0.08em;text-transform:uppercase;">Bounty</div>
+          <div style="font-size:11px;color:var(--text3);">🥇×30 + 🥈×20 + 🥉×10</div>
+        </div>
+      </div>
+      <div style="font-size:28px;font-weight:900;color:var(--gold);text-shadow:0 0 12px rgba(240,192,64,0.4);">${(c.top1||0)*30+(c.top2||0)*20+(c.top3||0)*10}</div>
+    </div>
+    <div class="cust-btns">
+      <button class="cust-btn ${blockRound?'cb-disabled':'cb-blue'}" onclick="${blockRound?'':'redeemRound(\''+c.phone+'\')'}">Đổi Round</button>
+      <button class="cust-btn cb-amber" onclick="redeemDrink('${c.phone}')">Đổi Nước</button>
+    </div>
+    <button class="cust-btn cb-green" style="width:100%;" onclick="confirmAddToQueue('${c.name}','${c.phone}')">➕ Thêm vào hàng chờ</button>
+  </div>`;
+}
+
+async function addCustomer(){
+  const name=document.getElementById('new-name').value.trim();
+  const phone=document.getElementById('new-phone').value.trim();
+  const msg=document.getElementById('new-msg');
+  if(!name){msg.style.color='var(--red)';msg.textContent='Nhập tên khách hàng.';return;}
+  if(!/^\d{10}$/.test(phone)){msg.style.color='var(--red)';msg.textContent='SĐT phải 10 chữ số (ví dụ: 0912345678).';return;}
+  if(customers.find(c=>c.phone===phone)){msg.style.color='var(--red)';msg.textContent='SĐT đã tồn tại.';return;}
+  if(customers.find(c=>c.name.toLowerCase()===name.toLowerCase())){msg.style.color='var(--red)';msg.textContent='Tên đã tồn tại. Thêm ký tự phân biệt.';return;}
+  const result=await apiPost('/customers',{name,phone});
+  if(result&&!result.error){
+    customers.push({
+      ...result,
+      top1:0, top2:0, top3:0,
+      rounds:0, drinks:0
+    });
+    document.getElementById('new-name').value='';document.getElementById('new-phone').value='';
+    msg.style.color='var(--green)';msg.textContent='Đã tạo: '+name;
+    showToast('Tạo khách hàng thành công!');
+    setTimeout(()=>{msg.textContent='';},3000);
+  }else{msg.style.color='var(--red)';msg.textContent=result?.error||'Lỗi tạo khách hàng';}
+}
+
+// ── SYNC DATA BETWEEN APPS ────────────────────────────────────────
+async function refreshCustomers(){
+  const custs=await apiGet('/customers');
+  if(custs)customers=custs;
+}
+
+// Auto-refresh data mỗi 3 giây để sync với app khác
+setInterval(refreshCustomers, 3000);
+
+let _noteIsdrink=false;
+let _drinkItems=[]; // [{name, qty}]
+
+function showNoteDialog(title,body,isDrink,cb){
+  _noteIsdrink=isDrink;
+  _drinkItems=[];
+  document.getElementById('note-dlg-title').textContent=title;
+  document.getElementById('note-dlg-body').textContent=body;
+
+  if(isDrink){
+    document.getElementById('note-input-wrap').style.display='none';
+    document.getElementById('drink-input-wrap').style.display='block';
+    document.getElementById('drink-search').value='';
+    document.getElementById('drink-qty').value='1';
+    document.getElementById('drink-suggestions').style.display='none';
+    document.getElementById('drink-list').innerHTML='<div class="empty-msg">Chưa chọn nước nào</div>';
+  } else {
+    document.getElementById('note-input-wrap').style.display='block';
+    document.getElementById('drink-input-wrap').style.display='none';
+    const inp=document.getElementById('note-input-text');
+    inp.value='';
+    document.getElementById('note-suggestions').style.display='none';
+    document.getElementById('note-suggestions').innerHTML='';
+    setTimeout(()=>inp.focus(),100);
+  }
+
+  const btn=document.getElementById('note-confirm-btn');
+  const nb=btn.cloneNode(true);btn.parentNode.replaceChild(nb,btn);
+  nb.addEventListener('click',()=>{
+    if(isDrink){
+      if(!_drinkItems.length){showToast('Chọn ít nhất 1 loại nước!','error');return;}
+      document.getElementById('note-dialog').classList.remove('show');
+      cb(_drinkItems);
+    } else {
+      const note=document.getElementById('note-input-text').value.trim();
+      document.getElementById('note-dialog').classList.remove('show');
+      cb(note);
+    }
+  });
+  document.getElementById('note-dialog').classList.add('show');
+  if(isDrink) setTimeout(()=>document.getElementById('drink-search').focus(),100);
+}
+
+function handleDrinkSearch(val){
+  const sug=document.getElementById('drink-suggestions');
+  if(!val.trim()){sug.style.display='none';sug.innerHTML='';return;}
+  const matches=stock.filter(s=>s.qty>0&&s.name.toLowerCase().includes(val.toLowerCase()));
+  if(!matches.length){sug.style.display='none';return;}
+  sug.style.display='block';
+  sug.innerHTML=matches.map(s=>`
+    <div class="suggest-item" onclick="selectDrinkItem('${s.name.replace(/'/g,"\\'")}')">
+      📦 ${s.name} <span style="color:var(--text3);">${s.qty} còn · ${s.cost>0?'-'+s.cost+'🥤':'miễn phí'}</span>
+    </div>`).join('');
+}
+
+function selectDrinkItem(name){
+  document.getElementById('drink-search').value=name;
+  document.getElementById('drink-suggestions').style.display='none';
+}
+
+function addDrinkItem(){
+  const name=document.getElementById('drink-search').value.trim();
+  const qty=parseInt(document.getElementById('drink-qty').value)||1;
+  if(!name)return;
+  // Kiểm tra có trong kho không
+  const s=stock.find(x=>x.name.toLowerCase()===name.toLowerCase());
+  // Cộng dồn nếu đã có
+  const exist=_drinkItems.find(x=>x.name.toLowerCase()===name.toLowerCase());
+  if(exist){ exist.qty+=qty; }
+  else { _drinkItems.push({name:s?s.name:name, qty}); }
+  document.getElementById('drink-search').value='';
+  document.getElementById('drink-qty').value='1';
+  document.getElementById('drink-suggestions').style.display='none';
+  renderDrinkList();
+  document.getElementById('drink-search').focus();
+}
+
+function removeDrinkItem(idx){
+  _drinkItems.splice(idx,1);
+  renderDrinkList();
+}
+
+function renderDrinkList(){
+  const el=document.getElementById('drink-list');
+  if(!_drinkItems.length){el.innerHTML='<div class="empty-msg">Chưa chọn nước nào</div>';return;}
+  el.innerHTML=_drinkItems.map((item,i)=>{
+    const s=stock.find(x=>x.name.toLowerCase()===item.name.toLowerCase());
+    const cost=s?s.cost||0:0;
+    return `<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--surface2);border-radius:var(--radius);margin-bottom:4px;">
+      <span style="flex:1;font-size:13px;font-weight:700;">${item.name}</span>
+      <span style="font-size:12px;color:var(--text3);">×${item.qty}</span>
+      ${cost>0?`<span style="font-size:11px;color:var(--gold);">-${cost*item.qty}🥤</span>`:`<span style="font-size:11px;color:var(--green);">miễn phí</span>`}
+      <button onclick="removeDrinkItem(${i})" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);border-radius:4px;padding:2px 7px;cursor:pointer;font-size:12px;font-family:inherit;">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function handleNoteInput(val){
+  const sug=document.getElementById('note-suggestions');
+  if(!_noteIsdrink||!val.trim()){sug.style.display='none';sug.innerHTML='';return;}
+  const matches=stock.filter(s=>s.qty>0&&s.name.toLowerCase().startsWith(val.toLowerCase()));
+  if(!matches.length){sug.style.display='none';sug.innerHTML='';return;}
+  sug.style.display='block';
+  sug.innerHTML=matches.map(s=>`
+    <div class="suggest-item" onclick="selectDrinkSuggestion('${s.name.replace(/'/g,"\\'")}')">
+      📦 ${s.name} <span>${s.qty} còn lại</span>
+    </div>`).join('');
+}
+
+function selectDrinkSuggestion(name){
+  document.getElementById('note-input-text').value=name;
+  document.getElementById('note-suggestions').style.display='none';
+}
+
+async function redeemRound(phone){
+  const c=customers.find(x=>x.phone===phone);if(!c)return;
+  if(isOnTable(c.name)){showToast('Khách đang trên bàn!','error');return;}
+  if((c.rounds||0)<=0){showToast('Không đủ round!','error');return;}
+  showNoteDialog('Đổi Free Round','Ghi chú chế độ chơi:',false,async(note)=>{
+    c.rounds--;
+    const c1=(c.top1??0)||0, c2=(c.top2??0)||0, c3=(c.top3??0)||0;
+    const cr=(c.rounds??0)||0, cd=(c.drinks??0)||0;
+    await apiPut('/customers/'+phone,{top1:c1,top2:c2,top3:c3,rounds:cr,drinks:cd});
+    await apiPost('/transactions',{payer:c.name,phone,amount:0,table_name:'',note:'Đổi round'+(note?': '+note:'')});
+
+    // Tự động vào hàng chờ sau khi đổi round
+    if(!getActiveQueue().find(q=>q.name===c.name)){
+      getActiveQueue().push({name:c.name,table:'Hàng chờ',time:nowTime()});
+      renderQueue();
+    }    showToast('Đã đổi round — '+c.name+' vào hàng chờ!');
+    clearSearch();
+  });
+}
+
+async function redeemDrink(phone){
+  const c=customers.find(x=>x.phone===phone);
+  if(!c||(c.drinks||0)<=0){showToast('Không đủ nước!','error');return;}
+  showNoteDialog('Đổi Nước','Chọn nước muốn đổi (Enter để thêm dòng):',true,async(items)=>{
+    // items = [{name, qty}]
+    // Tính tổng tiêu hao
+    let totalCost=0;
+    const itemDetails=items.map(item=>{
+      const s=stock.find(x=>x.name.toLowerCase()===item.name.toLowerCase());
+      const cost=(s&&(s.cost||0)>0)?s.cost:0;
+      totalCost+=cost*item.qty;
+      return {item,s,cost};
+    });
+    if(totalCost>(c.drinks||0)){
+      showToast(`Không đủ nước! Cần ${totalCost}, có ${c.drinks}${c.drinks}🥤`,'error');return;
+    }
+    c.drinks=Math.max(0,(c.drinks||0)-totalCost);
+    const c1=(c.top1??0)||0, c2=(c.top2??0)||0, c3=(c.top3??0)||0;
+    const cr=(c.rounds??0)||0, cd=(c.drinks??0)||0;
+    await apiPut('/customers/'+phone,{top1:c1,top2:c2,top3:c3,rounds:cr,drinks:cd});
+    const noteStr=items.map(x=>`${x.name}×${x.qty}`).join(', ');
+    await apiPost('/transactions',{payer:c.name,phone,amount:0,table_name:'',note:`Đổi nước: ${noteStr}${totalCost>0?` (-${totalCost}🥤)`:' (miễn phí)'}`});
+    // Trừ kho từng loại
+    for(const {item,s} of itemDetails){
+      if(s&&s.qty>=item.qty){
+        s.qty-=item.qty;
+        s.consumed=(s.consumed||0)+item.qty;
+        for(let i=0;i<item.qty;i++) addDailyConsumed(s.name);
+        await fetch(API+'/stock/'+encodeURIComponent(s.name)+'/use',{method:'PUT'});
+        // Nếu qty > 1 gọi thêm
+        for(let i=1;i<item.qty;i++)
+          await fetch(API+'/stock/'+encodeURIComponent(s.name)+'/use',{method:'PUT'});
+      }
+    }
+    showToast(`Đã đổi: ${noteStr}${totalCost>0?` (-${totalCost}🥤)`:''}`);clearSearch();
+  });
+}
+
+function confirmAddToQueue(name, phone){
+  showConfirm('Thêm vào hàng chờ?',`Xác nhận thêm ${name} vào hàng chờ?`,[
+    {label:'✓ Có',cls:'btn btn-gold',cb:()=>{closeDialog();addToQueueConfirmed(name,phone);}},
+    {label:'✕ Không',cls:'btn',cb:()=>{closeDialog();}}
+  ]);
+}
+
+async function addToQueueConfirmed(name, phone){
+  if(!getActiveQueue().find(q=>q.name===name)){
+    getActiveQueue().push({name:name,table:'Hàng chờ',time:nowTime()});
+    renderQueue();
+    saveTableState();
+    showToast('Đã thêm '+name+' vào hàng chờ!');
+
+    // Auto-track tournament buy-in/re-buy
+    if(activeTab==='tour'&&phone){
+      try{
+        // Check if customer already has a tournament_buyin entry for today
+        const today=new Date().toISOString().split('T')[0];
+        const existing=await fetch(API+`/tournament-buyin-check?phone=${encodeURIComponent(phone)}&date=${today}`).then(r=>r.json());
+        const isRebuy=!!existing?.count; // If they already have an entry, it's a re-buy
+
+        // Record the buy-in or re-buy
+        await fetch(API+'/tournament/buyin',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({customerPhone:phone,customerName:name,isRebuy})
+        });
+      }catch(e){console.log('Tournament tracking error:',e);}
+    }
+  } else {
+    showToast(name+' đã có trong hàng chờ!','error');
+  }
+  clearSearch();
+}
+
+async function showCustHistory(phone){
+  const c=customers.find(x=>x.phone===phone);if(!c)return;
+  document.getElementById('hist-title').textContent='Lịch sử — '+c.name;
+  document.getElementById('hist-body').innerHTML='<div class="loading"><div class="spinner"></div>Đang tải...</div>';
+  document.getElementById('history-dialog').classList.add('show');
+  const all=await apiGet('/transactions');
+  const hist=all?all.filter(t=>t.phone===phone):[];
+  document.getElementById('hist-body').innerHTML=hist.length
+    ?hist.map(tx=>`<div class="tx-row"><span class="tx-time">${(tx.created_at||'').slice(0,16)} · ${tx.note||''}</span><span class="tx-amt">${(tx.amount||0)>0?fmtAmt(tx.amount)+' ₫':'–'}</span></div>`).join('')
+    :'<div class="empty-msg">Chưa có lịch sử</div>';
+}
+
+async function addStock(){
+  const name=document.getElementById('item-name').value.trim();
+  const qty=parseInt(document.getElementById('item-qty').value)||0;
+  const cost=parseInt(document.getElementById('item-cost').value)||1;
+  if(!name||!qty)return;
+  const result=await apiPost('/stock',{name,qty,cost});
+  if(result){
+    const ex=stock.find(s=>s.name.toLowerCase()===name.toLowerCase());
+    if(ex){ex.qty+=qty;ex.cost=cost;}else stock.push(result);
+    document.getElementById('item-name').value='';
+    document.getElementById('item-qty').value='';
+    document.getElementById('item-cost').value='1';
+    renderStock();showToast('Đã nhập kho!');
+  }
+}
+function renderStock(){
+  document.getElementById('stock-list').innerHTML=stock.length?stock.map((s,idx)=>`
+    <div class="li">
+      <span style="font-weight:700;">${s.name}</span>
+      <span style="display:flex;align-items:center;gap:6px;font-size:13px;">
+        ${s.price?`<span style="color:var(--text3);">${fmtAmt(s.price)} ₫</span>`:''}
+        ${(s.cost||0)>0?`<span style="color:var(--gold);font-size:11px;">-${s.cost}🥤</span>`:`<span style="color:var(--green);font-size:11px;">miễn phí</span>`}
+        <span style="color:var(--green);font-weight:700;">${s.qty} còn</span>
+        <button class="btn btn-xs btn-red" onclick="deleteStock('${s.name.replace(/'/g,"\\'")}')">✕</button>
+      </span>
+    </div>`).join(''):'<div class="empty-msg">Kho trống</div>';
+}
+async function deleteStock(name){
+  if(!confirm(`Xoá "${name}" khỏi kho?`))return;
+  await fetch(API+'/stock/'+encodeURIComponent(name),{method:'DELETE'});
+  stock=stock.filter(s=>s.name!==name);
+  renderStock();
+  showToast('Đã xoá '+name);
+}
+
+function confirmDeleteStock(idx){
+  const s=stock[idx];
+  showConfirm('Xoá sản phẩm?',`Xác nhận xoá "${s.name}" khỏi kho?`,[
+    {label:'Xoá',cls:'btn btn-red',cb:async()=>{
+      await apiDeleteStock(s.name);
+      stock.splice(idx,1);
+      closeDialog();
+      renderStock();
+      showToast('Đã xoá '+s.name);
+    }},
+    {label:'Huỷ',cls:'btn',cb:closeDialog},
+  ]);
+}
+
+async function apiDeleteStock(name){
+  try{
+    await fetch(API+'/stock/'+encodeURIComponent(name),{method:'DELETE'});
+  }catch{showToast('Lỗi xoá sản phẩm','error');}
+}
+
+function initMonthSelect(){
+  const sel=document.getElementById('month-select');const now=new Date();
+  sel.innerHTML=Array.from({length:6},(_,i)=>{
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const val=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    return `<option value="${val}">Tháng ${d.getMonth()+1}/${d.getFullYear()}</option>`;
+  }).join('');
+}
+function renderMonthReport(show){
+  const el=document.getElementById('month-report');
+  if(!show){el.style.display='none';el.innerHTML='';return;}
+  const month=document.getElementById('month-select').value;
+  const filtered=transactions.filter(t=>(t.created_at||'').slice(0,7)===month&&(t.amount||0)>0);
+  const total=filtered.reduce((s,t)=>s+(t.amount||0),0);
+  el.style.display='block';
+  el.innerHTML=`
+    <div style="padding:12px;background:var(--gold-dim);border-radius:var(--radius);border:1px solid var(--border2);margin-top:8px;">
+      <div style="font-size:12px;color:var(--text3);">Tổng tháng ${month.split('-')[1]}/${month.split('-')[0]}</div>
+      <div style="font-size:22px;font-weight:900;color:var(--gold);">${fmtAmt(total)} ₫</div>
+      <div style="font-size:12px;color:var(--text3);">${filtered.length} giao dịch</div>
+    </div>
+    ${filtered.length?filtered.map(tx=>`<div class="tx-row"><span class="tx-time">${(tx.created_at||'').slice(0,16)} · ${tx.payer||''}</span><span class="tx-amt">${fmtAmt(tx.amount||0)} ₫</span></div>`).join(''):'<div class="empty-msg" style="margin-top:8px;">Không có giao dịch</div>'}`;
+}
+async function renderStockConsumed(){
+  try{
+    const rows=await apiGet('/stock-daily');
+    document.getElementById('stock-consumed').innerHTML=(rows&&rows.length)
+      ?rows.map(s=>`<div class="li"><span style="font-weight:700;">${s.name}</span><span style="display:flex;align-items:center;gap:7px;"><span style="font-weight:800;color:var(--red);">−${s.qty}</span>${s.price?`<span style="font-size:12px;color:var(--text3);">${fmtAmt(s.qty*s.price)} ₫</span>`:''}</span></div>`).join('')
+      :'<div class="empty-msg">Chưa có hôm nay</div>';
+  }catch(e){
+    document.getElementById('stock-consumed').innerHTML='<div class="empty-msg">Chưa có hôm nay</div>';
+  }
+}
+
+function renderReport(){
+  const todayTx=transactions.filter(t=>(t.created_at||'').slice(0,10)===todayISO()&&(t.amount||0)>0);
+  document.getElementById('rev-today').textContent=fmtAmt(todayTx.reduce((s,t)=>s+(t.amount||0),0))+' ₫';
+  document.getElementById('rev-count').textContent=todayTx.length;
+  document.getElementById('active-tables').textContent=tables.filter(t=>t.status==='active').length+'/6';
+  document.getElementById('queue-count').textContent=(queue.length+queueTour.length);
+  document.getElementById('tx-history').innerHTML=todayTx.length
+    ?todayTx.map(tx=>`<div class="tx-row"><span class="tx-time">${(tx.created_at||'').slice(11,16)} · ${tx.table_name||''} · ${tx.payer||''}</span><span class="tx-amt">${fmtAmt(tx.amount||0)} ₫</span></div>`).join('')
+    :'<div class="empty-msg">Chưa có giao dịch</div>';
+  renderStockConsumed();
+  initMonthSelect();
+  // Ẩn doanh thu tháng — chỉ hiện khi bấm nút Xem
+  const mr=document.getElementById('month-report');
+  mr.style.display='none';mr.innerHTML='';
+  document.getElementById('month-select').onchange=function(){
+    mr.style.display='none';mr.innerHTML='';
+  };
+}
+async function restoreMonth(){
+  const month=document.getElementById('month-select').value;
+  showToast('Đang khôi phục dữ liệu tháng '+month.split('-')[1]+'/'+month.split('-')[0]+'...','success');
+  const all=await apiGet('/transactions');
+  if(!all){showToast('Lỗi tải dữ liệu!','error');return;}
+  // Merge: giữ transactions hiện tại (trong bộ nhớ) + bổ sung từ server những cái chưa có
+  const serverThisMonth=all.filter(t=>(t.created_at||'').slice(0,7)===month);
+  const existingIds=new Set(transactions.map(t=>t.id).filter(Boolean));
+  let added=0;
+  serverThisMonth.forEach(tx=>{
+    if(!existingIds.has(tx.id)){
+      transactions.push(tx);
+      added++;
+    }
+  });
+  // Sắp xếp lại theo thời gian mới nhất
+  transactions.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  renderMonthReport(true);
+  showToast(added>0?`Đã khôi phục ${added} giao dịch tháng ${month.split('-')[1]}/${month.split('-')[0]}`:'Dữ liệu đã đầy đủ, không cần khôi phục');
+}
+
+function showAllCustomers(){
+  document.getElementById('allcust-search').value='';
+  renderAllCustomerList(customers);
+  document.getElementById('allcust-dialog').classList.add('show');
+}
+
+function filterAllCustomers(val){
+  if(!val.trim()){renderAllCustomerList(customers);return;}
+  const v=val.toLowerCase();
+  const filtered=customers.filter(c=>
+    c.name.toLowerCase().includes(v)||c.phone.includes(v)
+  );
+  renderAllCustomerList(filtered);
+}
+
+function renderAllCustomerList(list){
+  const el=document.getElementById('allcust-list');
+  if(!list.length){el.innerHTML='<div class="empty-msg" style="padding:12px 0;">Không tìm thấy</div>';return;}
+  const sorted=[...list].sort((a,b)=>(b.rounds||0)-(a.rounds||0));
+  el.innerHTML=`
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">${list.length} khách hàng</div>
+    ${sorted.map(c=>{
+      const last4=c.phone.slice(-4);
+      const onTable=isOnTable(c.name);
+      const inQ=isInQueue(c.name);
+      const status=onTable?`<span class="badge b-green" style="font-size:10px;">Đang chơi</span>`:inQ?`<span class="badge b-amber" style="font-size:10px;">Hàng chờ</span>`:'';
+      return `<div style="border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;color:var(--text);">${c.name} ${status}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px;">
+              ···${last4} &nbsp;|&nbsp;
+              🥇<b style="color:var(--gold);">${c.top1||0}</b>
+              🥈<b style="color:#ccc;">${c.top2||0}</b>
+              🥉<b style="color:#e08040;">${c.top3||0}</b>
+              &nbsp;🎮<b style="color:var(--blue);">${c.rounds||0}</b>
+              &nbsp;🥤<b style="color:var(--purple);">${c.drinks||0}</b>
+            </div>
+          </div>
+          <button class="btn btn-xs" style="flex-shrink:0;" onclick="toggleCustEdit('edit-${c.phone}')">✏️ Sửa</button>
+        </div>
+        <div id="edit-${c.phone}" style="display:none;background:var(--surface2);border-radius:var(--radius);padding:10px;margin-bottom:8px;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:700;letter-spacing:0.05em;">CHỈNH SỐ LIỆU — ${c.name}</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;">
+            ${[
+              {field:'top1',   label:'TOP 1', color:'var(--gold)',   val:c.top1||0},
+              {field:'top2',   label:'TOP 2', color:'#cccccc',      val:c.top2||0},
+              {field:'top3',   label:'TOP 3', color:'#e08040',      val:c.top3||0},
+              {field:'rounds', label:'ROUND', color:'var(--blue)',   val:c.rounds||0},
+              {field:'drinks', label:'NƯỚC',  color:'var(--purple)', val:c.drinks||0},
+            ].map(f=>`
+              <div style="text-align:center;background:var(--surface);border-radius:var(--radius);padding:7px 4px;">
+                <div style="font-size:9px;font-weight:700;color:${f.color};letter-spacing:0.04em;margin-bottom:2px;">${f.label}</div>
+                <div style="font-size:16px;font-weight:900;color:${f.color};" id="ace-${f.field}-${c.phone}">${f.val}</div>
+                <div style="display:flex;gap:2px;justify-content:center;margin-top:4px;">
+                  <button class="btn btn-xs btn-red" style="padding:2px 6px;" onclick="aceAdjust('${c.phone}','${f.field}',-1)">−</button>
+                  <button class="btn btn-xs btn-gold" style="padding:2px 6px;" onclick="aceAdjust('${c.phone}','${f.field}',1)">+</button>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+function toggleCustEdit(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.style.display=el.style.display==='none'?'block':'none';
+}
+
+async function aceAdjust(phone, field, delta){
+  const c=customers.find(x=>x.phone===phone);
+  if(!c)return;
+  const newVal=Math.max(0,(c[field]||0)+delta);
+  c[field]=newVal;
+  // Update all display elements with this phone+field
+  ['ace','stat'].forEach(prefix=>{
+    const el=document.getElementById(`${prefix}-${field}-${phone}`);
+    if(el)el.textContent=newVal;
+  });
+  const c1=(c.top1??0)||0, c2=(c.top2??0)||0, c3=(c.top3??0)||0;
+  const cr=(c.rounds??0)||0, cd=(c.drinks??0)||0;
+  await apiPut('/customers/'+phone,{top1:c1,top2:c2,top3:c3,rounds:cr,drinks:cd});
+  showToast(c.name+': '+field+'='+newVal);
+}
+
+function showConfirm(title,body,btns){
+  document.getElementById('dlg-title').textContent=title;
+  document.getElementById('dlg-body').textContent=body;
+  const bEl=document.getElementById('dlg-btns');bEl.innerHTML='';
+  btns.forEach(b=>{const el=document.createElement('button');el.className=b.cls;el.textContent=b.label;el.addEventListener('click',b.cb);bEl.appendChild(el);});
+  document.getElementById('confirm-dialog').classList.add('show');
+}
+function showInputDialog(title,body,cb){
+  document.getElementById('dlg-title').textContent=title;
+  document.getElementById('dlg-body').innerHTML=body+'<br><input id="dlg-input" placeholder="Nhập tên..." style="margin-top:8px;width:100%;height:36px;padding:0 10px;font-size:14px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);color:var(--text);font-family:inherit;outline:none;"/>';
+  const bEl=document.getElementById('dlg-btns');bEl.innerHTML='';
+  const ok=document.createElement('button');ok.className='btn btn-gold';ok.textContent='Xác nhận';
+  ok.addEventListener('click',()=>{cb(document.getElementById('dlg-input')?.value||'');});
+  const ca=document.createElement('button');ca.className='btn';ca.textContent='Huỷ';ca.addEventListener('click',()=>cb(''));
+  bEl.appendChild(ok);bEl.appendChild(ca);
+  document.getElementById('confirm-dialog').classList.add('show');
+  setTimeout(()=>{const i=document.getElementById('dlg-input');if(i)i.focus();},100);
+}
+function closeDialog(){document.getElementById('confirm-dialog').classList.remove('show');}
+
+// Lưu trạng thái và cảnh báo khi F5 / đóng tab
+window.addEventListener('beforeunload',function(e){
+  saveTableState(); // Lưu trước khi rời trang
+  const hasActiveTables = tables.some(t=>t.status==='active');
+  if(hasActiveTables){
+    e.preventDefault();
+    e.returnValue=''; // Chrome cần returnValue để hiện dialog
+    return '';
+  }
+});
+
+// Tắt autocomplete toàn bộ input
+document.querySelectorAll('input').forEach(inp=>{
+  inp.setAttribute('autocomplete','off');
+  inp.setAttribute('autocorrect','off');
+  inp.setAttribute('autocapitalize','off');
+  inp.setAttribute('spellcheck','false');
+});
+
+loadAll();
+
+// Đồng bộ real-time từ dealer/floor mỗi 2 giây
+setInterval(async()=>{
+  // Sync customers (để nhận thay đổi từ báo cáo điện thoại)
+  const custs=await apiGet('/customers');
+  if(custs) customers=custs;
+
+  // Sync table state từ dealer/floor
+  const state=await apiGet('/table-state');
+  if(state&&state.updatedAt&&state.updatedAt!==(window._mainLastUpdate||0)){
+    window._mainLastUpdate=state.updatedAt;
+    if(state.tablesNormal) state.tablesNormal.forEach(t=>{
+      const found=tablesNormal.find(x=>x.id===t.id);
+      if(found){found.seats=t.seats;found.status=t.status;}
+    });
+    if(state.tablesTour) state.tablesTour.forEach(t=>{
+      const found=tablesTour.find(x=>x.id===t.id);
+      if(found){found.seats=t.seats;found.status=t.status;}
+    });
+    if(state.queue) queue=state.queue;
+    if(state.queueTour) queueTour=state.queueTour;
+    renderTablesLeft();renderPlayersPanel();renderQueue();
+  }
+},2000);
+</script>
+</body>
+</html>
