@@ -144,10 +144,9 @@ input:focus{border-color:var(--gold);}input::placeholder{color:var(--text3);}
       <span id="conn-text">Đang kết nối...</span>
       <button class="btn btn-sm" style="margin-left:auto;padding:4px 8px;font-size:11px;" onclick="loadState()">↺</button>
     </div>
-    <!-- Tab bàn thường / tour -->
+    <!-- Tab bàn thường -->
     <div class="tab-bar">
       <div class="tab-btn active" id="tab-normal" onclick="switchTableTab('normal')">🎮 Bàn thường</div>
-      <div class="tab-btn" id="tab-tour" onclick="switchTableTab('tour')">🏆 Bàn tour</div>
     </div>
     <div class="move-banner" id="move-banner" style="display:none;">
       <span>✋ Chuyển: <b id="move-name-txt"></b></span>
@@ -308,19 +307,16 @@ async function refreshAllCustomers(){
 // Auto-refresh data mỗi 3 giây để sync với app khác
 setInterval(refreshAllCustomers, 3000);
 
-// ── TAB ────────────────────────────────────────────────────────
-function switchTableTab(tab){
-  activeTableTab=tab;
-  document.getElementById('tab-normal').className='tab-btn'+(tab==='normal'?' active':'');
-  document.getElementById('tab-tour').className='tab-btn'+(tab==='tour'?' active tour':'');
-  cancelMove();
-  renderTables();
+// ── HELPER ────────────────────────────────────────────────────
+function getCustomerPhone(name){
+  const c=allCustomers.find(x=>x.name===name);
+  return c?('···'+c.phone.slice(-4)):'';
 }
 
 // ── RENDER ─────────────────────────────────────────────────────
 function getMyTablesForTab(){
-  const allT=[...(tableState?.tablesNormal||[]),...(tableState?.tablesTour||[])];
-  return allT.filter(t=>myTables.includes(t.id)&&t.type===(activeTableTab==='normal'?'normal':'tour'));
+  const allT=[...(tableState?.tablesNormal||[])];
+  return allT.filter(t=>myTables.includes(t.id));
 }
 
 function renderTables(){
@@ -337,10 +333,11 @@ function renderTables(){
 function renderSeat(t,si,name){
   const isSrc=moveMode&&moveMode.fromTableId===t.id&&moveMode.fromSeatIndex===si;
   const isTgt=moveMode&&!isSrc;
-  if(isSrc)return`<div class="seat move-src"><div class="seat-num">G${si+1}</div><div class="seat-name" style="color:#c080ff;">${name}</div></div>`;
+  const phone=getCustomerPhone(name);
+  if(isSrc)return`<div class="seat move-src"><div class="seat-num">G${si+1}</div><div class="seat-name" style="color:#c080ff;">${name}</div>${phone?`<div style="font-size:10px;color:var(--text2);">${phone}</div>`:''}</div>`;
   if(name){
-    if(isTgt)return`<div class="seat occ move-tgt" onclick="doMoveTo(${t.id},${si})"><div class="seat-num">G${si+1}</div><div class="seat-name">${name}</div></div>`;
-    return`<div class="seat occ" onclick="openSeatMenu(${t.id},${si},'${name.replace(/'/g,"\\'")}','${t.type}')"><div class="seat-num">G${si+1}</div><div class="seat-name">${name}</div></div>`;
+    if(isTgt)return`<div class="seat occ move-tgt" onclick="doMoveTo(${t.id},${si})"><div class="seat-num">G${si+1}</div><div class="seat-name">${name}</div>${phone?`<div style="font-size:10px;color:var(--text2);">${phone}</div>`:''}</div>`;
+    return`<div class="seat occ" onclick="openSeatMenu(${t.id},${si},'${name.replace(/'/g,"\\'")}','${t.type}')"><div class="seat-num">G${si+1}</div><div class="seat-name">${name}</div>${phone?`<div style="font-size:10px;color:var(--text2);">${phone}</div>`:''}</div>`;
   }
   if(isTgt)return`<div class="seat move-tgt" onclick="doMoveTo(${t.id},${si})"><div class="seat-num">G${si+1}</div><div class="seat-empty">↓ Chuyển vào</div></div>`;
   return`<div class="seat" onclick="openEmptySeat(${t.id},${si})"><div class="seat-num">G${si+1}</div><div class="seat-empty">+ Trống</div></div>`;

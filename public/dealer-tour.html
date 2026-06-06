@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Dealer Tour – Golden Coffee</title>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="GC Dealer Tour"/>
+<meta name="theme-color" content="#1a1400"/>
+<link rel="apple-touch-icon" href="/apple-icon.png"/>
+<style>
+:root{
+  --bg:#1a1400;--surface:#2a2000;--surface2:#332800;
+  --border:#4a3800;--border2:#5c4800;--gold:#f0c040;--gold-dim:#3d2e00;
+  --gold-mid:#d4a020;--text:#fff8e0;--text2:#c8b878;--text3:#806840;
+  --green:#22c97a;--green-bg:#002818;--green-border:#1a6040;
+  --red:#ff5555;--red-bg:#2a0808;--red-border:#6a2020;
+  --blue:#60a8ff;--blue-bg:#08142a;--blue-border:#1a3868;
+  --purple:#c080ff;--purple-bg:#180828;--purple-border:#4a1878;
+  --radius:8px;--radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:15px;}
+.header{background:var(--surface);border-bottom:2px solid var(--gold-dim);padding:10px 14px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:10;}
+.header img{width:30px;height:30px;object-fit:contain;}
+.h-name{font-size:15px;font-weight:800;color:var(--gold);flex:1;}
+.h-badge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border);}
+.body{padding:12px;max-width:480px;margin:0 auto;padding-bottom:80px;}
+
+/* PASSWORD MODAL */
+.pwd-modal{display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;align-items:center;justify-content:center;}
+.pwd-modal.hidden{display:none;}
+.pwd-modal-content{background:var(--surface);border:2px solid var(--gold);border-radius:12px;padding:40px;width:90%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.8);}
+.pwd-modal-title{font-size:24px;font-weight:800;color:var(--gold);text-align:center;margin-bottom:8px;letter-spacing:0.05em;}
+.pwd-modal-subtitle{font-size:13px;color:var(--text3);text-align:center;margin-bottom:24px;}
+.pwd-input{width:100%;padding:12px 16px;font-size:16px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);color:var(--text);font-family:inherit;margin-bottom:16px;outline:none;letter-spacing:0.1em;}
+.pwd-input:focus{border-color:var(--gold);box-shadow:0 0 8px rgba(240,192,64,0.3);}
+.pwd-btn{width:100%;padding:12px;font-size:14px;font-weight:700;border:none;border-radius:8px;background:var(--gold);color:#1a1000;cursor:pointer;font-family:inherit;transition:all 0.15s;}
+.pwd-btn:hover{background:var(--gold-mid);transform:translateY(-2px);box-shadow:0 4px 12px rgba(240,192,64,0.3);}
+.pwd-error{color:var(--red);font-size:12px;margin-top:8px;text-align:center;font-weight:600;}
+
+/* LOGIN */
+#login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;}
+.login-logo{width:80px;height:80px;object-fit:contain;margin-bottom:16px;filter:drop-shadow(0 0 16px rgba(240,192,64,0.4));}
+.login-title{font-size:24px;font-weight:900;color:var(--gold);margin-bottom:2px;}
+.login-sub{font-size:11px;color:var(--text3);letter-spacing:0.15em;margin-bottom:24px;}
+.login-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:20px;width:100%;max-width:340px;}
+input,select{width:100%;padding:0 11px;font-size:14px;height:38px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-family:inherit;outline:none;margin-bottom:8px;}
+input:focus,select:focus{border-color:var(--gold);}
+input::placeholder,select option{color:var(--text3);}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:10px;}
+.card-title{font-size:12px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+
+/* SEATS - LANDSCAPE */
+.seats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.seat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 4px;text-align:center;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;}
+.seat.occ{background:#1a0828;border-color:var(--purple-border);}
+.seat-num{font-size:10px;color:var(--text3);}
+.seat-name{font-size:12px;font-weight:700;color:var(--purple);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px;}
+.seat-phone{font-size:10px;color:var(--text2);}
+.seat-empty{font-size:11px;color:var(--border2);}
+
+/* TIMER */
+.timer-container{position:relative;margin:20px 0;padding:20px;background:var(--surface2);border-radius:var(--radius-lg);border:2px solid var(--purple-border);text-align:center;}
+.timer-display{font-size:72px;font-weight:900;color:var(--gold);font-family:monospace;letter-spacing:4px;line-height:1;}
+.timer-display.warn{color:#ff8c00;animation:pulse 0.5s infinite;}
+.timer-display.danger{color:#ff2020;animation:pulse 0.3s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.7;}}
+.timer-settings{margin-top:12px;display:flex;gap:6px;align-items:center;justify-content:center;}
+.timer-label{font-size:12px;color:var(--text2);font-weight:700;}
+.timer-input{width:80px;padding:6px;font-size:14px;height:32px;text-align:center;background:var(--surface);color:var(--gold);border:1px solid var(--gold-dim);}
+.timer-btn{padding:6px 12px;font-size:12px;font-weight:700;background:var(--gold);color:#1a1000;border:none;border-radius:var(--radius);cursor:pointer;}
+.timer-btn:active{opacity:0.7;}
+
+/* BTN */
+.btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:10px 14px;font-size:14px;font-weight:700;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;color:var(--text2);font-family:inherit;width:100%;margin-bottom:6px;}
+.btn:active{opacity:0.7;}
+.btn-purple{background:var(--purple);color:#100818;border-color:var(--purple-border);}
+.btn-red{background:var(--red-bg);color:var(--red);border-color:var(--red-border);}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 18px;font-size:14px;font-weight:600;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+.toast.s{border-color:var(--green-border);color:var(--green);background:var(--green-bg);}
+.toast.e{border-color:var(--red-border);color:var(--red);background:var(--red-bg);}
+
+.empty-msg{font-size:13px;color:var(--text3);text-align:center;padding:12px 0;}
+.spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--purple);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.status-bar{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;font-size:12px;display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.dot-green{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.dot-red{background:var(--red);}
+.dot-amber{background:var(--gold);}
+</style>
+</head>
+<body>
+
+<div class="pwd-modal" id="pwd-modal">
+  <div class="pwd-modal-content">
+    <div class="pwd-modal-title">🔐 Bảo vệ</div>
+    <div class="pwd-modal-subtitle">Nhập mật khẩu để tiếp tục</div>
+    <input type="password" class="pwd-input" id="pwd-input" placeholder="Mật khẩu" autocomplete="off" onkeydown="if(event.key==='Enter')checkPwd()"/>
+    <button class="pwd-btn" id="pwd-btn" onclick="checkPwd()">Tiếp tục</button>
+    <div class="pwd-error" id="pwd-error"></div>
+  </div>
+</div>
+
+<div id="login-screen">
+  <img src="/logo.png" class="login-logo" alt="" onerror="this.style.display='none'"/>
+  <div class="login-title">Golden Coffee</div>
+  <div class="login-sub">DEALER TOUR</div>
+  <div class="login-box">
+    <select id="dealer-select" style="margin-bottom:12px;">
+      <option value="">-- Chọn Dealer --</option>
+    </select>
+    <div style="color:var(--red);font-size:13px;margin-bottom:8px;min-height:18px;" id="login-err"></div>
+    <button class="btn btn-purple" onclick="doLogin()">👤 Tiếp tục</button>
+  </div>
+</div>
+
+<div id="main-screen" style="display:none;">
+  <div class="header">
+    <img src="/logo.png" alt="" onerror="this.style.display='none'"/>
+    <div class="h-name">Golden Coffee</div>
+    <div class="h-badge" id="dealer-badge">Dealer</div>
+    <button class="btn" style="width:auto;padding:6px 12px;font-size:12px;margin:0;" onclick="doLogout()">Thoát</button>
+  </div>
+  <div class="body">
+    <div class="status-bar">
+      <div class="dot-green" id="conn-dot"></div>
+      <span id="conn-text">Đang kết nối...</span>
+    </div>
+    
+    <!-- TIMER -->
+    <div class="timer-container">
+      <div class="timer-display" id="timer-display">00:30</div>
+      <div class="timer-settings">
+        <label class="timer-label">Giây:</label>
+        <input type="number" class="timer-input" id="timer-input" value="30" min="5" max="300"/>
+        <button class="timer-btn" onclick="setTimerDuration()">Đặt</button>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-top:8px;">💡 Vuốt để reset | Nhấn đúp để dừng</div>
+    </div>
+
+    <!-- BÀNS -->
+    <div id="tables-area"><div style="text-align:center;padding:20px;"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Password protection
+const PASSWORD='19842007';
+function checkPwd(){
+  const pwd=document.getElementById('pwd-input').value;
+  const err=document.getElementById('pwd-error');
+  if(pwd===PASSWORD){
+    sessionStorage.setItem('pwd-auth','1');
+    document.getElementById('pwd-modal').classList.add('hidden');
+    err.textContent='';
+  } else {
+    err.textContent='Mật khẩu không đúng';
+    document.getElementById('pwd-input').value='';
+    document.getElementById('pwd-input').focus();
+  }
+}
+window.addEventListener('load',()=>{
+  if(!sessionStorage.getItem('pwd-auth')){
+    document.getElementById('pwd-modal').classList.remove('hidden');
+    setTimeout(()=>document.getElementById('pwd-input').focus(),100);
+  } else {
+    document.getElementById('pwd-modal').classList.add('hidden');
+  }
+});
+
+const API=`https://poker-cafe.onrender.com/api`;
+
+let dealerName='', myTables=[], tableState=null, allCustomers=[];
+let pollTimer=null;
+
+// TIMER
+let timerDuration=30, timerRemain=30, timerRunning=false;
+let timerInterval=null, lastTouchX=0;
+
+function showToast(msg,type='s'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='toast show '+type;
+  setTimeout(()=>el.className='toast',2500);
+}
+
+async function api(path,opts={}){
+  try{
+    const r=await fetch(API+path,{...opts,signal:AbortSignal.timeout(6000)});
+    const json=await r.json();
+    if(!r.ok){console.error('[API]',path,r.status);return null;}
+    return json;
+  }catch(e){console.error('[API]',path,e.message);return null;}
+}
+
+function setConn(state,text){
+  const dot=document.getElementById('conn-dot');
+  dot.className='dot-'+(state==='ok'?'green':state==='error'?'red':'amber');
+  document.getElementById('conn-text').textContent=text;
+}
+
+// ── LOGIN ──────────────────────────────────────────────────────
+async function initLogin(){
+  const dealers=await api('/dealers');
+  if(!dealers){document.getElementById('login-err').textContent='Không kết nối được!';return;}
+  const sel=document.getElementById('dealer-select');
+  dealers.forEach(d=>{
+    const o=document.createElement('option');
+    o.value=d.name;
+    const tourTables=d.tables.filter(id=>id>3).map(id=>'Tour '+(id-3)).join(', ');
+    o.textContent=d.name+' ('+tourTables+')';
+    sel.appendChild(o);
+  });
+}
+
+function doLogin(){
+  const val=document.getElementById('dealer-select').value;
+  if(!val){document.getElementById('login-err').textContent='Vui lòng chọn!';return;}
+  dealerName=val;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('main-screen').style.display='block';
+  document.getElementById('dealer-badge').textContent=dealerName;
+  loadAll();
+  pollTimer=setInterval(loadState,2000);
+  startTimer();
+}
+
+function doLogout(){
+  clearInterval(pollTimer);
+  clearInterval(timerInterval);
+  dealerName='';myTables=[];tableState=null;timerRunning=false;
+  document.getElementById('main-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+
+async function loadAll(){
+  const info=await api('/dealers/'+encodeURIComponent(dealerName)+'/tables');
+  if(info)myTables=info.tables;
+  const custs=await api('/customers');
+  if(custs)allCustomers=custs;
+  await loadState();
+}
+
+async function loadState(){
+  const state=await api('/table-state');
+  if(!state){setConn('error','Mất kết nối');return;}
+  setConn('ok',new Date().toLocaleTimeString('vi'));
+  if(state.updatedAt&&state.updatedAt===(window._tourLastUpdate||0))return;
+  window._tourLastUpdate=state.updatedAt;
+  tableState=state;
+  renderTables();
+}
+
+function getTourTables(){
+  const all=[...(tableState?.tablesTour||[])];
+  return all.filter(t=>myTables.includes(t.id));
+}
+
+function getCustomerPhone(name){
+  const c=allCustomers.find(x=>x.name===name);
+  return c?('···'+c.phone.slice(-4)):'';
+}
+
+function renderTables(){
+  if(!tableState){document.getElementById('tables-area').innerHTML='<div class="empty-msg">Đang tải...</div>';return;}
+  const tabs=getTourTables();
+  if(!tabs.length){document.getElementById('tables-area').innerHTML='<div class="empty-msg">Không có bàn tour nào</div>';return;}
+  document.getElementById('tables-area').innerHTML=tabs.map(t=>`
+    <div class="card">
+      <div class="card-title">${t.name} <span style="color:${t.status==='active'?'var(--green)':'var(--text3)'};">${t.status==='active'?'● Đang mở':'○ Chưa mở'}</span></div>
+      ${t.status!=='active'?'<div class="empty-msg">Bàn chưa mở</div>':`<div class="seats-grid">${t.seats.map((n,si)=>`
+        <div class="seat ${n?'occ':''}">
+          <div class="seat-num">G${si+1}</div>
+          ${n?`<div class="seat-name">${n}</div><div class="seat-phone">${getCustomerPhone(n)}</div>`:'<div class="seat-empty">Trống</div>'}
+        </div>
+      `).join('')}</div>`}
+    </div>
+  `).join('');
+}
+
+// ── TIMER ──────────────────────────────────────────────────────
+function startTimer(){
+  timerRemain=timerDuration;
+  timerRunning=true;
+  updateTimerDisplay();
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    if(!timerRunning)return;
+    timerRemain--;
+    updateTimerDisplay();
+    if(timerRemain<=3&&timerRemain>0)navigator.vibrate(100);
+    if(timerRemain===0){
+      timerRunning=false;
+      playEndSound();
+      showToast('⏰ Hết giờ!');
+    }
+  },1000);
+}
+
+function updateTimerDisplay(){
+  const el=document.getElementById('timer-display');
+  const m=Math.floor(timerRemain/60);
+  const s=timerRemain%60;
+  el.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  el.className='timer-display'+(timerRemain<=3&&timerRemain>0?'danger':timerRemain<=10?'warn':'');
+}
+
+function setTimerDuration(){
+  const val=parseInt(document.getElementById('timer-input').value)||30;
+  if(val<5||val>300){alert('Nhập 5-300 giây');return;}
+  timerDuration=val;
+  startTimer();
+  showToast('✓ Đã đặt '+val+' giây');
+}
+
+function playEndSound(){
+  const ctx=new(window.AudioContext||window.webkitAudioContext)();
+  const o=ctx.createOscillator();
+  const g=ctx.createGain();
+  o.frequency.value=1000;
+  o.connect(g);
+  g.connect(ctx.destination);
+  g.gain.setValueAtTime(0.3,ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.1);
+  o.start();
+  o.stop(ctx.currentTime+0.1);
+  setTimeout(()=>{
+    o.frequency.value=1200;
+    o.start();
+    o.stop(ctx.currentTime+0.2);
+  },150);
+}
+
+// Swipe to reset
+document.addEventListener('touchstart',e=>{lastTouchX=e.touches[0].clientX;});
+document.addEventListener('touchend',e=>{
+  const diff=e.changedTouches[0].clientX-lastTouchX;
+  if(Math.abs(diff)>50)startTimer();
+});
+
+// Double tap to pause/play
+let lastTap=0;
+document.getElementById('timer-display').addEventListener('click',e=>{
+  const now=Date.now();
+  if(now-lastTap<300){timerRunning=!timerRunning;lastTap=0;}
+  else{lastTap=now;}
+});
+
+// Init
+initLogin();
+</script>
+</body>
+</html>
