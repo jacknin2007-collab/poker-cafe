@@ -145,7 +145,7 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
 </div>
 
 <script>
-const API=`http://${window.location.hostname}:3000/api`;
+const API=`https://poker-cafe.onrender.com/api`;
 let lastUpdate=0;
 function fmtN(n){return Math.round(n||0).toLocaleString('vi');}
 function fmtT(s){s=Math.max(0,Math.floor(s||0));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
