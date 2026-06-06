@@ -24,10 +24,18 @@ try { db.prepare('ALTER TABLE stock ADD COLUMN cost INTEGER DEFAULT 1').run(); }
 app.get('/dealer', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dealer.html'));
 });
+app.get('/dealer-tour', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dealer-tour.html'));
+});
 
 // Trang floor
 app.get('/floor', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'floor.html'));
+});
+
+// Trang report
+app.get('/report', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'report.html'));
 });
 
 // Tournament Clock

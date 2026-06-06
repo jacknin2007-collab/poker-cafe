@@ -255,10 +255,8 @@ async function initLogin(){
   dealers.forEach(d=>{
     const o=document.createElement('option');
     o.value=d.name;
-    const tableNames=d.tables.map(id=>{
-      if(id<=3)return 'Bàn '+id;
-      return 'Tour '+(id-3);
-    }).join(', ');
+    const normalTables=d.tables.filter(id=>id<=3);
+    const tableNames=normalTables.map(id=>'Bàn '+id).join(', ');
     o.textContent=d.name+' ('+tableNames+')';
     sel.appendChild(o);
   });
