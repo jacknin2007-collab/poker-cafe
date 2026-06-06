@@ -785,4 +785,7 @@ app.post('/api/print', (req, res) => {
 // Schedule auto-reset hàng ngày lúc 23h59p
 scheduleNextReset();
 
-app.listen(3000, '0.0.0.0', () => console.log('Server dang chay tai http://192.168.1.146:3000'));
+app.listen(3000, '0.0.0.0', () => {
+  console.log('Server dang chay tai http://192.168.1.146:3000');
+  console.log('✓ All routes configured: /dealer, /dealer-tour, /floor, /report, /clock, /clock-control');
+});
