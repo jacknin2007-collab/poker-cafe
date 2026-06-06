@@ -6,7 +6,6 @@ const db      = require('./database');
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
 
 // Tạo bảng daily_consumed nếu chưa có
 db.prepare(`CREATE TABLE IF NOT EXISTS daily_consumed (
@@ -45,6 +44,9 @@ app.get('/clock', (req, res) => {
 app.get('/clock-control', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'clock-control.html'));
 });
+
+// Static files - after route handlers
+app.use(express.static('public'));
 
 // Clock state
 let clockState = {
@@ -276,11 +278,6 @@ app.post('/api/clock/reset', (req, res) => {
 
   console.log('✅ Đã reset giải đấu - xóa hết dữ liệu');
   res.json(clockState);
-});
-
-// Trang floor
-app.get('/floor', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'floor.html'));
 });
 
 // PWA manifest
