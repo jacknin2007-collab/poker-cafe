@@ -48,12 +48,14 @@ select option{background:#006633;color:#fff;}
 /* ROUND TABLE WITH 9 SEATS */
 .poker-table{position:relative;width:90vmin;max-width:100vh;aspect-ratio:1;background:radial-gradient(circle,#004d1a 0%,var(--green) 100%);border:8px solid #8b6914;border-radius:50%;box-shadow:0 20px 60px rgba(0,0,0,0.5),inset 0 0 30px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;}
 
-/* CENTER TIMER */
-.timer-center{position:absolute;width:25%;aspect-ratio:1;background:rgba(0,0,0,0.4);border:3px solid var(--gold);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;}
-.timer-display{font-size:clamp(40px,8vw,120px);font-weight:900;color:var(--gold);font-family:monospace;letter-spacing:2px;line-height:1;}
-.timer-display.warn{color:#ff8c00;animation:pulse 0.5s infinite;}
-.timer-display.danger{color:#ff2020;animation:pulse 0.3s infinite;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.7;}}
+/* CENTER TIMER - PILL SHAPE */
+.timer-center{position:absolute;width:32%;aspect-ratio:0.65;background:rgba(0,0,0,0.4);border:3px solid var(--gold);border-radius:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;}
+.timer-display{font-size:72px;font-weight:900;color:var(--gold);font-family:monospace;letter-spacing:2px;line-height:1;}
+.timer-display.warn{color:#ff8c00;animation:none;}
+.timer-display.blink{color:#ff8c00;animation:blink-timer 0.4s step-end infinite;}
+.timer-display.danger{color:#ff2020;animation:vibrate-timer 0.1s infinite;}
+@keyframes blink-timer{0%,49%{opacity:1;}50%,100%{opacity:0.3;}}
+@keyframes vibrate-timer{0%{transform:translateX(2px);}50%{transform:translateX(-2px);}100%{transform:translateX(0);}}
 .timer-label{font-size:12px;color:rgba(255,255,255,0.5);margin-top:4px;}
 
 /* DEALER SETTINGS (TOP CENTER) */
@@ -238,6 +240,7 @@ function renderSeats(){
 }
 
 function startTimer(){
+  stopSound();
   timerRemain=timerDuration;
   timerRunning=true;
   updateDisplay();
@@ -246,7 +249,8 @@ function startTimer(){
     if(!timerRunning)return;
     timerRemain--;
     updateDisplay();
-    if(timerRemain<=3&&timerRemain>0)navigator.vibrate(100);
+    if(timerRemain===10)navigator.vibrate([200,100,200]);
+    if(timerRemain<=3&&timerRemain>0)navigator.vibrate([100,50,100,50,100]);
     if(timerRemain===0){timerRunning=false;playSound();}
   },1000);
 }
@@ -256,7 +260,11 @@ function updateDisplay(){
   const m=Math.floor(timerRemain/60);
   const s=timerRemain%60;
   el.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-  el.className='timer-display'+(timerRemain<=3&&timerRemain>0?'danger':timerRemain<=10?'warn':'');
+  let className='timer-display';
+  if(timerRemain<=3&&timerRemain>0)className+=' danger';
+  else if(timerRemain===10)className+=' blink';
+  else if(timerRemain<10&&timerRemain>3)className+=' warn';
+  el.className=className;
 }
 
 function setTimerDuration(){
@@ -270,19 +278,23 @@ function togglePauseTimer(){
   timerRunning=!timerRunning;
 }
 
+let soundBeepInterval=null;
 function playSound(){
   const ctx=new(window.AudioContext||window.webkitAudioContext)();
-  for(let i=0;i<3;i++){
-    setTimeout(()=>{
-      const o=ctx.createOscillator();
-      const g=ctx.createGain();
-      o.frequency.value=1200;
-      o.connect(g);g.connect(ctx.destination);
-      g.gain.setValueAtTime(0.2,ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.1);
-      o.start();o.stop(ctx.currentTime+0.1);
-    },i*150);
+  function beep(){
+    const o=ctx.createOscillator();
+    const g=ctx.createGain();
+    o.frequency.value=1200;
+    o.connect(g);g.connect(ctx.destination);
+    g.gain.setValueAtTime(0.3,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.15);
+    o.start();o.stop(ctx.currentTime+0.15);
   }
+  beep();
+  soundBeepInterval=setInterval(beep,300);
+}
+function stopSound(){
+  if(soundBeepInterval){clearInterval(soundBeepInterval);soundBeepInterval=null;}
 }
 
 document.addEventListener('touchstart',e=>{lastTouchX=e.touches[0].clientX;});

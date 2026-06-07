@@ -77,32 +77,9 @@ input:focus,select:focus{border-color:var(--gold);}input::placeholder{color:var(
 .spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
-/* PASSWORD MODAL */
-.pwd-modal{display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;align-items:center;justify-content:center;}
-.pwd-modal.hidden{display:none;}
-.pwd-modal-content{background:var(--surface);border:2px solid var(--gold);border-radius:12px;padding:40px;width:90%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.8);}
-.pwd-modal-title{font-size:24px;font-weight:800;color:var(--gold);text-align:center;margin-bottom:8px;letter-spacing:0.05em;}
-.pwd-modal-subtitle{font-size:13px;color:var(--text3);text-align:center;margin-bottom:24px;}
-.pwd-input{width:100%;padding:12px 16px;font-size:16px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);color:var(--text);font-family:inherit;margin-bottom:16px;outline:none;letter-spacing:0.1em;}
-.pwd-input:focus{border-color:var(--gold);box-shadow:0 0 8px rgba(240,192,64,0.3);}
-.pwd-btn{width:100%;padding:12px;font-size:14px;font-weight:700;border:none;border-radius:8px;background:var(--gold);color:#1a1000;cursor:pointer;font-family:inherit;transition:all 0.15s;}
-.pwd-btn:hover{background:var(--gold-mid);transform:translateY(-2px);box-shadow:0 4px 12px rgba(240,192,64,0.3);}
-.pwd-error{color:var(--red);font-size:12px;margin-top:8px;text-align:center;font-weight:600;}
 </style>
 </head>
 <body>
-<div class="pwd-modal" id="pwd-modal">
-  <div class="pwd-modal-content">
-    <div class="pwd-modal-title">🔐 Bảo vệ</div>
-    <div class="pwd-modal-subtitle">Nhập mật khẩu để tiếp tục</div>
-    <input type="password" class="pwd-input" id="pwd-input" placeholder="Mật khẩu" autocomplete="off" onkeydown="if(event.key==='Enter')checkPwd()"/>
-    <button class="pwd-btn" id="pwd-btn" onclick="checkPwd()">Tiếp tục</button>
-    <div class="pwd-error" id="pwd-error"></div>
-  </div>
-</div>
-
-
-
 <div id="login-screen">
   <img src="/logo.png" class="login-logo" alt="" onerror="this.style.display='none'"/>
   <div class="login-title">Golden Coffee</div>
@@ -150,27 +127,12 @@ input:focus,select:focus{border-color:var(--gold);}input::placeholder{color:var(
 <div class="toast" id="toast"></div>
 
 <script>
-// Password protection
-const PASSWORD='19842007';
-function checkPwd(){
-  const pwd=document.getElementById('pwd-input').value;
-  const err=document.getElementById('pwd-error');
-  if(pwd===PASSWORD){
-    sessionStorage.setItem('pwd-auth','1');
-    document.getElementById('pwd-modal').classList.add('hidden');
-    err.textContent='';
-  } else {
-    err.textContent='Mật khẩu không đúng';
-    document.getElementById('pwd-input').value='';
-    document.getElementById('pwd-input').focus();
-  }
-}
+// Password protection - check on page load
 window.addEventListener('load',()=>{
-  if(!sessionStorage.getItem('pwd-auth')){
-    document.getElementById('pwd-modal').classList.remove('hidden');
-    setTimeout(()=>document.getElementById('pwd-input').focus(),100);
-  } else {
-    document.getElementById('pwd-modal').classList.add('hidden');
+  if(sessionStorage.getItem('pwd-auth')){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('report-screen').style.display='block';
+    loadAll();
   }
 });
 
@@ -209,12 +171,14 @@ function setConnStatus(state,text){
 
 function doLogin(){
   if(document.getElementById('pass-input').value===OWNER_PASS){
+    sessionStorage.setItem('pwd-auth','1');
     document.getElementById('login-screen').style.display='none';
     document.getElementById('report-screen').style.display='block';
     loadAll();
   }else{document.getElementById('pass-err').textContent='Sai mật khẩu!';}
 }
 function doLogout(){
+  sessionStorage.removeItem('pwd-auth');
   document.getElementById('report-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('pass-input').value='';
