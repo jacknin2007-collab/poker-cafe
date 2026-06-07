@@ -102,16 +102,6 @@ input:focus,select:focus{border-color:var(--gold);}input::placeholder{color:var(
   </div>
 </div>
 
-<div class="pwd-modal" id="pwd-modal">
-  <div class="pwd-modal-content">
-    <div class="pwd-modal-title">🔐 Bảo vệ</div>
-    <div class="pwd-modal-subtitle">Nhập mật khẩu để tiếp tục</div>
-    <input type="password" class="pwd-input" id="pwd-input" placeholder="Mật khẩu" autocomplete="off" onkeydown="if(event.key==='Enter')checkPwd()"/>
-    <button class="pwd-btn" onclick="checkPwd()">Tiếp tục</button>
-    <div class="pwd-error" id="pwd-error"></div>
-  </div>
-</div>
-
 <div id="report-screen" style="display:none;">
   <div class="header">
     <img src="/logo.png" alt="" onerror="this.style.display='none'"/>
