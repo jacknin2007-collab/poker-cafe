@@ -563,14 +563,14 @@ try {
 if (!tableState) {
   tableState = {
     tablesNormal: [
-      { id: 1, name: 'Bàn 1', status: 'inactive', seats: [null, null, null, null, null, null, null, null, null] },
-      { id: 2, name: 'Bàn 2', status: 'inactive', seats: [null, null, null, null, null, null, null, null, null] },
-      { id: 3, name: 'Bàn 3', status: 'inactive', seats: [null, null, null, null, null, null, null, null, null] }
+      { id: 1, name: 'Bàn 1', status: 'idle', seats: [null, null, null, null, null, null, null, null, null], started: null, type: 'normal' },
+      { id: 2, name: 'Bàn 2', status: 'idle', seats: [null, null, null, null, null, null, null, null, null], started: null, type: 'normal' },
+      { id: 3, name: 'Bàn 3', status: 'idle', seats: [null, null, null, null, null, null, null, null, null], started: null, type: 'normal' }
     ],
     tablesTour: [
-      { id: 4, name: 'Tour 1', status: 'inactive', seats: [null, null, null, null, null, null, null, null, null] },
-      { id: 5, name: 'Tour 2', status: 'inactive', seats: [null, null, null, null, null, null, null, null, null] },
-      { id: 6, name: 'Tour 3', status: 'inactive', seats: [null, null, null, null, null, null, null, null, null] }
+      { id: 4, name: 'Tour 1', status: 'idle', seats: [null, null, null, null, null, null, null, null, null], started: null, type: 'tour' },
+      { id: 5, name: 'Tour 2', status: 'idle', seats: [null, null, null, null, null, null, null, null, null], started: null, type: 'tour' },
+      { id: 6, name: 'Tour 3', status: 'idle', seats: [null, null, null, null, null, null, null, null, null], started: null, type: 'tour' }
     ],
     queue: [],
     queueTour: [],
