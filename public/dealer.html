@@ -243,6 +243,8 @@ async function initLogin(){
   const staffList=await api('/staff');
   if(!staffList){document.getElementById('login-err').textContent='Không kết nối được server!';return;}
   const sel=document.getElementById('staff-select');
+  // Xóa các option cũ (giữ option default)
+  while(sel.options.length > 1) sel.remove(1);
   staffList.forEach(s=>{
     const o=document.createElement('option');
     o.value=s.name;
