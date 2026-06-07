@@ -48,7 +48,7 @@ select option{background:#006633;color:#fff;}
 .poker-table{position:relative;width:85%;max-width:900px;aspect-ratio:1.8;background:linear-gradient(135deg, #004d1a 0%, var(--green) 100%);border:6px solid #8b6914;border-radius:200px;box-shadow:0 20px 60px rgba(0,0,0,0.5),inset 0 0 30px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;}
 
 /* TIMER CENTER - OVAL */
-.timer-center{position:absolute;width:20%;aspect-ratio:1.2;background:rgba(0,0,0,0.5);border:3px solid #f0c040;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:20;cursor:pointer;}
+.timer-center{position:absolute;width:20%;aspect-ratio:1.2;background:rgba(0,0,0,0.5);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:20;cursor:pointer;}
 .timer-display{font-size:80px;font-weight:900;color:var(--red);font-family:monospace;line-height:1;}
 .timer-display.warn{color:#ff8c00;}
 .timer-display.blink{color:#ff8c00;animation:blink 0.4s step-end infinite;}
@@ -78,19 +78,16 @@ select option{background:#006633;color:#fff;}
 .seat-player{font-size:10px;font-weight:700;line-height:1.1;}
 .seat-phone{font-size:8px;opacity:0.8;line-height:1.1;}
 
-/* SEAT POSITIONS */
-.seat:nth-child(1){top:5%;left:50%;transform:translateX(-50%);}
-.seat:nth-child(2){top:18%;right:6%;transform:translateY(-50%);}
-.seat:nth-child(3){top:35%;right:2%;transform:translateY(-50%);}
-.seat:nth-child(4){top:50%;right:0%;transform:translateY(-50%);}
-.seat:nth-child(5){top:65%;right:2%;transform:translateY(-50%);}
-.seat:nth-child(6){top:82%;right:6%;transform:translateY(-50%);}
-.seat:nth-child(7){top:95%;left:50%;transform:translateX(-50%);}
-.seat:nth-child(8){top:82%;left:6%;transform:translateY(-50%);}
-.seat:nth-child(9){top:65%;left:2%;transform:translateY(-50%);}
-.seat:nth-child(10){top:50%;left:0%;transform:translateY(-50%);}
-.seat:nth-child(11){top:35%;left:2%;transform:translateY(-50%);}
-.seat:nth-child(12){top:18%;left:6%;transform:translateY(-50%);}
+/* SEAT POSITIONS - 9 SEATS IN CIRCLE */
+.seat:nth-child(1){top:2%;left:50%;transform:translateX(-50%);}
+.seat:nth-child(2){top:12%;right:10%;transform:translateY(-50%);}
+.seat:nth-child(3){top:38%;right:1%;transform:translateY(-50%);}
+.seat:nth-child(4){top:62%;right:1%;transform:translateY(-50%);}
+.seat:nth-child(5){top:88%;right:10%;transform:translateY(-50%);}
+.seat:nth-child(6){top:98%;left:50%;transform:translateX(-50%);}
+.seat:nth-child(7){top:88%;left:10%;transform:translateY(-50%);}
+.seat:nth-child(8){top:62%;left:1%;transform:translateY(-50%);}
+.seat:nth-child(9){top:38%;left:1%;transform:translateY(-50%);}
 
 @media(orientation:portrait){
   body::after{content:'Vui lòng xoay ngang màn hình';position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;z-index:9999;pointer-events:none;}
