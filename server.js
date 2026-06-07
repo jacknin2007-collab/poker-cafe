@@ -16,8 +16,31 @@ db.prepare(`CREATE TABLE IF NOT EXISTS daily_consumed (
   UNIQUE(name,date)
 )`).run();
 
+// Tạo bảng staff_members nếu chưa có
+db.prepare(`CREATE TABLE IF NOT EXISTS staff_members (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`).run();
+
+// Tạo bảng staff_sessions để track ai login app nào
+db.prepare(`CREATE TABLE IF NOT EXISTS staff_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  staff_name TEXT NOT NULL,
+  app_name TEXT NOT NULL,
+  login_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+  logout_time DATETIME,
+  FOREIGN KEY(staff_name) REFERENCES staff_members(name)
+)`).run();
+
+// Migration: Thêm password column vào staff_members
+try { db.prepare('ALTER TABLE staff_members ADD COLUMN password TEXT NOT NULL DEFAULT "123456"').run(); } catch(e) {}
+
 // Thêm cột cost nếu chưa có (migration)
 try { db.prepare('ALTER TABLE stock ADD COLUMN cost INTEGER DEFAULT 1').run(); } catch(e) {}
+
+// Current active staff sessions (in memory, reset on server restart)
+let activeSessions = {}; // { staffName: { app: 'dealer'|'floor', loginTime: timestamp } }
 
 // Trang dealer
 app.get('/dealer', (req, res) => {
@@ -657,6 +680,104 @@ app.post('/api/floor-staff/heartbeat', (req, res) => {
   saveTableStateFile();
 
   res.json({ ok: true });
+});
+
+// ── STAFF MANAGEMENT ───────────────────────────────────────────
+// Get all staff members
+app.get('/api/staff', (req, res) => {
+  try {
+    const staff = db.prepare('SELECT name FROM staff_members ORDER BY name').all();
+    res.json(staff);
+  } catch(e) {
+    res.json([]);
+  }
+});
+
+// Add new staff member
+app.post('/api/staff', (req, res) => {
+  const { name, password } = req.body;
+  if(!name || !password) return res.json({ ok: false, error: 'Thiếu tên hoặc mật khẩu' });
+
+  try {
+    db.prepare('INSERT INTO staff_members (name, password) VALUES (?, ?)').run(name, password);
+    res.json({ ok: true });
+  } catch(e) {
+    res.json({ ok: false, error: 'Nhân viên đã tồn tại' });
+  }
+});
+
+// Delete staff member
+app.delete('/api/staff/:name', (req, res) => {
+  const { name } = req.params;
+  try {
+    db.prepare('DELETE FROM staff_members WHERE name = ?').run(decodeURIComponent(name));
+    // Also remove from active sessions
+    delete activeSessions[name];
+    res.json({ ok: true });
+  } catch(e) {
+    res.json({ ok: false });
+  }
+});
+
+// Staff login
+app.post('/api/staff/login', (req, res) => {
+  const { name, password, app } = req.body;
+  if(!name || !password || !app) return res.json({ ok: false });
+
+  try {
+    const staff = db.prepare('SELECT * FROM staff_members WHERE name = ? AND password = ?').get(name, password);
+    if(!staff) return res.json({ ok: false, error: 'Tên hoặc mật khẩu sai' });
+
+    // Track session
+    activeSessions[name] = {
+      app: app,
+      loginTime: Date.now()
+    };
+
+    res.json({ ok: true, staffName: name });
+  } catch(e) {
+    res.json({ ok: false, error: 'Lỗi hệ thống' });
+  }
+});
+
+// Staff logout
+app.post('/api/staff/logout', (req, res) => {
+  const { name } = req.body;
+  if(!name) return res.json({ ok: false });
+
+  try {
+    // Record logout in database
+    db.prepare('UPDATE staff_sessions SET logout_time = CURRENT_TIMESTAMP WHERE staff_name = ? AND logout_time IS NULL').run(name);
+
+    // Remove from active sessions
+    delete activeSessions[name];
+
+    res.json({ ok: true });
+  } catch(e) {
+    res.json({ ok: false });
+  }
+});
+
+// Get active staff sessions
+app.get('/api/staff/active', (req, res) => {
+  try {
+    const staff = db.prepare('SELECT name FROM staff_members ORDER BY name').all();
+    const active = [];
+
+    staff.forEach(s => {
+      if(activeSessions[s.name]) {
+        active.push({
+          name: s.name,
+          app: activeSessions[s.name].app,
+          loginTime: activeSessions[s.name].loginTime
+        });
+      }
+    });
+
+    res.json(active);
+  } catch(e) {
+    res.json([]);
+  }
 });
 
 // ── DEALER CONFIG ─────────────────────────────────────────────
