@@ -121,6 +121,10 @@ input:focus,select:focus{border-color:var(--gold);}input::placeholder{color:var(
       <div class="metric-card"><div class="metric-label">Hàng chờ tour</div><div class="metric-val" id="queue-tour">--</div></div>
     </div>
     <div class="card">
+      <div class="card-title">Floor hôm nay</div>
+      <div id="floor-staff" style="font-size:15px;color:var(--gold);font-weight:700;padding:8px 0;">--</div>
+    </div>
+    <div class="card">
       <div class="card-title">Tiêu thụ kho hôm nay</div>
       <div id="stock-consumed"><div class="empty-msg">Chưa có</div></div>
     </div>
@@ -248,6 +252,7 @@ function renderMetrics(){
     document.getElementById('table-tour').textContent=tourActive+'/3';
     document.getElementById('queue-normal').textContent=(tableState.queue||[]).length;
     document.getElementById('queue-tour').textContent=(tableState.queueTour||[]).length;
+    document.getElementById('floor-staff').textContent=tableState.floorStaff||'--';
   }
 }
 

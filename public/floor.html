@@ -277,6 +277,14 @@ async function loadState(){
   if(state.updatedAt&&state.updatedAt===(window._floorLastUpdate||0))return;
   window._floorLastUpdate=state.updatedAt;
   tableState=state;
+
+  // Cập nhật floor staff name nếu đã login
+  if(floorName&&(!state.floorStaff||state.floorStaff!==floorName)){
+    state.floorStaff=floorName;
+    state.updatedAt=Date.now();
+    await api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});
+  }
+
   renderTables();
   renderQueues();
 }
