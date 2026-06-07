@@ -8,12 +8,11 @@
 <meta name="apple-mobile-web-app-title" content="GC Dealer Tour"/>
 <meta name="theme-color" content="#006633"/>
 <style>
-:root{--green:#006633;--text:#fff;--red:#ff2020;--gold:#d4af37;}
+:root{--green:#006633;--red:#ff2020;}
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{width:100vw;height:100vh;overflow:hidden;background:var(--green);font-family:-apple-system,sans-serif;}
-body{display:flex;flex-direction:column;}
+body{display:flex;flex-direction:column;overflow:hidden;}
 
-/* PASSWORD MODAL */
 .pwd-modal{display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;align-items:center;justify-content:center;}
 .pwd-modal.hidden{display:none;}
 .pwd-modal-content{background:#1a1a1a;border:2px solid #f0c040;border-radius:12px;padding:40px;width:90%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.8);}
@@ -24,7 +23,6 @@ body{display:flex;flex-direction:column;}
 .pwd-btn{width:100%;padding:12px;font-size:14px;font-weight:700;border:none;border-radius:8px;background:#f0c040;color:#000;cursor:pointer;font-family:inherit;}
 .pwd-error{color:#ff6666;font-size:12px;margin-top:8px;text-align:center;font-weight:600;}
 
-/* LOGIN SCREEN */
 #login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:24px;background:var(--green);}
 .login-logo{width:80px;height:80px;object-fit:contain;margin-bottom:16px;}
 .login-title{font-size:28px;font-weight:900;color:#fff;margin-bottom:8px;}
@@ -36,65 +34,38 @@ select option{background:#006633;color:#fff;}
 .btn:active{opacity:0.8;}
 .err{color:#ff6666;font-size:13px;margin-bottom:8px;min-height:18px;}
 
-/* MAIN SCREEN */
-#main-screen{display:none;width:100vw;height:100vh;background:var(--green);overflow:hidden;position:relative;}
+#main-screen{display:none;width:100vw;height:100vh;background:var(--green);overflow:hidden;position:relative;flex-direction:column;}
 
-/* TOP BAR */
-.top-bar{position:absolute;top:0;left:0;right:0;height:50px;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:10;}
+.top-bar{width:100%;height:50px;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:10;}
 .dealer-name-left{color:#fff;font-size:16px;font-weight:700;}
-.dealer-header-center{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.6);padding:8px 16px;border-radius:6px;}
+.dealer-center{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.6);padding:8px 16px;border-radius:6px;}
 .dealer-label{color:#fff;font-size:14px;font-weight:700;}
 .settings-icon{width:30px;height:30px;background:rgba(255,255,255,0.15);border:1.5px solid #f0c040;border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all 0.2s;}
 .settings-icon:hover{background:rgba(255,255,255,0.25);}
 .logout-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700;}
-.logout-btn:active{opacity:0.7;}
 
-/* MAIN CONTENT AREA */
-.main-content{position:absolute;top:50px;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;padding:20px;}
+.main-content{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;}
+.table-wrapper{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
 
-/* POKER TABLE CONTAINER */
-.poker-table{position:relative;width:85%;max-width:900px;aspect-ratio:1.8;background:linear-gradient(135deg, #004d1a 0%, #006633 100%);border:8px solid #c9a856;border-radius:200px;box-shadow:0 30px 80px rgba(0,0,0,0.6),inset 0 0 40px rgba(0,0,0,0.4);}
+svg{max-width:100%;max-height:100%;display:block;}
 
-/* TIMER CENTER */
-.timer-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:120px;height:120px;background:rgba(0,0,0,0.6);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:20;cursor:pointer;}
-.timer-display{font-size:70px;font-weight:900;color:var(--red);font-family:monospace;line-height:1;text-align:center;}
-.timer-display.warn{color:#ff8c00;}
-.timer-display.blink{color:#ff8c00;animation:blink 0.4s step-end infinite;}
-.timer-display.danger{color:var(--red);animation:shake 0.1s infinite;}
-@keyframes blink{0%,49%{opacity:1;}50%,100%{opacity:0.3;}}
-@keyframes shake{0%,100%{transform:translateX(0);}50%{transform:translateX(2px);}}
+.seat-circle{cursor:pointer;transition:all 0.2s;}
+.seat-circle:hover{filter:brightness(1.2);}
+.seat-circle.occ{filter:brightness(1.3);}
 
-/* 9 SEATS - POSITIONED AROUND OVAL TABLE */
-.seat{position:absolute;width:10%;aspect-ratio:1;background:#001a0d;border:2px solid #004d1a;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;cursor:pointer;transition:all 0.2s;overflow:hidden;padding:4px;text-align:center;word-break:break-word;}
-.seat:hover{background:#003d1a;border-color:#008844;}
-.seat.occ{background:#228844;border-color:#44ff66;box-shadow:0 0 15px rgba(68,255,102,0.6);}
-.seat-player{font-size:10px;font-weight:700;line-height:1.1;}
-.seat-phone{font-size:8px;opacity:0.8;line-height:1.1;}
+.seat-label{font-size:12px;font-weight:700;text-anchor:middle;dominant-baseline:middle;fill:#fff;pointer-events:none;}
+.seat-info{pointer-events:none;font-size:9px;text-anchor:middle;fill:#fff;opacity:0.9;}
 
-/* SEAT POSITIONS - OVAL LAYOUT */
-.seat:nth-child(1){top:5%;left:50%;transform:translate(-50%,-50%);}
-.seat:nth-child(2){top:18%;left:72%;transform:translate(-50%,-50%);}
-.seat:nth-child(3){top:35%;left:88%;transform:translate(-50%,-50%);}
-.seat:nth-child(4){top:65%;left:88%;transform:translate(-50%,-50%);}
-.seat:nth-child(5){top:82%;left:72%;transform:translate(-50%,-50%);}
-.seat:nth-child(6){top:95%;left:50%;transform:translate(-50%,-50%);}
-.seat:nth-child(7){top:82%;left:28%;transform:translate(-50%,-50%);}
-.seat:nth-child(8){top:65%;left:12%;transform:translate(-50%,-50%);}
-.seat:nth-child(9){top:35%;left:12%;transform:translate(-50%,-50%);}
+.timer-bg{cursor:pointer;}
+.timer-text{font-size:60px;font-weight:900;text-anchor:middle;dominant-baseline:middle;fill:var(--red);font-family:monospace;pointer-events:none;}
 
-/* SETTINGS MODAL */
 .settings-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;align-items:center;justify-content:center;}
 .settings-modal.show{display:flex;}
 .settings-content{background:rgba(0,0,0,0.9);border:2px solid #f0c040;border-radius:12px;padding:24px;max-width:300px;text-align:center;}
 .settings-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:16px;}
 .settings-input{width:100%;padding:12px;font-size:28px;text-align:center;background:rgba(255,255,255,0.05);border:2px solid #f0c040;border-radius:8px;color:#f0c040;font-family:monospace;font-weight:700;margin-bottom:12px;}
 .settings-btn{width:100%;padding:10px;font-size:14px;font-weight:700;background:#f0c040;color:#000;border:none;border-radius:8px;cursor:pointer;margin-bottom:8px;}
-.settings-btn:active{opacity:0.8;}
 .settings-btn-close{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);}
-
-/* REMOVE PLAYER MODAL */
-#remove-player-modal .settings-content{max-width:280px;}
-#remove-player-name{font-size:14px;color:#fff;margin-bottom:16px;word-break:break-word;}
 
 @media(orientation:portrait){
   body::after{content:'Vui lòng xoay ngang màn hình';position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;z-index:9999;pointer-events:none;}
@@ -127,7 +98,7 @@ select option{background:#006633;color:#fff;}
 <div id="main-screen">
   <div class="top-bar">
     <div class="dealer-name-left" id="dealer-name-left">Dealer 1</div>
-    <div class="dealer-header-center">
+    <div class="dealer-center">
       <div class="dealer-label" id="dealer-label">DEALER 1</div>
       <div class="settings-icon" onclick="openSettings()">⚙️</div>
     </div>
@@ -135,10 +106,23 @@ select option{background:#006633;color:#fff;}
   </div>
 
   <div class="main-content">
-    <div class="poker-table" id="poker-table">
-      <div class="timer-center" id="timer-center" ondblclick="togglePauseTimer()">
-        <div class="timer-display" id="timer-display">30</div>
-      </div>
+    <div class="table-wrapper">
+      <svg id="table-svg" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet">
+        <!-- Table background (oval) -->
+        <defs>
+          <linearGradient id="tableGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#004d1a;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#006633;stop-opacity:1" />
+          </linearGradient>
+        </defs>
+
+        <ellipse cx="500" cy="300" rx="380" ry="220" fill="url(#tableGrad)" stroke="#c9a856" stroke-width="12"/>
+
+        <!-- Seats will be added via JavaScript -->
+        <!-- Timer circle -->
+        <circle cx="500" cy="300" r="70" fill="rgba(0,0,0,0.6)" class="timer-bg" onclick="togglePauseTimer()"/>
+        <text x="500" y="300" class="timer-text" id="timer-text">30</text>
+      </svg>
     </div>
   </div>
 
@@ -163,6 +147,15 @@ select option{background:#006633;color:#fff;}
 
 <script>
 const PASSWORD='19842007';
+const API='https://poker-cafe.onrender.com/api';
+
+let dealerName='',tableState=null,allCustomers=[];
+let timerDuration=30,timerRemain=30,timerRunning=false;
+let timerInterval=null,pollTimer=null,soundBeepInterval=null,vibrationInterval=null;
+let selectedPlayerName='',selectedSeatIndex=-1;
+let seatElements={};
+const audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+
 function checkPwd(){
   const pwd=document.getElementById('pwd-input').value;
   if(pwd===PASSWORD){
@@ -189,12 +182,6 @@ window.addEventListener('load',()=>{
   }
 });
 
-const API='https://poker-cafe.onrender.com/api';
-let dealerName='',tableState=null,allCustomers=[],timerDuration=30,timerRemain=30,timerRunning=false;
-let timerInterval=null,pollTimer=null,soundBeepInterval=null,vibrationInterval=null;
-let selectedPlayerName='',selectedSeatIndex=-1;
-const audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-
 async function api(path){
   try{const r=await fetch(API+path,{signal:AbortSignal.timeout(6000)});return await r.json();}catch(e){return null;}
 }
@@ -215,7 +202,6 @@ function doLogin(){
   document.getElementById('main-screen').style.display='flex';
   document.getElementById('dealer-name-left').textContent=dealerName;
   document.getElementById('dealer-label').textContent=dealerName.toUpperCase();
-  document.getElementById('timer-input').value='30';
   closeSettings();
   screen.orientation.lock('landscape').catch(()=>{});
   initApp();
@@ -236,6 +222,7 @@ function doLogout(){
 }
 
 function initApp(){
+  renderSeats();
   loadAll();
   startTimer();
   pollTimer=setInterval(loadState,2000);
@@ -251,7 +238,7 @@ async function loadState(){
   const state=await api('/table-state');
   if(!state)return;
   tableState=state;
-  renderSeats();
+  updateSeats();
 }
 
 function getCustomerPhone(name){
@@ -260,6 +247,61 @@ function getCustomerPhone(name){
 }
 
 function renderSeats(){
+  const svg=document.getElementById('table-svg');
+  const cx=500,cy=300,rx=320,ry=190;
+
+  seatElements={};
+
+  // 9 ghế được sắp xếp quanh oval
+  for(let i=0;i<9;i++){
+    const angle=(i*40)*Math.PI/180; // 40 độ cho mỗi ghế
+    const x=cx+rx*Math.cos(angle);
+    const y=cy+ry*Math.sin(angle);
+
+    // Vòng tròn ghế
+    const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',x);
+    circle.setAttribute('cy',y);
+    circle.setAttribute('r','45');
+    circle.setAttribute('fill','#001a0d');
+    circle.setAttribute('stroke','#004d1a');
+    circle.setAttribute('stroke-width','2');
+    circle.setAttribute('class','seat-circle');
+    circle.setAttribute('data-seat',i);
+    circle.style.cursor='pointer';
+
+    circle.addEventListener('click',()=>handleSeatClick(i));
+
+    svg.appendChild(circle);
+
+    // Nhóm thông tin ghế
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('data-seat-info',i);
+    g.setAttribute('class','seat-info-group');
+
+    const nameText=document.createElementNS('http://www.w3.org/2000/svg','text');
+    nameText.setAttribute('x',x);
+    nameText.setAttribute('y',y-8);
+    nameText.setAttribute('class','seat-label');
+    nameText.setAttribute('data-seat-name',i);
+    nameText.textContent='Trống';
+
+    const phoneText=document.createElementNS('http://www.w3.org/2000/svg','text');
+    phoneText.setAttribute('x',x);
+    phoneText.setAttribute('y',y+8);
+    phoneText.setAttribute('class','seat-info');
+    phoneText.setAttribute('data-seat-phone',i);
+    phoneText.textContent='';
+
+    g.appendChild(nameText);
+    g.appendChild(phoneText);
+    svg.appendChild(g);
+
+    seatElements[i]={circle,nameText,phoneText};
+  }
+}
+
+function updateSeats(){
   if(!tableState||!dealerName)return;
   const tourTables=tableState.tablesTour||[];
   const dealerMap={'Dealer 1':4,'Dealer 2':5,'Dealer 3':6};
@@ -274,30 +316,39 @@ function renderSeats(){
 
   const allSeats=activeTable?activeTable.seats||[]:[...new Array(9)].map(()=>'');
 
-  const table=document.getElementById('poker-table');
-  const existing=table.querySelectorAll('.seat');
-  existing.forEach(s=>s.remove());
-
   for(let i=0;i<9;i++){
-    const seat=document.createElement('div');
     const playerName=allSeats[i]||'';
     const phone=playerName?getCustomerPhone(playerName):'';
+    const el=seatElements[i];
+    if(!el)continue;
 
     if(playerName){
-      seat.className='seat occ';
-      seat.innerHTML=`<div class="seat-player">${playerName}</div><div class="seat-phone">${phone}</div>`;
+      el.circle.setAttribute('fill','#228844');
+      el.circle.setAttribute('stroke','#44ff66');
+      el.circle.setAttribute('filter','drop-shadow(0 0 15px rgba(68,255,102,0.6))');
+      el.nameText.textContent=playerName;
+      el.phoneText.textContent=phone;
     } else {
-      seat.className='seat';
-      seat.textContent='Trống';
+      el.circle.setAttribute('fill','#001a0d');
+      el.circle.setAttribute('stroke','#004d1a');
+      el.circle.setAttribute('filter','none');
+      el.nameText.textContent='Trống';
+      el.phoneText.textContent='';
     }
+  }
+}
 
-    seat.addEventListener('click',()=>{
-      if(playerName && activeTable){
-        openRemoveModal(playerName,i);
-      }
-    });
+function handleSeatClick(seatIdx){
+  if(!tableState||!dealerName)return;
+  const tourTables=tableState.tablesTour||[];
+  const dealerMap={'Dealer 1':4,'Dealer 2':5,'Dealer 3':6};
+  const tableId=dealerMap[dealerName];
+  const table=tourTables.find(t=>t.id===tableId);
+  if(!table||!table.seats)return;
 
-    table.appendChild(seat);
+  const playerName=table.seats[seatIdx];
+  if(playerName){
+    openRemoveModal(playerName,seatIdx);
   }
 }
 
@@ -339,21 +390,12 @@ function stopVibration(){
 
 function doVibrate(pattern){
   if(!navigator.vibrate)return;
-  try{
-    navigator.vibrate(pattern);
-  }catch(e){
-    console.log('Vibration not supported:',e);
-  }
+  try{navigator.vibrate(pattern);}catch(e){console.log('Vibration not supported:',e);}
 }
 
 function updateDisplay(){
-  const el=document.getElementById('timer-display');
+  const el=document.getElementById('timer-text');
   el.textContent=String(timerRemain);
-  let className='timer-display';
-  if(timerRemain<=3&&timerRemain>0)className+=' danger';
-  else if(timerRemain===10)className+=' blink';
-  else if(timerRemain<10&&timerRemain>3)className+=' warn';
-  el.className=className;
 }
 
 function openSettings(){
@@ -395,7 +437,6 @@ async function confirmRemovePlayer(){
   const tourTables=tableState.tablesTour||[];
   const dealerMap={'Dealer 1':4,'Dealer 2':5,'Dealer 3':6};
   const tableId=dealerMap[dealerName];
-
   const table=tourTables.find(t=>t.id===tableId);
   if(!table||!table.seats)return;
 
@@ -409,9 +450,7 @@ async function confirmRemovePlayer(){
     });
     closeRemoveModal();
     await loadState();
-  }catch(e){
-    console.error(e);
-  }
+  }catch(e){console.error(e);}
 }
 
 function playSound(){
@@ -422,9 +461,7 @@ function playSound(){
       } else {
         doBeep();
       }
-    }catch(e){
-      console.log('Audio error:',e);
-    }
+    }catch(e){console.log('Audio error:',e);}
   }
 
   function doBeep(){
@@ -438,9 +475,7 @@ function playSound(){
       g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.15);
       o.start();
       o.stop(audioCtx.currentTime+0.15);
-    }catch(e){
-      console.log('Beep failed:',e);
-    }
+    }catch(e){console.log('Beep failed:',e);}
   }
 
   beep();
