@@ -58,6 +58,11 @@ svg{max-width:100%;max-height:100%;display:block;}
 
 .timer-bg{cursor:pointer;}
 .timer-text{font-size:60px;font-weight:900;text-anchor:middle;dominant-baseline:middle;fill:var(--red);font-family:monospace;pointer-events:none;}
+.timer-text.warn{fill:#ff8c00;animation:none;}
+.timer-text.blink{fill:#ff8c00;animation:blink 0.4s step-end infinite;}
+.timer-text.danger{fill:var(--red);animation:shake 0.1s infinite;}
+@keyframes blink{0%,49%{opacity:1;}50%,100%{opacity:0.3;}}
+@keyframes shake{0%,100%{transform:translateX(0);}50%{transform:translateX(2px);}}
 
 .settings-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;align-items:center;justify-content:center;}
 .settings-modal.show{display:flex;}
@@ -116,7 +121,7 @@ svg{max-width:100%;max-height:100%;display:block;}
           </linearGradient>
         </defs>
 
-        <ellipse cx="500" cy="300" rx="360" ry="200" fill="url(#tableGrad)" stroke="#c9a856" stroke-width="12"/>
+        <ellipse cx="500" cy="300" rx="340" ry="210" fill="url(#tableGrad)" stroke="#c9a856" stroke-width="12"/>
 
         <!-- Seats will be added via JavaScript -->
         <!-- Timer text only, no background circle -->
@@ -365,9 +370,7 @@ function startTimer(){
     if(timerRemain===10)doVibrate([200,100,200]);
     if(timerRemain===3)startContinuousVibration();
     if(timerRemain===0){
-      timerRunning=false;
-      stopVibration();
-      playSound();
+      playSound(); // Âm thanh bắt đầu lên nhưng countdown dừng
     }
   },1000);
 }
@@ -395,6 +398,12 @@ function doVibrate(pattern){
 function updateDisplay(){
   const el=document.getElementById('timer-text');
   el.textContent=String(timerRemain);
+
+  let className='timer-text';
+  if(timerRemain<=3&&timerRemain>0) className+=' danger';
+  else if(timerRemain===10) className+=' blink';
+  else if(timerRemain<10&&timerRemain>3) className+=' warn';
+  el.className=className;
 }
 
 function openSettings(){
@@ -488,10 +497,24 @@ function stopSound(){
   }
 }
 
+let touchStartX=0,touchStartY=0;
+document.addEventListener('touchstart',e=>{
+  touchStartX=e.touches[0].clientX;
+  touchStartY=e.touches[0].clientY;
+});
 document.addEventListener('touchend',e=>{
-  if(document.getElementById('main-screen').style.display==='flex'){
-    startTimer();
+  if(document.getElementById('main-screen').style.display!=='flex')return;
+  const touchEndX=e.changedTouches[0].clientX;
+  const touchEndY=e.changedTouches[0].clientY;
+  const distX=Math.abs(touchEndX-touchStartX);
+  const distY=Math.abs(touchEndY-touchStartY);
+
+  // Swipe: distance > 100px, chủ yếu ngang
+  if(distX>100 && distX>distY){
+    timerRunning=false;
     stopSound();
+    stopVibration();
+    startTimer(); // Reset timer lại từ đầu
   }
 });
 
