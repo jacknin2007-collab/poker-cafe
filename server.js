@@ -288,9 +288,22 @@ app.get('/report-manifest.json', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'report-manifest.json'));
 });
 
-// PWA Manifest cho báo cáo
-app.get('/report-manifest.json', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'report-manifest.json'));
+// PWA Manifest cho dealer-tour
+app.get('/dealer-tour-manifest.json', (req, res) => {
+  res.json({
+    "name": "Golden Coffee – Dealer Tour",
+    "short_name": "GC Tour",
+    "description": "Dealer Tour Management System",
+    "start_url": "/dealer-tour",
+    "display": "standalone",
+    "background_color": "#006633",
+    "theme_color": "#006633",
+    "orientation": "landscape",
+    "icons": [
+      {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+      {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+    ]
+  });
 });
 
 // ── MÁY IN KV804 USB ─────────────────────────────────────────
