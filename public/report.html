@@ -511,6 +511,13 @@ setInterval(async()=>{
   renderMetrics();
   await renderStockConsumed();
 },10000);
+
+// Auto-refresh staff data mỗi 10 giây khi ở staff tab
+setInterval(async()=>{
+  if(document.getElementById('report-screen').style.display==='none')return;
+  if(document.getElementById('staff-content').style.display==='none')return;
+  await loadStaffData();
+},10000);
 </script>
 </body>
 </html>
