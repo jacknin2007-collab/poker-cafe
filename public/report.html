@@ -146,7 +146,9 @@ input:focus,select:focus{border-color:var(--gold);}input::placeholder{color:var(
   </div>
 
   <div class="body" id="staff-content" style="display:none;">
-    <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <div class="status-bar" id="staff-conn-status">
+      <div class="status-dot dot-amber" id="staff-conn-dot"></div>
+      <span id="staff-conn-text">Đang kết nối...</span>
       <button class="btn btn-sm" style="margin-left:auto;padding:4px 10px;font-size:11px;" onclick="loadStaffData()">↺ Làm mới</button>
     </div>
 
@@ -318,8 +320,22 @@ async function deleteStaff(name){
 }
 
 async function loadStaffData(){
+  const staffConnDot=document.getElementById('staff-conn-dot');
+  const staffConnText=document.getElementById('staff-conn-text');
+
+  staffConnDot.className='status-dot dot-amber';
+  staffConnText.textContent='Đang kết nối...';
+
   const staffList=await apiGet('/staff');
   const activeSessions=await apiGet('/staff/active');
+
+  if(staffList&&activeSessions){
+    staffConnDot.className='status-dot dot-green';
+    staffConnText.textContent='OK · '+new Date().toLocaleTimeString('vi');
+  } else {
+    staffConnDot.className='status-dot dot-red';
+    staffConnText.textContent='Lỗi kết nối';
+  }
 
   renderStaffList(staffList||[]);
   renderActiveSessions(activeSessions||[]);
