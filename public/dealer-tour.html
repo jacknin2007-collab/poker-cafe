@@ -48,21 +48,30 @@ select option{background:#006633;color:#fff;}
 /* ROUND TABLE WITH 9 SEATS */
 .poker-table{position:relative;width:90vmin;max-width:100vh;aspect-ratio:1;background:radial-gradient(circle,#004d1a 0%,var(--green) 100%);border:8px solid #8b6914;border-radius:50%;box-shadow:0 20px 60px rgba(0,0,0,0.5),inset 0 0 30px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;}
 
-/* CENTER TIMER - PILL SHAPE */
-.timer-center{position:absolute;width:32%;aspect-ratio:0.65;background:rgba(0,0,0,0.4);border:3px solid var(--gold);border-radius:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;}
-.timer-display{font-size:72px;font-weight:900;color:var(--gold);font-family:monospace;letter-spacing:2px;line-height:1;}
+/* CENTER TIMER - OVAL SHAPE */
+.timer-center{position:absolute;width:28%;aspect-ratio:2;background:rgba(0,0,0,0.4);border:3px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:20;cursor:pointer;}
+.timer-display{font-size:92px;font-weight:900;color:var(--gold);font-family:monospace;letter-spacing:0;line-height:1;}
 .timer-display.warn{color:#ff8c00;animation:none;}
 .timer-display.blink{color:#ff8c00;animation:blink-timer 0.4s step-end infinite;}
 .timer-display.danger{color:#ff2020;animation:vibrate-timer 0.1s infinite;}
 @keyframes blink-timer{0%,49%{opacity:1;}50%,100%{opacity:0.3;}}
 @keyframes vibrate-timer{0%{transform:translateX(2px);}50%{transform:translateX(-2px);}100%{transform:translateX(0);}}
-.timer-label{font-size:12px;color:rgba(255,255,255,0.5);margin-top:4px;}
 
-/* DEALER SETTINGS (TOP CENTER) */
-.dealer-settings{position:absolute;top:10%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.5);border:2px solid var(--gold);border-radius:8px;padding:12px;display:flex;gap:8px;align-items:center;z-index:15;min-width:280px;flex-wrap:wrap;justify-content:center;}
-.timer-input{width:60px;padding:6px;font-size:14px;text-align:center;background:rgba(0,0,0,0.7);border:1px solid var(--gold);border-radius:6px;color:var(--gold);font-family:monospace;font-weight:700;}
-.timer-btn{padding:6px 12px;font-size:12px;font-weight:700;background:var(--gold);color:#000;border:none;border-radius:6px;cursor:pointer;}
-.timer-info{font-size:10px;color:rgba(255,255,255,0.6);width:100%;text-align:center;margin-top:4px;}
+/* DEALER HEADER */
+.dealer-header{position:absolute;top:8%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.5);border-radius:8px;padding:12px 20px;display:flex;gap:12px;align-items:center;z-index:15;}
+.dealer-label{font-size:18px;font-weight:700;color:#fff;font-family:'Bebas Neue',sans-serif;letter-spacing:0.1em;}
+.settings-icon{width:32px;height:32px;background:rgba(255,255,255,0.2);border:1.5px solid var(--gold);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:all 0.2s;}
+.settings-icon:hover{background:rgba(255,255,255,0.3);}
+
+/* SETTINGS MODAL */
+.settings-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center;}
+.settings-modal.show{display:flex;}
+.settings-content{background:rgba(0,0,0,0.6);border:2px solid var(--gold);border-radius:12px;padding:24px;max-width:320px;text-align:center;}
+.settings-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:16px;}
+.settings-input{width:100%;padding:12px;font-size:24px;text-align:center;background:rgba(255,255,255,0.1);border:2px solid var(--gold);border-radius:8px;color:var(--gold);font-family:monospace;font-weight:700;margin-bottom:12px;}
+.settings-btn{width:100%;padding:10px;font-size:14px;font-weight:700;background:var(--gold);color:#000;border:none;border-radius:8px;cursor:pointer;margin-bottom:8px;}
+.settings-btn-close{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);}
+.settings-btn-close:hover{background:rgba(255,255,255,0.15);}
 
 /* 9 SEATS AROUND TABLE */
 .seat{position:absolute;width:14%;aspect-ratio:1;background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;padding:6px;}
@@ -118,18 +127,24 @@ select option{background:#006633;color:#fff;}
     <button class="logout-btn" onclick="doLogout()">Thoát</button>
   </div>
 
-  <div class="dealer-settings">
-    <label style="font-size:12px;color:#fff;">Giây:</label>
-    <input type="number" class="timer-input" id="timer-input" value="30" min="5" max="300"/>
-    <button class="timer-btn" onclick="setTimerDuration()">Đặt</button>
-    <div class="timer-info">💡 Vuốt để reset | Nhấn đúp để dừng</div>
+  <div class="dealer-header">
+    <div class="dealer-label" id="dealer-name">Dealer 1</div>
+    <div class="settings-icon" onclick="openSettings()">⚙️</div>
+  </div>
+
+  <div class="settings-modal" id="settings-modal">
+    <div class="settings-content">
+      <div class="settings-title">⏱️ Cài đặt thời gian</div>
+      <input type="number" class="settings-input" id="timer-input" value="30" min="5" max="300"/>
+      <button class="settings-btn" onclick="setTimerDuration()">✓ Đặt</button>
+      <button class="settings-btn settings-btn-close" onclick="closeSettings()">✕ Đóng</button>
+    </div>
   </div>
 
   <div class="table-container">
     <div class="poker-table" id="poker-table">
       <div class="timer-center" id="timer-center" ondblclick="togglePauseTimer()">
-        <div class="timer-display" id="timer-display">00:30</div>
-        <div class="timer-label">Thời gian</div>
+        <div class="timer-display" id="timer-display">30</div>
       </div>
     </div>
   </div>
@@ -187,6 +202,7 @@ function doLogin(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-screen').style.display='flex';
   document.getElementById('dealer-name').textContent=dealerName;
+  closeSettings();
   screen.orientation.lock('landscape').catch(()=>{});
   loadAll();
   startTimer();
@@ -257,9 +273,7 @@ function startTimer(){
 
 function updateDisplay(){
   const el=document.getElementById('timer-display');
-  const m=Math.floor(timerRemain/60);
-  const s=timerRemain%60;
-  el.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  el.textContent=String(timerRemain);
   let className='timer-display';
   if(timerRemain<=3&&timerRemain>0)className+=' danger';
   else if(timerRemain===10)className+=' blink';
@@ -267,10 +281,20 @@ function updateDisplay(){
   el.className=className;
 }
 
+function openSettings(){
+  document.getElementById('settings-modal').classList.add('show');
+  document.getElementById('timer-input').focus();
+}
+
+function closeSettings(){
+  document.getElementById('settings-modal').classList.remove('show');
+}
+
 function setTimerDuration(){
   const val=parseInt(document.getElementById('timer-input').value)||30;
   if(val<5||val>300){alert('5-300 giây!');return;}
   timerDuration=val;
+  closeSettings();
   startTimer();
 }
 
