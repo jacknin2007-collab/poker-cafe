@@ -559,6 +559,28 @@ try {
   console.log('[TABLE] Khôi phục table state từ file');
 } catch(e) { tableState = null; }
 
+// Khởi tạo table state mặc định nếu chưa có
+if (!tableState) {
+  tableState = {
+    tablesNormal: [
+      { id: 1, name: 'Bàn 1', status: 'inactive', seats: [null, null, null, null, null, null, null, null, null] },
+      { id: 2, name: 'Bàn 2', status: 'inactive', seats: [null, null, null, null, null, null, null, null, null] },
+      { id: 3, name: 'Bàn 3', status: 'inactive', seats: [null, null, null, null, null, null, null, null, null] }
+    ],
+    tablesTour: [
+      { id: 4, name: 'Tour 1', status: 'inactive', seats: [null, null, null, null, null, null, null, null, null] },
+      { id: 5, name: 'Tour 2', status: 'inactive', seats: [null, null, null, null, null, null, null, null, null] },
+      { id: 6, name: 'Tour 3', status: 'inactive', seats: [null, null, null, null, null, null, null, null, null] }
+    ],
+    queue: [],
+    queueTour: [],
+    floorStaff: null,
+    updatedAt: Date.now()
+  };
+  saveTableStateFile();
+  console.log('[TABLE] Khởi tạo table state mặc định');
+}
+
 function saveTableStateFile() {
   try { require('fs').writeFileSync(TABLE_STATE_FILE, JSON.stringify(tableState)); } catch(e) {}
 }
@@ -577,6 +599,7 @@ app.get('/api/table-state', (req, res) => {
     tablesTour: tableState.tablesTour || [],
     activeTab: tableState.activeTab || 'normal',
     queueTour: tableState.queueTour || [],
+    floorStaff: tableState.floorStaff,
     updatedAt: tableState.updatedAt
   });
 });
