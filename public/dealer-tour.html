@@ -53,8 +53,8 @@ svg{max-width:100%;max-height:100%;display:block;}
 .seat-circle:hover{filter:brightness(1.2);}
 .seat-circle.occ{filter:brightness(1.3);}
 
-.seat-label{font-size:14px;font-weight:700;text-anchor:middle;dominant-baseline:middle;fill:#fff;pointer-events:none;}
-.seat-info{pointer-events:none;font-size:10px;text-anchor:middle;fill:#fff;opacity:0.95;}
+.seat-label{font-size:13px;font-weight:700;text-anchor:middle;dominant-baseline:middle;fill:#fff;pointer-events:none;text-shadow:0 1px 3px rgba(0,0,0,0.5);}
+.seat-info{pointer-events:none;font-size:9px;text-anchor:middle;fill:#ccc;opacity:0.9;}
 
 .timer-bg{cursor:pointer;}
 .timer-text{font-size:60px;font-weight:900;text-anchor:middle;dominant-baseline:middle;fill:var(--red);font-family:monospace;pointer-events:none;}
@@ -129,7 +129,7 @@ svg{max-width:100%;max-height:100%;display:block;}
           </linearGradient>
         </defs>
 
-        <ellipse cx="500" cy="300" rx="340" ry="210" fill="url(#tableGrad)" stroke="#c9a856" stroke-width="12"/>
+        <ellipse cx="500" cy="300" rx="300" ry="180" fill="url(#tableGrad)" stroke="#c9a856" stroke-width="12"/>
 
         <!-- Seats will be added via JavaScript -->
         <!-- Timer text with invisible rect for double-tap detection -->
@@ -538,9 +538,10 @@ document.addEventListener('touchend',e=>{
 
   // Swipe: distance > 100px, chủ yếu ngang
   if(distX>100 && distX>distY){
+    clearInterval(timerInterval); // Dừng interval
     timerRunning=false;
-    stopSound();
-    stopVibration();
+    stopSound(); // Dừng âm thanh ngay lập tức
+    stopVibration(); // Dừng rung
     startTimer(); // Reset timer lại từ đầu
   }
 });
