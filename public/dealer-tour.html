@@ -124,8 +124,9 @@ svg{max-width:100%;max-height:100%;display:block;}
         <ellipse cx="500" cy="300" rx="340" ry="210" fill="url(#tableGrad)" stroke="#c9a856" stroke-width="12"/>
 
         <!-- Seats will be added via JavaScript -->
-        <!-- Timer text only, no background circle -->
-        <text x="500" y="300" class="timer-text" id="timer-text" ondblclick="togglePauseTimer()" style="cursor:pointer;">30</text>
+        <!-- Timer text with invisible rect for double-tap detection -->
+        <rect x="420" y="240" width="160" height="120" fill="transparent" id="timer-touch" style="cursor:pointer;"/>
+        <text x="500" y="300" class="timer-text" id="timer-text">30</text>
       </svg>
     </div>
   </div>
@@ -365,12 +366,12 @@ function startTimer(){
   clearInterval(timerInterval);
   timerInterval=setInterval(()=>{
     if(!timerRunning)return;
-    timerRemain--;
+    if(timerRemain>0)timerRemain--;
     updateDisplay();
     if(timerRemain===10)doVibrate([200,100,200]);
     if(timerRemain===3)startContinuousVibration();
     if(timerRemain===0){
-      playSound(); // Âm thanh bắt đầu lên nhưng countdown dừng
+      playSound(); // Âm thanh bắt đầu lên, timer giữ yên ở 0
     }
   },1000);
 }
@@ -426,6 +427,24 @@ function setTimerDuration(){
 function togglePauseTimer(){
   timerRunning=!timerRunning;
 }
+
+// Setup double-tap handler for timer
+let timerTapCount=0,timerTapTimeout;
+setTimeout(()=>{
+  const timerTouch=document.getElementById('timer-touch');
+  if(timerTouch){
+    timerTouch.addEventListener('click',()=>{
+      timerTapCount++;
+      if(timerTapCount===1){
+        timerTapTimeout=setTimeout(()=>{timerTapCount=0;},300);
+      } else if(timerTapCount===2){
+        clearTimeout(timerTapTimeout);
+        timerTapCount=0;
+        togglePauseTimer();
+      }
+    });
+  }
+},100);
 
 function openRemoveModal(playerName,seatIdx){
   selectedPlayerName=playerName;
