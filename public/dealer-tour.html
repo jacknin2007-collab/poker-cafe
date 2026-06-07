@@ -78,16 +78,16 @@ select option{background:#006633;color:#fff;}
 .seat-player{font-size:10px;font-weight:700;line-height:1.1;}
 .seat-phone{font-size:8px;opacity:0.8;line-height:1.1;}
 
-/* SEAT POSITIONS - 9 SEATS PERFECT CIRCLE */
-.seat:nth-child(1){top:5%;left:50%;transform:translateX(-50%);}
-.seat:nth-child(2){top:13%;left:73%;transform:translateX(-50%);}
-.seat:nth-child(3){top:38%;left:92%;transform:translateX(-50%);}
-.seat:nth-child(4){top:62%;left:92%;transform:translateX(-50%);}
-.seat:nth-child(5){top:87%;left:73%;transform:translateX(-50%);}
-.seat:nth-child(6){top:95%;left:50%;transform:translateX(-50%);}
-.seat:nth-child(7){top:87%;left:27%;transform:translateX(-50%);}
-.seat:nth-child(8){top:62%;left:8%;transform:translateX(-50%);}
-.seat:nth-child(9){top:38%;left:8%;transform:translateX(-50%);}
+/* SEAT POSITIONS - 9 SEATS CIRCULAR LIKE IMAGE 2 */
+.seat:nth-child(1){top:12%;left:64%;transform:translate(-50%,-50%);}
+.seat:nth-child(2){top:30%;left:85%;transform:translate(-50%,-50%);}
+.seat:nth-child(3){top:57%;left:89%;transform:translate(-50%,-50%);}
+.seat:nth-child(4){top:81%;left:76%;transform:translate(-50%,-50%);}
+.seat:nth-child(5){top:90%;left:50%;transform:translate(-50%,-50%);}
+.seat:nth-child(6){top:81%;left:24%;transform:translate(-50%,-50%);}
+.seat:nth-child(7){top:57%;left:11%;transform:translate(-50%,-50%);}
+.seat:nth-child(8){top:30%;left:15%;transform:translate(-50%,-50%);}
+.seat:nth-child(9){top:12%;left:36%;transform:translate(-50%,-50%);}
 
 @media(orientation:portrait){
   body::after{content:'Vui lòng xoay ngang màn hình';position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;z-index:9999;pointer-events:none;}
@@ -162,9 +162,8 @@ function checkPwd(){
   if(pwd===PASSWORD){
     sessionStorage.setItem('pwd-auth','1');
     document.getElementById('pwd-modal').classList.add('hidden');
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('main-screen').style.display='flex';
-    initApp();
+    document.getElementById('login-screen').style.display='flex';
+    initLogin();
   } else {
     document.getElementById('pwd-error').textContent='Sai mật khẩu!';
     document.getElementById('pwd-input').value='';
