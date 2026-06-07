@@ -8,22 +8,10 @@
 <meta name="apple-mobile-web-app-title" content="GC Dealer Tour"/>
 <meta name="theme-color" content="#006633"/>
 <style>
-:root{--green:#006633;--text:#fff;--red:#ff2020;}
+:root{--green:#006633;--text:#fff;--red:#ff2020;--gold:#d4af37;}
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{width:100vw;height:100vh;overflow:hidden;background:var(--green);font-family:-apple-system,sans-serif;}
 body{display:flex;flex-direction:column;}
-
-#login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:24px;background:var(--green);}
-.login-logo{width:80px;height:80px;object-fit:contain;margin-bottom:16px;}
-.login-title{font-size:28px;font-weight:900;color:#fff;margin-bottom:8px;}
-.login-sub{font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:24px;}
-.login-box{background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);border-radius:12px;padding:24px;width:100%;max-width:360px;}
-select{width:100%;padding:12px;font-size:15px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;background:rgba(0,0,0,0.3);color:#fff;font-family:inherit;margin-bottom:12px;outline:none;}
-select option{background:#006633;color:#fff;}
-.btn{width:100%;padding:12px;font-size:15px;font-weight:700;border:none;border-radius:8px;background:#f0c040;color:#000;cursor:pointer;font-family:inherit;}
-.btn:active{opacity:0.8;}
-.logout-btn{width:auto;padding:8px 16px;font-size:12px;}
-.err{color:#ff6666;font-size:13px;margin-bottom:8px;min-height:18px;}
 
 /* PASSWORD MODAL */
 .pwd-modal{display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;align-items:center;justify-content:center;}
@@ -36,58 +24,77 @@ select option{background:#006633;color:#fff;}
 .pwd-btn{width:100%;padding:12px;font-size:14px;font-weight:700;border:none;border-radius:8px;background:#f0c040;color:#000;cursor:pointer;font-family:inherit;}
 .pwd-error{color:#ff6666;font-size:12px;margin-top:8px;text-align:center;font-weight:600;}
 
+/* LOGIN SCREEN */
+#login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:24px;background:var(--green);}
+.login-logo{width:80px;height:80px;object-fit:contain;margin-bottom:16px;}
+.login-title{font-size:28px;font-weight:900;color:#fff;margin-bottom:8px;}
+.login-sub{font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:24px;}
+.login-box{background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);border-radius:12px;padding:24px;width:100%;max-width:360px;}
+select{width:100%;padding:12px;font-size:15px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;background:rgba(0,0,0,0.3);color:#fff;font-family:inherit;margin-bottom:12px;outline:none;}
+select option{background:#006633;color:#fff;}
+.btn{width:100%;padding:12px;font-size:15px;font-weight:700;border:none;border-radius:8px;background:#f0c040;color:#000;cursor:pointer;font-family:inherit;}
+.btn:active{opacity:0.8;}
+.err{color:#ff6666;font-size:13px;margin-bottom:8px;min-height:18px;}
+
 /* MAIN SCREEN */
 #main-screen{display:none;width:100vw;height:100vh;background:var(--green);overflow:hidden;position:relative;}
-.top-bar{position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,0.3);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;z-index:10;color:#fff;font-size:16px;font-weight:700;}
-.logout-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;}
 
-/* TABLE CONTAINER */
-.table-container{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;}
+/* TOP BAR */
+.top-bar{position:absolute;top:0;left:0;right:0;height:50px;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:10;}
+.dealer-name-left{color:#fff;font-size:16px;font-weight:700;}
+.dealer-header-center{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.6);padding:8px 16px;border-radius:6px;}
+.dealer-label{color:#fff;font-size:14px;font-weight:700;}
+.settings-icon{width:30px;height:30px;background:rgba(255,255,255,0.15);border:1.5px solid #f0c040;border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all 0.2s;}
+.settings-icon:hover{background:rgba(255,255,255,0.25);}
+.logout-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700;}
+.logout-btn:active{opacity:0.7;}
 
-/* POKER TABLE - PILL SHAPE */
-.poker-table{position:relative;width:85%;max-width:900px;aspect-ratio:1.8;background:linear-gradient(135deg, #004d1a 0%, var(--green) 100%);border:6px solid #8b6914;border-radius:200px;box-shadow:0 20px 60px rgba(0,0,0,0.5),inset 0 0 30px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;}
+/* MAIN CONTENT AREA */
+.main-content{position:absolute;top:50px;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;padding:20px;}
 
-/* TIMER CENTER - OVAL */
-.timer-center{position:absolute;width:20%;aspect-ratio:1.2;background:rgba(0,0,0,0.5);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:20;cursor:pointer;}
-.timer-display{font-size:80px;font-weight:900;color:var(--red);font-family:monospace;line-height:1;}
+/* POKER TABLE CONTAINER */
+.poker-table{position:relative;width:85%;max-width:900px;aspect-ratio:1.8;background:linear-gradient(135deg, #004d1a 0%, #006633 100%);border:8px solid #c9a856;border-radius:200px;box-shadow:0 30px 80px rgba(0,0,0,0.6),inset 0 0 40px rgba(0,0,0,0.4);}
+
+/* TIMER CENTER */
+.timer-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:120px;height:120px;background:rgba(0,0,0,0.6);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:20;cursor:pointer;}
+.timer-display{font-size:70px;font-weight:900;color:var(--red);font-family:monospace;line-height:1;text-align:center;}
 .timer-display.warn{color:#ff8c00;}
 .timer-display.blink{color:#ff8c00;animation:blink 0.4s step-end infinite;}
 .timer-display.danger{color:var(--red);animation:shake 0.1s infinite;}
 @keyframes blink{0%,49%{opacity:1;}50%,100%{opacity:0.3;}}
 @keyframes shake{0%,100%{transform:translateX(0);}50%{transform:translateX(2px);}}
 
-/* DEALER HEADER */
-.dealer-header{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);border-radius:8px;padding:10px 16px;display:flex;gap:10px;align-items:center;z-index:15;border:1px solid rgba(255,255,255,0.2);}
-.dealer-label{font-size:16px;font-weight:700;color:#fff;font-family:'Bebas Neue',sans-serif;letter-spacing:0.1em;}
-.settings-icon{width:30px;height:30px;background:rgba(255,255,255,0.15);border:1.5px solid #f0c040;border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all 0.2s;}
-.settings-icon:hover{background:rgba(255,255,255,0.25);}
-
-/* SETTINGS MODAL */
-.settings-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;align-items:center;justify-content:center;}
-.settings-modal.show{display:flex;}
-.settings-content{background:rgba(0,0,0,0.7);border:2px solid #f0c040;border-radius:12px;padding:24px;max-width:300px;text-align:center;}
-.settings-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:16px;}
-.settings-input{width:100%;padding:12px;font-size:28px;text-align:center;background:rgba(255,255,255,0.05);border:2px solid #f0c040;border-radius:8px;color:#f0c040;font-family:monospace;font-weight:700;margin-bottom:12px;}
-.settings-btn{width:100%;padding:10px;font-size:14px;font-weight:700;background:#f0c040;color:#000;border:none;border-radius:8px;cursor:pointer;margin-bottom:8px;}
-.settings-btn-close{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);}
-
-/* 9 SEATS - DARK CIRCLES */
-.seat{position:absolute;width:12%;aspect-ratio:1;background:#001a0d;border:2px solid #004d1a;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;cursor:pointer;transition:all 0.2s;overflow:hidden;padding:4px;text-align:center;word-break:break-word;}
+/* 9 SEATS - POSITIONED AROUND OVAL TABLE */
+.seat{position:absolute;width:10%;aspect-ratio:1;background:#001a0d;border:2px solid #004d1a;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;cursor:pointer;transition:all 0.2s;overflow:hidden;padding:4px;text-align:center;word-break:break-word;}
 .seat:hover{background:#003d1a;border-color:#008844;}
 .seat.occ{background:#228844;border-color:#44ff66;box-shadow:0 0 15px rgba(68,255,102,0.6);}
 .seat-player{font-size:10px;font-weight:700;line-height:1.1;}
 .seat-phone{font-size:8px;opacity:0.8;line-height:1.1;}
 
-/* SEAT POSITIONS - CLOCKWISE FROM TOP-RIGHT, MATCHING IMAGE 2 */
-.seat:nth-child(1){top:15%;left:72%;transform:translate(-50%,-50%);}
-.seat:nth-child(2){top:30%;left:87%;transform:translate(-50%,-50%);}
-.seat:nth-child(3){top:50%;left:93%;transform:translate(-50%,-50%);}
-.seat:nth-child(4){top:70%;left:87%;transform:translate(-50%,-50%);}
-.seat:nth-child(5){top:85%;left:50%;transform:translate(-50%,-50%);}
-.seat:nth-child(6){top:70%;left:13%;transform:translate(-50%,-50%);}
-.seat:nth-child(7){top:50%;left:7%;transform:translate(-50%,-50%);}
-.seat:nth-child(8){top:30%;left:13%;transform:translate(-50%,-50%);}
-.seat:nth-child(9){top:15%;left:28%;transform:translate(-50%,-50%);}
+/* SEAT POSITIONS - OVAL LAYOUT */
+.seat:nth-child(1){top:5%;left:50%;transform:translate(-50%,-50%);}
+.seat:nth-child(2){top:18%;left:72%;transform:translate(-50%,-50%);}
+.seat:nth-child(3){top:35%;left:88%;transform:translate(-50%,-50%);}
+.seat:nth-child(4){top:65%;left:88%;transform:translate(-50%,-50%);}
+.seat:nth-child(5){top:82%;left:72%;transform:translate(-50%,-50%);}
+.seat:nth-child(6){top:95%;left:50%;transform:translate(-50%,-50%);}
+.seat:nth-child(7){top:82%;left:28%;transform:translate(-50%,-50%);}
+.seat:nth-child(8){top:65%;left:12%;transform:translate(-50%,-50%);}
+.seat:nth-child(9){top:35%;left:12%;transform:translate(-50%,-50%);}
+
+/* SETTINGS MODAL */
+.settings-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;align-items:center;justify-content:center;}
+.settings-modal.show{display:flex;}
+.settings-content{background:rgba(0,0,0,0.9);border:2px solid #f0c040;border-radius:12px;padding:24px;max-width:300px;text-align:center;}
+.settings-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:16px;}
+.settings-input{width:100%;padding:12px;font-size:28px;text-align:center;background:rgba(255,255,255,0.05);border:2px solid #f0c040;border-radius:8px;color:#f0c040;font-family:monospace;font-weight:700;margin-bottom:12px;}
+.settings-btn{width:100%;padding:10px;font-size:14px;font-weight:700;background:#f0c040;color:#000;border:none;border-radius:8px;cursor:pointer;margin-bottom:8px;}
+.settings-btn:active{opacity:0.8;}
+.settings-btn-close{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);}
+
+/* REMOVE PLAYER MODAL */
+#remove-player-modal .settings-content{max-width:280px;}
+#remove-player-name{font-size:14px;color:#fff;margin-bottom:16px;word-break:break-word;}
 
 @media(orientation:portrait){
   body::after{content:'Vui lòng xoay ngang màn hình';position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;z-index:9999;pointer-events:none;}
@@ -119,13 +126,20 @@ select option{background:#006633;color:#fff;}
 
 <div id="main-screen">
   <div class="top-bar">
-    <div id="dealer-name-top">Dealer 1</div>
+    <div class="dealer-name-left" id="dealer-name-left">Dealer 1</div>
+    <div class="dealer-header-center">
+      <div class="dealer-label" id="dealer-label">DEALER 1</div>
+      <div class="settings-icon" onclick="openSettings()">⚙️</div>
+    </div>
     <button class="logout-btn" onclick="doLogout()">Thoát</button>
   </div>
 
-  <div class="dealer-header">
-    <div class="dealer-label" id="dealer-name-header">Dealer 1</div>
-    <div class="settings-icon" onclick="openSettings()">⚙️</div>
+  <div class="main-content">
+    <div class="poker-table" id="poker-table">
+      <div class="timer-center" id="timer-center" ondblclick="togglePauseTimer()">
+        <div class="timer-display" id="timer-display">30</div>
+      </div>
+    </div>
   </div>
 
   <div class="settings-modal" id="settings-modal">
@@ -140,17 +154,9 @@ select option{background:#006633;color:#fff;}
   <div class="settings-modal" id="remove-player-modal">
     <div class="settings-content">
       <div class="settings-title">⚠️ Loại người chơi</div>
-      <div id="remove-player-name" style="font-size:14px;color:#fff;margin-bottom:16px;"></div>
+      <div id="remove-player-name"></div>
       <button class="settings-btn" style="background:#ff4444;" onclick="confirmRemovePlayer()">🗑️ Loại</button>
       <button class="settings-btn settings-btn-close" onclick="closeRemoveModal()">✕ Hủy</button>
-    </div>
-  </div>
-
-  <div class="table-container">
-    <div class="poker-table" id="poker-table">
-      <div class="timer-center" id="timer-center" ondblclick="togglePauseTimer()">
-        <div class="timer-display" id="timer-display">30</div>
-      </div>
     </div>
   </div>
 </div>
@@ -185,8 +191,8 @@ window.addEventListener('load',()=>{
 
 const API='https://poker-cafe.onrender.com/api';
 let dealerName='',tableState=null,allCustomers=[],timerDuration=30,timerRemain=30,timerRunning=false;
-let timerInterval=null,pollTimer=null,lastTouchX=0,soundBeepInterval=null,vibrationInterval=null;
-let selectedPlayerName='',selectedSeatIndex=-1,selectedTableIndex=-1;
+let timerInterval=null,pollTimer=null,soundBeepInterval=null,vibrationInterval=null;
+let selectedPlayerName='',selectedSeatIndex=-1;
 const audioCtx=new(window.AudioContext||window.webkitAudioContext)();
 
 async function api(path){
@@ -207,8 +213,8 @@ function doLogin(){
   dealerName=val;
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-screen').style.display='flex';
-  document.getElementById('dealer-name-top').textContent=dealerName;
-  document.getElementById('dealer-name-header').textContent=dealerName;
+  document.getElementById('dealer-name-left').textContent=dealerName;
+  document.getElementById('dealer-label').textContent=dealerName.toUpperCase();
   document.getElementById('timer-input').value='30';
   closeSettings();
   screen.orientation.lock('landscape').catch(()=>{});
@@ -287,7 +293,7 @@ function renderSeats(){
 
     seat.addEventListener('click',()=>{
       if(playerName && activeTable){
-        openRemoveModal(playerName,0,i);
+        openRemoveModal(playerName,i);
       }
     });
 
@@ -308,9 +314,6 @@ function startTimer(){
     updateDisplay();
     if(timerRemain===10)doVibrate([200,100,200]);
     if(timerRemain===3)startContinuousVibration();
-    if(timerRemain<3&&timerRemain>0){
-      // Tiếp tục rung với doVibrate
-    }
     if(timerRemain===0){
       timerRunning=false;
       stopVibration();
@@ -374,9 +377,8 @@ function togglePauseTimer(){
   timerRunning=!timerRunning;
 }
 
-function openRemoveModal(playerName,tableIdx,seatIdx){
+function openRemoveModal(playerName,seatIdx){
   selectedPlayerName=playerName;
-  selectedTableIndex=tableIdx;
   selectedSeatIndex=seatIdx;
   document.getElementById('remove-player-name').textContent=playerName;
   document.getElementById('remove-player-modal').classList.add('show');
@@ -384,7 +386,6 @@ function openRemoveModal(playerName,tableIdx,seatIdx){
 
 function closeRemoveModal(){
   selectedPlayerName='';
-  selectedTableIndex=-1;
   selectedSeatIndex=-1;
   document.getElementById('remove-player-modal').classList.remove('show');
 }
@@ -453,13 +454,13 @@ function stopSound(){
   }
 }
 
-document.addEventListener('touchstart',e=>{lastTouchX=e.touches[0].clientX;});
 document.addEventListener('touchend',e=>{
-  const diff=Math.abs(e.changedTouches[0].clientX-lastTouchX);
-  if(diff>80){startTimer();stopSound();}
+  if(document.getElementById('main-screen').style.display==='flex'){
+    startTimer();
+    stopSound();
+  }
 });
 
-// Initialize audio context on any user interaction
 ['click','touchstart','keydown'].forEach(event=>{
   document.addEventListener(event,()=>{
     if(audioCtx.state==='suspended'){
