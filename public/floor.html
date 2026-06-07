@@ -40,11 +40,13 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .card-title{font-size:12px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
 /* SEATS */
 .seats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
-.seat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 4px;text-align:center;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;}
-.seat.occ{background:#1a0828;border-color:var(--purple-border);}
+.seat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 4px;text-align:center;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;}
+.seat.occ{background:#1a0828;border-color:var(--purple-border);cursor:pointer;}
 .seat-num{font-size:10px;color:var(--text3);}
 .seat-name{font-size:12px;font-weight:700;color:var(--purple);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px;}
 .seat-empty{font-size:11px;color:var(--border2);}
+.seat-remove{position:absolute;top:-8px;right:-8px;width:22px;height:22px;background:var(--red);color:#fff;border:none;border-radius:50%;font-size:13px;font-weight:700;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.4);}
+.seat.occ:hover .seat-remove{display:flex;}
 /* QUEUE */
 .queue-item{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);}
 .queue-item:last-child{border-bottom:none;}
@@ -174,6 +176,19 @@ input:focus{border-color:var(--purple);}input::placeholder{color:var(--text3);}
   </div>
 </div>
 
+<!-- CONFIRM REMOVE PLAYER -->
+<div class="overlay" id="remove-player-overlay">
+  <div class="sheet">
+    <div class="sheet-title">⚠️ Xóa người chơi</div>
+    <div class="sheet-sub" id="remove-player-name"></div>
+    <div style="color:var(--text3);font-size:13px;margin-bottom:14px;">Bạn chắc chắn muốn xóa người chơi này khỏi ghế?</div>
+    <div class="btn-row">
+      <button class="btn btn-red" style="flex:1;" onclick="doRemovePlayer()">🗑️ Xóa</button>
+      <button class="btn" style="flex:1;" onclick="closeSheet('remove-player-overlay')">Huỷ</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -205,6 +220,7 @@ const API=`https://poker-cafe.onrender.com/api`;
 
 let floorName='', tableState=null, allCustomers=[];
 let activeTab='tables', pollTimer=null;
+let pendingRemove={tableId:null,seatIndex:null,playerName:null};
 
 // Tour tables: id 4,5,6 = Tour 1,2,3
 const TOUR_IDS=[4,5,6];
@@ -296,7 +312,11 @@ function renderTables(){
       ${t.status!=='active'?'<div class="empty-msg">Bàn chưa mở</div>':`
         <div class="seats-grid">
           ${t.seats.map((name,si)=>name
-            ?`<div class="seat occ"><div class="seat-num">G${si+1}</div><div class="seat-name">${name}</div></div>`
+            ?`<div class="seat occ">
+              <div class="seat-num">G${si+1}</div>
+              <div class="seat-name">${name}</div>
+              <button class="seat-remove" onclick="event.stopPropagation();confirmRemovePlayer(${t.id},${si},'${name.replace(/'/g,"\\'")}')">✕</button>
+            </div>`
             :`<div class="seat"><div class="seat-num">G${si+1}</div><div class="seat-empty">Trống</div></div>`
           ).join('')}
         </div>`}
@@ -426,6 +446,32 @@ async function confirmAddQueue(){
   document.getElementById('aq-sugg').innerHTML='';
   showToast(name+' đã vào hàng chờ tour','p');
   renderQueue();
+}
+
+// ── REMOVE PLAYER FROM TABLE ──────────────────────────────────
+function confirmRemovePlayer(tableId,seatIndex,playerName){
+  pendingRemove={tableId,seatIndex,playerName};
+  document.getElementById('remove-player-name').textContent=`${playerName}?`;
+  openSheet('remove-player-overlay');
+}
+
+async function doRemovePlayer(){
+  const {tableId,seatIndex,playerName}=pendingRemove;
+  if(!tableState||tableId===null||seatIndex===null)return;
+
+  closeSheet('remove-player-overlay');
+
+  const tourTable=tableState.tablesTour?.find(t=>t.id===tableId);
+  if(!tourTable)return;
+
+  tourTable.seats[seatIndex]=null;
+  tableState.updatedAt=Date.now();
+
+  await api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(tableState)});
+  showToast(playerName+' đã xóa khỏi ghế','p');
+  renderTables();
+
+  pendingRemove={tableId:null,seatIndex:null,playerName:null};
 }
 
 initLogin();
