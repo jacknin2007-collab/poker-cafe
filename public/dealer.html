@@ -272,13 +272,12 @@ async function initLogin(){
   });
 }
 
-function doLogin(){
+async function doLogin(){
   const val=document.getElementById('dealer-select').value;
   if(!val){document.getElementById('login-err').textContent='Vui lòng chọn!';return;}
   dealerName=val;
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-screen').style.display='block';
-  document.getElementById('dealer-badge').textContent=dealerName;
 
   // Populate dealer switcher dropdown
   const switcher=document.getElementById('dealer-switcher');
@@ -291,11 +290,11 @@ function doLogin(){
   });
   switcher.value=dealerName;
 
-  loadAll();
+  await loadAll();
   pollTimer=setInterval(loadState,2000);
 }
 
-function switchDealer(newDealerName){
+async function switchDealer(newDealerName){
   if(!newDealerName || newDealerName===dealerName) return;
 
   // Close any open sheets
@@ -309,14 +308,14 @@ function switchDealer(newDealerName){
   addTarget=null;
   topTarget=null;
   activeTableTab='normal';
+  tableState=null;
 
   // Switch dealer
   dealerName=newDealerName;
-  document.getElementById('dealer-badge').textContent=dealerName;
   document.getElementById('dealer-switcher').value=dealerName;
 
   // Load new dealer's tables
-  loadAll();
+  await loadAll();
 }
 
 function doLogout(){
