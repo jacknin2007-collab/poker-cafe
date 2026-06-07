@@ -135,7 +135,9 @@ input:focus{border-color:var(--gold);}input::placeholder{color:var(--text3);}
   <div class="header">
     <img src="/logo.png" alt="" onerror="this.style.display='none'"/>
     <div class="h-name">Golden Coffee</div>
-    <div class="h-dealer" id="dealer-badge">Dealer</div>
+    <select id="dealer-switcher" style="padding:6px 10px;font-size:13px;height:32px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-family:inherit;cursor:pointer;margin-left:auto;" onchange="switchDealer(this.value)">
+      <option value="">-- Chọn dealer --</option>
+    </select>
     <button class="btn btn-sm" style="margin-left:6px;" onclick="doLogout()">Thoát</button>
   </div>
   <div class="body">
@@ -224,6 +226,7 @@ let dealerName='', myTables=[], tableState=null, allCustomers=[];
 let moveMode=null, addTarget=null, topTarget=null;
 let activeTableTab='normal'; // 'normal' | 'tour'
 let pollTimer=null;
+let allDealers=[];
 
 function showToast(msg,type='s'){
   const el=document.getElementById('toast');
@@ -257,6 +260,7 @@ function setConn(state,text){
 async function initLogin(){
   const dealers=await api('/dealers');
   if(!dealers){document.getElementById('login-err').textContent='Không kết nối được server!';return;}
+  allDealers=dealers;
   const sel=document.getElementById('dealer-select');
   dealers.forEach(d=>{
     const o=document.createElement('option');
@@ -275,8 +279,44 @@ function doLogin(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-screen').style.display='block';
   document.getElementById('dealer-badge').textContent=dealerName;
+
+  // Populate dealer switcher dropdown
+  const switcher=document.getElementById('dealer-switcher');
+  switcher.innerHTML='<option value="">-- Chọn dealer --</option>';
+  allDealers.forEach(d=>{
+    const o=document.createElement('option');
+    o.value=d.name;
+    o.textContent=d.name;
+    switcher.appendChild(o);
+  });
+  switcher.value=dealerName;
+
   loadAll();
   pollTimer=setInterval(loadState,2000);
+}
+
+function switchDealer(newDealerName){
+  if(!newDealerName || newDealerName===dealerName) return;
+
+  // Close any open sheets
+  closeSheet('seat-overlay');
+  closeSheet('add-overlay');
+  closeSheet('top-overlay');
+
+  // Clear state
+  moveMode=null;
+  activeSeat=null;
+  addTarget=null;
+  topTarget=null;
+  activeTableTab='normal';
+
+  // Switch dealer
+  dealerName=newDealerName;
+  document.getElementById('dealer-badge').textContent=dealerName;
+  document.getElementById('dealer-switcher').value=dealerName;
+
+  // Load new dealer's tables
+  loadAll();
 }
 
 function doLogout(){
@@ -289,6 +329,7 @@ function doLogout(){
   addTarget=null;
   topTarget=null;
   activeTableTab='normal';
+  allDealers=[];
   document.getElementById('main-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
 }
