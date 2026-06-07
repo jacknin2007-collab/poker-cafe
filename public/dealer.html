@@ -204,7 +204,7 @@ window.addEventListener('load',()=>{
 // Auto-detect API URL — cùng WiFi dùng IP máy chủ
 const API=`https://poker-cafe.onrender.com/api`;
 
-let dealerName='', myTables=[], tableState=null, allCustomers=[];
+let dealerName='', dealerSessionId='', myTables=[], tableState=null, allCustomers=[];
 let moveMode=null, addTarget=null, topTarget=null;
 let activeTableTab='normal'; // 'normal' | 'tour'
 let pollTimer=null;
@@ -270,6 +270,7 @@ async function doLogin(){
     return;
   }
   dealerName=staffName;
+  dealerSessionId=loginRes.sessionId;
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-screen').style.display='block';
   document.getElementById('dealer-badge').textContent=dealerName;
@@ -284,10 +285,11 @@ async function doLogout(){
     await api('/staff/logout',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name:dealerName,app:'dealer'})
+      body:JSON.stringify({name:dealerName,sessionId:dealerSessionId,app:'dealer'})
     });
   }
   dealerName='';
+  dealerSessionId='';
   myTables=[];
   tableState=null;
   moveMode=null;

@@ -40,7 +40,8 @@ try { db.prepare('ALTER TABLE staff_members ADD COLUMN password TEXT NOT NULL DE
 try { db.prepare('ALTER TABLE stock ADD COLUMN cost INTEGER DEFAULT 1').run(); } catch(e) {}
 
 // Current active staff sessions (in memory, reset on server restart)
-let activeSessions = {}; // { staffName: { app: 'dealer'|'floor', loginTime: timestamp } }
+// Support multiple concurrent sessions per staff member
+let activeSessions = {}; // { staffName: [{ sessionId, app, loginTime }, ...] }
 
 // Trang dealer
 app.get('/dealer', (req, res) => {
@@ -725,16 +726,21 @@ app.post('/api/staff/login', (req, res) => {
     const staff = db.prepare('SELECT * FROM staff_members WHERE name = ? AND password = ?').get(name, password);
     if(!staff) return res.json({ ok: false, error: 'Tên hoặc mật khẩu sai' });
 
+    // Generate unique session ID
+    const sessionId = `${name}_${app}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     // Record login in database
     db.prepare('INSERT INTO staff_sessions (staff_name, app_name, login_time) VALUES (?, ?, CURRENT_TIMESTAMP)').run(name, app);
 
-    // Track session in memory
-    activeSessions[name] = {
+    // Track session in memory - support multiple concurrent sessions
+    if (!activeSessions[name]) activeSessions[name] = [];
+    activeSessions[name].push({
+      sessionId: sessionId,
       app: app,
       loginTime: Date.now()
-    };
+    });
 
-    res.json({ ok: true, staffName: name });
+    res.json({ ok: true, staffName: name, sessionId: sessionId });
   } catch(e) {
     res.json({ ok: false, error: 'Lỗi hệ thống' });
   }
@@ -742,15 +748,24 @@ app.post('/api/staff/login', (req, res) => {
 
 // Staff logout
 app.post('/api/staff/logout', (req, res) => {
-  const { name } = req.body;
+  const { name, sessionId } = req.body;
   if(!name) return res.json({ ok: false });
 
   try {
     // Record logout in database
     db.prepare('UPDATE staff_sessions SET logout_time = CURRENT_TIMESTAMP WHERE staff_name = ? AND logout_time IS NULL').run(name);
 
-    // Remove from active sessions
-    delete activeSessions[name];
+    // Remove specific session from active sessions
+    if (activeSessions[name]) {
+      if (sessionId) {
+        // Remove only this session
+        activeSessions[name] = activeSessions[name].filter(s => s.sessionId !== sessionId);
+      }
+      // If no sessions left for this staff, remove them
+      if (activeSessions[name].length === 0) {
+        delete activeSessions[name];
+      }
+    }
 
     res.json({ ok: true });
   } catch(e) {
@@ -761,15 +776,19 @@ app.post('/api/staff/logout', (req, res) => {
 // Get active staff sessions
 app.get('/api/staff/active', (req, res) => {
   try {
-    const staff = db.prepare('SELECT name FROM staff_members ORDER BY name').all();
     const active = [];
 
-    staff.forEach(s => {
-      if(activeSessions[s.name]) {
-        active.push({
-          name: s.name,
-          app: activeSessions[s.name].app,
-          loginTime: activeSessions[s.name].loginTime
+    // Iterate through all active sessions
+    Object.keys(activeSessions).forEach(staffName => {
+      const sessions = activeSessions[staffName];
+      if (Array.isArray(sessions)) {
+        sessions.forEach(session => {
+          active.push({
+            name: staffName,
+            app: session.app,
+            loginTime: session.loginTime,
+            sessionId: session.sessionId
+          });
         });
       }
     });

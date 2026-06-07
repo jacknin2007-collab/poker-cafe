@@ -214,7 +214,7 @@ async function initLogin(){
 
 const API=`https://poker-cafe.onrender.com/api`;
 
-let floorName='', tableState=null, allCustomers=[];
+let floorName='', floorSessionId='', tableState=null, allCustomers=[];
 let activeTab='tables', pollTimer=null;
 let pendingRemove={tableId:null,seatIndex:null,playerName:null};
 
@@ -261,6 +261,7 @@ async function doLogin(){
     return;
   }
   floorName=staffName;
+  floorSessionId=loginRes.sessionId;
 
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-screen').style.display='block';
@@ -275,11 +276,12 @@ async function doLogout(){
     await api('/staff/logout',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name:floorName,app:'floor'})
+      body:JSON.stringify({name:floorName,sessionId:floorSessionId,app:'floor'})
     });
   }
 
   floorName='';
+  floorSessionId='';
   document.getElementById('main-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('staff-select').value='';
