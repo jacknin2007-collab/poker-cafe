@@ -72,21 +72,25 @@ select option{background:#006633;color:#fff;}
 .settings-btn-close{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);}
 
 /* 9 SEATS - DARK CIRCLES */
-.seat{position:absolute;width:12%;aspect-ratio:1;background:#001a0d;border:2px solid #004d1a;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;}
+.seat{position:absolute;width:12%;aspect-ratio:1;background:#001a0d;border:2px solid #004d1a;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;cursor:pointer;transition:all 0.2s;overflow:hidden;padding:4px;text-align:center;word-break:break-word;}
+.seat:hover{background:#003d1a;border-color:#008844;}
+.seat.occ{background:#228844;border-color:#44ff66;box-shadow:0 0 15px rgba(68,255,102,0.6);}
+.seat-player{font-size:10px;font-weight:700;line-height:1.1;}
+.seat-phone{font-size:8px;opacity:0.8;line-height:1.1;}
 
 /* SEAT POSITIONS */
-.seat:nth-child(1){top:8%;left:50%;transform:translateX(-50%);}
-.seat:nth-child(2){top:18%;right:12%;}
-.seat:nth-child(3){top:35%;right:3%;}
-.seat:nth-child(4){top:50%;right:2%;transform:translateY(-50%);}
-.seat:nth-child(5){top:65%;right:3%;}
-.seat:nth-child(6){top:82%;right:12%;}
-.seat:nth-child(7){top:92%;left:50%;transform:translateX(-50%);}
-.seat:nth-child(8){top:82%;left:12%;}
-.seat:nth-child(9){top:65%;left:3%;}
-.seat:nth-child(10){top:50%;left:2%;transform:translateY(-50%);}
-.seat:nth-child(11){top:35%;left:3%;}
-.seat:nth-child(12){top:18%;left:12%;}
+.seat:nth-child(1){top:5%;left:50%;transform:translateX(-50%);}
+.seat:nth-child(2){top:18%;right:6%;transform:translateY(-50%);}
+.seat:nth-child(3){top:35%;right:2%;transform:translateY(-50%);}
+.seat:nth-child(4){top:50%;right:0%;transform:translateY(-50%);}
+.seat:nth-child(5){top:65%;right:2%;transform:translateY(-50%);}
+.seat:nth-child(6){top:82%;right:6%;transform:translateY(-50%);}
+.seat:nth-child(7){top:95%;left:50%;transform:translateX(-50%);}
+.seat:nth-child(8){top:82%;left:6%;transform:translateY(-50%);}
+.seat:nth-child(9){top:65%;left:2%;transform:translateY(-50%);}
+.seat:nth-child(10){top:50%;left:0%;transform:translateY(-50%);}
+.seat:nth-child(11){top:35%;left:2%;transform:translateY(-50%);}
+.seat:nth-child(12){top:18%;left:6%;transform:translateY(-50%);}
 
 @media(orientation:portrait){
   body::after{content:'Vui lòng xoay ngang màn hình';position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;z-index:9999;pointer-events:none;}
@@ -136,6 +140,15 @@ select option{background:#006633;color:#fff;}
     </div>
   </div>
 
+  <div class="settings-modal" id="remove-player-modal">
+    <div class="settings-content">
+      <div class="settings-title">⚠️ Loại người chơi</div>
+      <div id="remove-player-name" style="font-size:14px;color:#fff;margin-bottom:16px;"></div>
+      <button class="settings-btn" style="background:#ff4444;" onclick="confirmRemovePlayer()">🗑️ Loại</button>
+      <button class="settings-btn settings-btn-close" onclick="closeRemoveModal()">✕ Hủy</button>
+    </div>
+  </div>
+
   <div class="table-container">
     <div class="poker-table" id="poker-table">
       <div class="timer-center" id="timer-center" ondblclick="togglePauseTimer()">
@@ -177,6 +190,7 @@ window.addEventListener('load',()=>{
 const API='https://poker-cafe.onrender.com/api';
 let dealerName='',tableState=null,allCustomers=[],timerDuration=30,timerRemain=30,timerRunning=false;
 let timerInterval=null,pollTimer=null,lastTouchX=0,soundBeepInterval=null,vibrationInterval=null;
+let selectedPlayerName='',selectedSeatIndex=-1;
 const audioCtx=new(window.AudioContext||window.webkitAudioContext)();
 
 async function api(path){
@@ -253,10 +267,23 @@ function renderSeats(){
 
   for(let i=0;i<9;i++){
     const seat=document.createElement('div');
-    seat.className='seat';
     const playerName=allSeats[i]||'';
     const phone=playerName?getCustomerPhone(playerName):'';
-    seat.textContent=playerName?`${playerName}\n${phone}`:'Trống';
+
+    if(playerName){
+      seat.className='seat occ';
+      seat.innerHTML=`<div class="seat-player">${playerName}</div><div class="seat-phone">${phone}</div>`;
+    } else {
+      seat.className='seat';
+      seat.textContent='Trống';
+    }
+
+    seat.addEventListener('click',()=>{
+      if(playerName){
+        openRemoveModal(playerName,i);
+      }
+    });
+
     table.appendChild(seat);
   }
 }
@@ -272,10 +299,10 @@ function startTimer(){
     if(!timerRunning)return;
     timerRemain--;
     updateDisplay();
-    if(timerRemain===10)navigator.vibrate([200,100,200]);
+    if(timerRemain===10)doVibrate([200,100,200]);
     if(timerRemain===3)startContinuousVibration();
     if(timerRemain<3&&timerRemain>0){
-      // Tiếp tục rung
+      // Tiếp tục rung với doVibrate
     }
     if(timerRemain===0){
       timerRunning=false;
@@ -288,7 +315,7 @@ function startTimer(){
 function startContinuousVibration(){
   stopVibration();
   vibrationInterval=setInterval(()=>{
-    navigator.vibrate([150,100]);
+    doVibrate([150,100]);
   },250);
 }
 
@@ -296,6 +323,16 @@ function stopVibration(){
   if(vibrationInterval){
     clearInterval(vibrationInterval);
     vibrationInterval=null;
+  }
+  doVibrate(0);
+}
+
+function doVibrate(pattern){
+  if(!navigator.vibrate)return;
+  try{
+    navigator.vibrate(pattern);
+  }catch(e){
+    console.log('Vibration not supported:',e);
   }
 }
 
@@ -330,21 +367,79 @@ function togglePauseTimer(){
   timerRunning=!timerRunning;
 }
 
+function openRemoveModal(playerName,seatIndex){
+  selectedPlayerName=playerName;
+  selectedSeatIndex=seatIndex;
+  document.getElementById('remove-player-name').textContent=playerName;
+  document.getElementById('remove-player-modal').classList.add('show');
+}
+
+function closeRemoveModal(){
+  selectedPlayerName='';
+  selectedSeatIndex=-1;
+  document.getElementById('remove-player-modal').classList.remove('show');
+}
+
+async function confirmRemovePlayer(){
+  if(!selectedPlayerName)return;
+  const tourTables=tableState.tablesTour||[];
+  let activeTableIdx=-1;
+  for(let i=0;i<tourTables.length;i++){
+    if(tourTables[i].status==='active'){
+      activeTableIdx=i;
+      break;
+    }
+  }
+  if(activeTableIdx<0)return;
+
+  const table=tourTables[activeTableIdx];
+  if(table.seats){
+    table.seats[selectedSeatIndex]='';
+  }
+
+  try{
+    await fetch(API+'/table-state',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(tableState)
+    });
+    closeRemoveModal();
+    await loadState();
+  }catch(e){
+    console.error(e);
+  }
+}
+
 function playSound(){
   function beep(){
-    const o=audioCtx.createOscillator();
-    const g=audioCtx.createGain();
-    o.frequency.value=1200;
-    o.connect(g);
-    g.connect(audioCtx.destination);
-    g.gain.setValueAtTime(0.3,audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.15);
-    o.start();
-    o.stop(audioCtx.currentTime+0.15);
+    try{
+      if(audioCtx.state==='suspended'){
+        audioCtx.resume().then(()=>doBeep());
+      } else {
+        doBeep();
+      }
+    }catch(e){
+      console.log('Audio error:',e);
+    }
   }
-  // Kêu ngay lập tức, không delay
+
+  function doBeep(){
+    try{
+      const o=audioCtx.createOscillator();
+      const g=audioCtx.createGain();
+      o.frequency.value=1200;
+      o.connect(g);
+      g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.3,audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.15);
+      o.start();
+      o.stop(audioCtx.currentTime+0.15);
+    }catch(e){
+      console.log('Beep failed:',e);
+    }
+  }
+
   beep();
-  // Tiếp tục kêu mỗi 250ms
   soundBeepInterval=setInterval(beep,250);
 }
 
@@ -359,6 +454,15 @@ document.addEventListener('touchstart',e=>{lastTouchX=e.touches[0].clientX;});
 document.addEventListener('touchend',e=>{
   const diff=Math.abs(e.changedTouches[0].clientX-lastTouchX);
   if(diff>80){startTimer();stopSound();}
+});
+
+// Initialize audio context on any user interaction
+['click','touchstart','keydown'].forEach(event=>{
+  document.addEventListener(event,()=>{
+    if(audioCtx.state==='suspended'){
+      audioCtx.resume().catch(e=>console.log('AudioContext resume failed:',e));
+    }
+  },{once:true});
 });
 
 initLogin();
