@@ -78,16 +78,16 @@ select option{background:#006633;color:#fff;}
 .seat-player{font-size:10px;font-weight:700;line-height:1.1;}
 .seat-phone{font-size:8px;opacity:0.8;line-height:1.1;}
 
-/* SEAT POSITIONS - 9 SEATS PERFECT 40° CIRCLE */
-.seat:nth-child(1){top:10%;left:50%;transform:translate(-50%,-50%);}
-.seat:nth-child(2){top:19%;left:76%;transform:translate(-50%,-50%);}
-.seat:nth-child(3){top:43%;left:89%;transform:translate(-50%,-50%);}
-.seat:nth-child(4){top:70%;left:85%;transform:translate(-50%,-50%);}
-.seat:nth-child(5){top:88%;left:64%;transform:translate(-50%,-50%);}
-.seat:nth-child(6){top:88%;left:36%;transform:translate(-50%,-50%);}
-.seat:nth-child(7){top:70%;left:15%;transform:translate(-50%,-50%);}
-.seat:nth-child(8){top:43%;left:11%;transform:translate(-50%,-50%);}
-.seat:nth-child(9){top:19%;left:24%;transform:translate(-50%,-50%);}
+/* SEAT POSITIONS - SYMMETRIC LAYOUT */
+.seat:nth-child(1){top:15%;left:30%;transform:translate(-50%,-50%);}
+.seat:nth-child(2){top:35%;left:20%;transform:translate(-50%,-50%);}
+.seat:nth-child(3){top:55%;left:10%;transform:translate(-50%,-50%);}
+.seat:nth-child(4){top:75%;left:20%;transform:translate(-50%,-50%);}
+.seat:nth-child(5){top:90%;left:50%;transform:translate(-50%,-50%);}
+.seat:nth-child(6){top:75%;left:80%;transform:translate(-50%,-50%);}
+.seat:nth-child(7){top:55%;left:90%;transform:translate(-50%,-50%);}
+.seat:nth-child(8){top:35%;left:80%;transform:translate(-50%,-50%);}
+.seat:nth-child(9){top:15%;left:70%;transform:translate(-50%,-50%);}
 
 @media(orientation:portrait){
   body::after{content:'Vui lòng xoay ngang màn hình';position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;z-index:9999;pointer-events:none;}
@@ -197,6 +197,7 @@ async function initLogin(){
   const dealers=await api('/dealers');
   if(!dealers)return;
   const sel=document.getElementById('dealer-select');
+  while(sel.options.length > 1) sel.remove(1);
   dealers.forEach(d=>{const o=document.createElement('option');o.value=d.name;o.textContent=d.name;sel.appendChild(o);});
 }
 
@@ -253,17 +254,19 @@ function getCustomerPhone(name){
 }
 
 function renderSeats(){
-  if(!tableState)return;
+  if(!tableState||!dealerName)return;
   const tourTables=tableState.tablesTour||[];
-  const seatMap=[];
+  const dealerMap={'Dealer 1':4,'Dealer 2':5,'Dealer 3':6};
+  const expectedTableId=dealerMap[dealerName];
 
-  tourTables.forEach((t,tIdx)=>{
-    if(t.status==='active'){
-      (t.seats||[]).forEach((player,sIdx)=>{
-        seatMap.push({tableIdx:tIdx,seatIdx:sIdx,playerName:player});
-      });
+  let activeTable=null;
+  tourTables.forEach(t=>{
+    if(t.status==='active' && t.id===expectedTableId){
+      activeTable=t;
     }
   });
+
+  const allSeats=activeTable?activeTable.seats||[]:[...new Array(9)].map(()=>'');
 
   const table=document.getElementById('poker-table');
   const existing=table.querySelectorAll('.seat');
@@ -271,8 +274,7 @@ function renderSeats(){
 
   for(let i=0;i<9;i++){
     const seat=document.createElement('div');
-    const seatInfo=seatMap[i]||{};
-    const playerName=seatInfo.playerName||'';
+    const playerName=allSeats[i]||'';
     const phone=playerName?getCustomerPhone(playerName):'';
 
     if(playerName){
@@ -284,8 +286,8 @@ function renderSeats(){
     }
 
     seat.addEventListener('click',()=>{
-      if(playerName){
-        openRemoveModal(playerName,seatInfo.tableIdx,seatInfo.seatIdx);
+      if(playerName && activeTable){
+        openRemoveModal(playerName,0,i);
       }
     });
 
@@ -388,9 +390,12 @@ function closeRemoveModal(){
 }
 
 async function confirmRemovePlayer(){
-  if(!selectedPlayerName||selectedTableIndex<0||selectedSeatIndex<0)return;
+  if(!selectedPlayerName||selectedSeatIndex<0||!dealerName)return;
   const tourTables=tableState.tablesTour||[];
-  const table=tourTables[selectedTableIndex];
+  const dealerMap={'Dealer 1':4,'Dealer 2':5,'Dealer 3':6};
+  const tableId=dealerMap[dealerName];
+
+  const table=tourTables.find(t=>t.id===tableId);
   if(!table||!table.seats)return;
 
   table.seats[selectedSeatIndex]='';
