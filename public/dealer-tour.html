@@ -44,7 +44,7 @@ select option{background:#006633;color:#fff;}
 .settings-icon:hover{background:rgba(255,255,255,0.25);}
 .logout-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700;}
 
-.main-content{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;}
+.main-content{flex:1;display:flex;align-items:center;justify-content:center;padding:12px;position:relative;overflow:hidden;}
 .table-wrapper{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
 
 svg{max-width:100%;max-height:100%;display:block;}
@@ -53,8 +53,8 @@ svg{max-width:100%;max-height:100%;display:block;}
 .seat-circle:hover{filter:brightness(1.2);}
 .seat-circle.occ{filter:brightness(1.3);}
 
-.seat-label{font-size:12px;font-weight:700;text-anchor:middle;dominant-baseline:middle;fill:#fff;pointer-events:none;}
-.seat-info{pointer-events:none;font-size:9px;text-anchor:middle;fill:#fff;opacity:0.9;}
+.seat-label{font-size:14px;font-weight:700;text-anchor:middle;dominant-baseline:middle;fill:#fff;pointer-events:none;}
+.seat-info{pointer-events:none;font-size:10px;text-anchor:middle;fill:#fff;opacity:0.95;}
 
 .timer-bg{cursor:pointer;}
 .timer-text{font-size:60px;font-weight:900;text-anchor:middle;dominant-baseline:middle;fill:var(--red);font-family:monospace;pointer-events:none;}
@@ -71,6 +71,14 @@ svg{max-width:100%;max-height:100%;display:block;}
 .settings-input{width:100%;padding:12px;font-size:28px;text-align:center;background:rgba(255,255,255,0.05);border:2px solid #f0c040;border-radius:8px;color:#f0c040;font-family:monospace;font-weight:700;margin-bottom:12px;}
 .settings-btn{width:100%;padding:10px;font-size:14px;font-weight:700;background:#f0c040;color:#000;border:none;border-radius:8px;cursor:pointer;margin-bottom:8px;}
 .settings-btn-close{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);}
+
+/* Mobile responsive */
+@media(max-width:768px){
+  .main-content{padding:8px;}
+  .seat-label{font-size:11px;}
+  .seat-info{font-size:8px;}
+  svg{width:100%;height:auto;}
+}
 
 @media(orientation:portrait){
   body::after{content:'Vui lòng xoay ngang màn hình';position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;z-index:9999;pointer-events:none;}
