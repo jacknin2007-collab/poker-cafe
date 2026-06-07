@@ -176,7 +176,8 @@ window.addEventListener('load',()=>{
 
 const API='https://poker-cafe.onrender.com/api';
 let dealerName='',tableState=null,allCustomers=[],timerDuration=30,timerRemain=30,timerRunning=false;
-let timerInterval=null,pollTimer=null,lastTouchX=0,soundBeepInterval=null;
+let timerInterval=null,pollTimer=null,lastTouchX=0,soundBeepInterval=null,vibrationInterval=null;
+const audioCtx=new(window.AudioContext||window.webkitAudioContext)();
 
 async function api(path){
   try{const r=await fetch(API+path,{signal:AbortSignal.timeout(6000)});return await r.json();}catch(e){return null;}
@@ -207,6 +208,7 @@ function doLogout(){
   clearInterval(pollTimer);
   clearInterval(timerInterval);
   stopSound();
+  stopVibration();
   dealerName='';timerRunning=false;
   document.getElementById('main-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
@@ -261,6 +263,7 @@ function renderSeats(){
 
 function startTimer(){
   stopSound();
+  stopVibration();
   timerRemain=timerDuration;
   timerRunning=true;
   updateDisplay();
@@ -270,9 +273,30 @@ function startTimer(){
     timerRemain--;
     updateDisplay();
     if(timerRemain===10)navigator.vibrate([200,100,200]);
-    if(timerRemain<=3&&timerRemain>0)navigator.vibrate([100,50,100,50,100]);
-    if(timerRemain===0){timerRunning=false;playSound();}
+    if(timerRemain===3)startContinuousVibration();
+    if(timerRemain<3&&timerRemain>0){
+      // Tiếp tục rung
+    }
+    if(timerRemain===0){
+      timerRunning=false;
+      stopVibration();
+      playSound();
+    }
   },1000);
+}
+
+function startContinuousVibration(){
+  stopVibration();
+  vibrationInterval=setInterval(()=>{
+    navigator.vibrate([150,100]);
+  },250);
+}
+
+function stopVibration(){
+  if(vibrationInterval){
+    clearInterval(vibrationInterval);
+    vibrationInterval=null;
+  }
 }
 
 function updateDisplay(){
@@ -307,20 +331,28 @@ function togglePauseTimer(){
 }
 
 function playSound(){
-  const ctx=new(window.AudioContext||window.webkitAudioContext)();
   function beep(){
-    const o=ctx.createOscillator();const g=ctx.createGain();
-    o.frequency.value=1200;o.connect(g);g.connect(ctx.destination);
-    g.gain.setValueAtTime(0.3,ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.15);
-    o.start();o.stop(ctx.currentTime+0.15);
+    const o=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    o.frequency.value=1200;
+    o.connect(g);
+    g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.3,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.15);
+    o.start();
+    o.stop(audioCtx.currentTime+0.15);
   }
+  // Kêu ngay lập tức, không delay
   beep();
-  soundBeepInterval=setInterval(beep,300);
+  // Tiếp tục kêu mỗi 250ms
+  soundBeepInterval=setInterval(beep,250);
 }
 
 function stopSound(){
-  if(soundBeepInterval){clearInterval(soundBeepInterval);soundBeepInterval=null;}
+  if(soundBeepInterval){
+    clearInterval(soundBeepInterval);
+    soundBeepInterval=null;
+  }
 }
 
 document.addEventListener('touchstart',e=>{lastTouchX=e.touches[0].clientX;});
