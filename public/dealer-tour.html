@@ -131,17 +131,17 @@ svg{max-width:100%;max-height:100%;display:block;}
           </linearGradient>
         </defs>
 
-        <!-- Pill shape: rect + 2 half circles - larger size -->
+        <!-- Pill shape: rect + 2 half circles - MUCH larger size -->
         <defs>
           <clipPath id="pillClip">
-            <rect x="75" y="225" width="850" height="450" rx="225" ry="225"/>
+            <rect x="50" y="150" width="900" height="500" rx="250" ry="250"/>
           </clipPath>
         </defs>
-        <rect x="75" y="225" width="850" height="450" rx="225" ry="225" fill="url(#tableGrad)" stroke="#c9a856" stroke-width="12" clip-path="url(#pillClip)"/>
+        <rect x="50" y="150" width="900" height="500" rx="250" ry="250" fill="url(#tableGrad)" stroke="#c9a856" stroke-width="15" clip-path="url(#pillClip)"/>
 
         <!-- Seats will be added via JavaScript -->
-        <!-- Timer text with invisible rect for double-tap detection - larger touch area -->
-        <rect x="350" y="350" width="300" height="180" fill="transparent" id="timer-touch" style="cursor:pointer;"/>
+        <!-- Timer text with invisible rect for double-tap detection - MUCH larger touch area -->
+        <rect x="250" y="300" width="500" height="300" fill="transparent" id="timer-touch" style="cursor:pointer;"/>
         <text x="500" y="450" class="timer-text" id="timer-text">30</text>
       </svg>
     </div>
@@ -269,7 +269,7 @@ function getCustomerPhone(name){
 
 function renderSeats(){
   const svg=document.getElementById('table-svg');
-  const cx=500,cy=450,rx=380,ry=200;
+  const cx=500,cy=400,rx=380,ry=220;
 
   seatElements={};
 
