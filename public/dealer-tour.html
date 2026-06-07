@@ -122,7 +122,7 @@ svg{max-width:100%;max-height:100%;display:block;}
 
   <div class="main-content">
     <div class="table-wrapper">
-      <svg id="table-svg" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet">
+      <svg id="table-svg" viewBox="0 0 1000 900" preserveAspectRatio="xMidYMid meet">
         <!-- Table background (oval) -->
         <defs>
           <linearGradient id="tableGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -131,18 +131,18 @@ svg{max-width:100%;max-height:100%;display:block;}
           </linearGradient>
         </defs>
 
-        <!-- Pill shape: rect + 2 half circles -->
+        <!-- Pill shape: rect + 2 half circles - larger size -->
         <defs>
           <clipPath id="pillClip">
-            <rect x="100" y="150" width="800" height="300" rx="150" ry="150"/>
+            <rect x="75" y="225" width="850" height="450" rx="225" ry="225"/>
           </clipPath>
         </defs>
-        <rect x="100" y="150" width="800" height="300" rx="150" ry="150" fill="url(#tableGrad)" stroke="#c9a856" stroke-width="12" clip-path="url(#pillClip)"/>
+        <rect x="75" y="225" width="850" height="450" rx="225" ry="225" fill="url(#tableGrad)" stroke="#c9a856" stroke-width="12" clip-path="url(#pillClip)"/>
 
         <!-- Seats will be added via JavaScript -->
-        <!-- Timer text with invisible rect for double-tap detection -->
-        <rect x="420" y="240" width="160" height="120" fill="transparent" id="timer-touch" style="cursor:pointer;"/>
-        <text x="500" y="300" class="timer-text" id="timer-text">30</text>
+        <!-- Timer text with invisible rect for double-tap detection - larger touch area -->
+        <rect x="350" y="350" width="300" height="180" fill="transparent" id="timer-touch" style="cursor:pointer;"/>
+        <text x="500" y="450" class="timer-text" id="timer-text">30</text>
       </svg>
     </div>
   </div>
@@ -269,7 +269,7 @@ function getCustomerPhone(name){
 
 function renderSeats(){
   const svg=document.getElementById('table-svg');
-  const cx=500,cy=300,rx=320,ry=190;
+  const cx=500,cy=450,rx=380,ry=200;
 
   seatElements={};
 
@@ -558,8 +558,8 @@ document.addEventListener('touchend',e=>{
   const distX=Math.abs(touchEndX-touchStartX);
   const distY=Math.abs(touchEndY-touchStartY);
 
-  // Swipe: distance > 100px, chủ yếu ngang
-  if(distX>100 && distX>distY){
+  // Swipe: distance > 50px, chủ yếu ngang - easier to trigger
+  if(distX>50 && distX>distY){
     clearInterval(timerInterval); // Dừng interval
     timerRunning=false;
     stopSound(); // Dừng âm thanh ngay lập tức
