@@ -190,7 +190,7 @@ window.addEventListener('load',()=>{
 const API='https://poker-cafe.onrender.com/api';
 let dealerName='',tableState=null,allCustomers=[],timerDuration=30,timerRemain=30,timerRunning=false;
 let timerInterval=null,pollTimer=null,lastTouchX=0,soundBeepInterval=null,vibrationInterval=null;
-let selectedPlayerName='',selectedSeatIndex=-1;
+let selectedPlayerName='',selectedSeatIndex=-1,selectedTableIndex=-1;
 const audioCtx=new(window.AudioContext||window.webkitAudioContext)();
 
 async function api(path){
@@ -259,15 +259,24 @@ function getCustomerPhone(name){
 function renderSeats(){
   if(!tableState)return;
   const tourTables=tableState.tablesTour||[];
-  const allSeats=[];
-  tourTables.forEach(t=>{if(t.status==='active')allSeats.push(...(t.seats||[]));});
+  const seatMap=[];
+
+  tourTables.forEach((t,tIdx)=>{
+    if(t.status==='active'){
+      (t.seats||[]).forEach((player,sIdx)=>{
+        seatMap.push({tableIdx:tIdx,seatIdx:sIdx,playerName:player});
+      });
+    }
+  });
+
   const table=document.getElementById('poker-table');
   const existing=table.querySelectorAll('.seat');
   existing.forEach(s=>s.remove());
 
   for(let i=0;i<9;i++){
     const seat=document.createElement('div');
-    const playerName=allSeats[i]||'';
+    const seatInfo=seatMap[i]||{};
+    const playerName=seatInfo.playerName||'';
     const phone=playerName?getCustomerPhone(playerName):'';
 
     if(playerName){
@@ -280,7 +289,7 @@ function renderSeats(){
 
     seat.addEventListener('click',()=>{
       if(playerName){
-        openRemoveModal(playerName,i);
+        openRemoveModal(playerName,seatInfo.tableIdx,seatInfo.seatIdx);
       }
     });
 
@@ -367,35 +376,28 @@ function togglePauseTimer(){
   timerRunning=!timerRunning;
 }
 
-function openRemoveModal(playerName,seatIndex){
+function openRemoveModal(playerName,tableIdx,seatIdx){
   selectedPlayerName=playerName;
-  selectedSeatIndex=seatIndex;
+  selectedTableIndex=tableIdx;
+  selectedSeatIndex=seatIdx;
   document.getElementById('remove-player-name').textContent=playerName;
   document.getElementById('remove-player-modal').classList.add('show');
 }
 
 function closeRemoveModal(){
   selectedPlayerName='';
+  selectedTableIndex=-1;
   selectedSeatIndex=-1;
   document.getElementById('remove-player-modal').classList.remove('show');
 }
 
 async function confirmRemovePlayer(){
-  if(!selectedPlayerName)return;
+  if(!selectedPlayerName||selectedTableIndex<0||selectedSeatIndex<0)return;
   const tourTables=tableState.tablesTour||[];
-  let activeTableIdx=-1;
-  for(let i=0;i<tourTables.length;i++){
-    if(tourTables[i].status==='active'){
-      activeTableIdx=i;
-      break;
-    }
-  }
-  if(activeTableIdx<0)return;
+  const table=tourTables[selectedTableIndex];
+  if(!table||!table.seats)return;
 
-  const table=tourTables[activeTableIdx];
-  if(table.seats){
-    table.seats[selectedSeatIndex]='';
-  }
+  table.seats[selectedSeatIndex]='';
 
   try{
     await fetch(API+'/table-state',{
