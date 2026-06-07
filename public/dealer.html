@@ -230,7 +230,13 @@ function showToast(msg,type='s'){
   el.textContent=msg;el.className='toast show '+type;
   setTimeout(()=>el.className='toast',2500);
 }
-function closeSheet(id){document.getElementById(id).classList.remove('show');}
+function closeSheet(id){
+  document.getElementById(id).classList.remove('show');
+  // Xóa dữ liệu cũ khi đóng sheet
+  if(id==='seat-overlay') activeSeat=null;
+  if(id==='add-overlay') addTarget=null;
+  if(id==='top-overlay') topTarget=null;
+}
 function openSheet(id){document.getElementById(id).classList.add('show');}
 
 async function api(path,opts={}){
@@ -371,17 +377,20 @@ function openEmptySeat(tableId,seatIndex){
 }
 
 function outPlayer(){
-  closeSheet('seat-overlay');
+  if(!activeSeat)return;
   const {tableId,seatIndex,name}=activeSeat;
   if(!confirm(`Out "${name}" khỏi bàn?`))return;
+  closeSheet('seat-overlay');
   updateSeat(tableId,seatIndex,'');
   showToast(name+' đã out');
 }
 
 function startMove(){
+  if(!activeSeat)return;
+  const seatData=activeSeat;
   closeSheet('seat-overlay');
-  moveMode={...activeSeat,fromTableId:activeSeat.tableId,fromSeatIndex:activeSeat.seatIndex};
-  document.getElementById('move-name-txt').textContent=activeSeat.name;
+  moveMode={...seatData,fromTableId:seatData.tableId,fromSeatIndex:seatData.seatIndex};
+  document.getElementById('move-name-txt').textContent=seatData.name;
   document.getElementById('move-banner').style.display='flex';
   renderTables();
 }
@@ -419,6 +428,7 @@ function selectName(name){
 }
 
 function confirmAdd(){
+  if(!addTarget)return;
   const name=document.getElementById('add-name').value.trim();
   if(!name){showToast('Nhập tên khách!','e');return;}
   closeSheet('add-overlay');
