@@ -116,12 +116,11 @@ svg{max-width:100%;max-height:100%;display:block;}
           </linearGradient>
         </defs>
 
-        <ellipse cx="500" cy="300" rx="380" ry="220" fill="url(#tableGrad)" stroke="#c9a856" stroke-width="12"/>
+        <ellipse cx="500" cy="300" rx="360" ry="200" fill="url(#tableGrad)" stroke="#c9a856" stroke-width="12"/>
 
         <!-- Seats will be added via JavaScript -->
-        <!-- Timer circle -->
-        <circle cx="500" cy="300" r="70" fill="rgba(0,0,0,0.6)" class="timer-bg" onclick="togglePauseTimer()"/>
-        <text x="500" y="300" class="timer-text" id="timer-text">30</text>
+        <!-- Timer text only, no background circle -->
+        <text x="500" y="300" class="timer-text" id="timer-text" ondblclick="togglePauseTimer()" style="cursor:pointer;">30</text>
       </svg>
     </div>
   </div>
