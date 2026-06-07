@@ -246,18 +246,34 @@ function setConn(state,text){
 }
 
 // ── LOGIN ──────────────────────────────────────────────────────
-function doLogin(){
+async function doLogin(){
   const val=document.getElementById('floor-name-input').value.trim();
   if(!val){document.getElementById('login-err').textContent='Nhập tên trước!';return;}
   floorName=val;
+
+  // Ghi nhận đăng nhập
+  await api('/floor-staff/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:floorName})});
+
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-screen').style.display='block';
   document.getElementById('floor-badge').textContent=floorName;
   loadAll();
   pollTimer=setInterval(loadState,2000);
+
+  // Gửi heartbeat mỗi 30 giây để giữ active status
+  setInterval(()=>{
+    if(floorName) api('/floor-staff/heartbeat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:floorName})});
+  },30000);
 }
-function doLogout(){
+async function doLogout(){
   clearInterval(pollTimer);
+
+  // Ghi nhận đăng xuất
+  if(floorName){
+    await api('/floor-staff/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:floorName})});
+  }
+
+  floorName='';
   document.getElementById('main-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('floor-name-input').value='';
@@ -277,14 +293,6 @@ async function loadState(){
   if(state.updatedAt&&state.updatedAt===(window._floorLastUpdate||0))return;
   window._floorLastUpdate=state.updatedAt;
   tableState=state;
-
-  // Cập nhật floor staff name nếu đã login
-  if(floorName&&(!state.floorStaff||state.floorStaff!==floorName)){
-    state.floorStaff=floorName;
-    state.updatedAt=Date.now();
-    await api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});
-  }
-
   renderTables();
   renderQueues();
 }

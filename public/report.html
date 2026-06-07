@@ -122,7 +122,7 @@ input:focus,select:focus{border-color:var(--gold);}input::placeholder{color:var(
     </div>
     <div class="card">
       <div class="card-title">Floor hôm nay</div>
-      <div id="floor-staff" style="font-size:15px;color:var(--gold);font-weight:700;padding:8px 0;">--</div>
+      <div id="floor-staff" style="padding:8px 0;"></div>
     </div>
     <div class="card">
       <div class="card-title">Tiêu thụ kho hôm nay</div>
@@ -252,7 +252,21 @@ function renderMetrics(){
     document.getElementById('table-tour').textContent=tourActive+'/3';
     document.getElementById('queue-normal').textContent=(tableState.queue||[]).length;
     document.getElementById('queue-tour').textContent=(tableState.queueTour||[]).length;
-    document.getElementById('floor-staff').textContent=tableState.floorStaff||'--';
+
+    // Hiển thị danh sách floor staff với chỉ báo active
+    const history=tableState.floorStaffHistory||[];
+    const active=tableState.floorStaffActive;
+    const el=document.getElementById('floor-staff');
+    if(!history.length){
+      el.innerHTML='<div style="font-size:13px;color:var(--text3);">--</div>';
+    } else {
+      el.innerHTML=history.map(name=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;">
+          <span style="width:10px;height:10px;border-radius:50%;background:${active===name?'var(--green)':'var(--border)'};flex-shrink:0;"></span>
+          <span style="color:${active===name?'var(--gold)':'var(--text2)'};font-weight:${active===name?'700':'400'};">${name}</span>
+        </div>
+      `).join('');
+    }
   }
 }
 

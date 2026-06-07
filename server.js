@@ -574,7 +574,9 @@ if (!tableState) {
     ],
     queue: [],
     queueTour: [],
-    floorStaff: null,
+    floorStaffHistory: [],
+    floorStaffActive: null,
+    lastFloorActivity: null,
     updatedAt: Date.now()
   };
   saveTableStateFile();
@@ -594,14 +596,67 @@ app.post('/api/table-state', (req, res) => {
 app.get('/api/table-state', (req, res) => {
   // Chỉ trả về trạng thái bàn + queueTour (queue reset mỗi lần load)
   if(!tableState) return res.json(null);
+
+  // Kiểm tra nếu floor staff không hoạt động trong 5 phút, coi như logout
+  if(tableState.floorStaffActive && tableState.lastFloorActivity){
+    const now = Date.now();
+    const inactiveTime = (now - tableState.lastFloorActivity) / 1000 / 60; // minutes
+    if(inactiveTime > 5){
+      tableState.floorStaffActive = null;
+      tableState.lastFloorActivity = null;
+      saveTableStateFile();
+    }
+  }
+
   res.json({
     tablesNormal: tableState.tablesNormal || [],
     tablesTour: tableState.tablesTour || [],
     activeTab: tableState.activeTab || 'normal',
     queueTour: tableState.queueTour || [],
-    floorStaff: tableState.floorStaff,
+    floorStaffHistory: tableState.floorStaffHistory || [],
+    floorStaffActive: tableState.floorStaffActive,
     updatedAt: tableState.updatedAt
   });
+});
+
+// ── FLOOR STAFF STATUS ──────────────────────────────────────────
+app.post('/api/floor-staff/login', (req, res) => {
+  const { name } = req.body;
+  if(!tableState) return res.json({ ok: false });
+
+  // Thêm vào history nếu chưa có
+  if(!tableState.floorStaffHistory) tableState.floorStaffHistory = [];
+  if(!tableState.floorStaffHistory.includes(name)){
+    tableState.floorStaffHistory.push(name);
+  }
+
+  // Set active staff
+  tableState.floorStaffActive = name;
+  tableState.lastFloorActivity = Date.now();
+  tableState.updatedAt = Date.now();
+  saveTableStateFile();
+
+  res.json({ ok: true });
+});
+
+app.post('/api/floor-staff/logout', (req, res) => {
+  if(!tableState) return res.json({ ok: false });
+  tableState.floorStaffActive = null;
+  tableState.lastFloorActivity = null;
+  tableState.updatedAt = Date.now();
+  saveTableStateFile();
+  res.json({ ok: true });
+});
+
+app.post('/api/floor-staff/heartbeat', (req, res) => {
+  const { name } = req.body;
+  if(!tableState || tableState.floorStaffActive !== name) return res.json({ ok: false });
+
+  tableState.lastFloorActivity = Date.now();
+  tableState.updatedAt = Date.now();
+  saveTableStateFile();
+
+  res.json({ ok: true });
 });
 
 // ── DEALER CONFIG ─────────────────────────────────────────────
