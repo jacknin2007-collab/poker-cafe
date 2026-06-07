@@ -445,7 +445,7 @@ async function giveTop(name,topNum){
   await refreshAllCustomers();
   const c=allCustomers.find(x=>x.name===name);
   if(!c){showToast('Không tìm thấy khách!','e');return;}
-  const rewards=topNum===1?{top1:1,top2:0,top3:0,rounds:2,drinks:2}:topNum===2?{top1:0,top2:1,top3:0,rounds:1,drinks:1}:{top1:0,top2:0,top3:1,rounds:0,drinks:1};
+  const rewards=topNum===1?{top1:1,top2:0,top3:0,rounds:1,drinks:2}:topNum===2?{top1:0,top2:1,top3:0,rounds:0,drinks:2}:{top1:0,top2:0,top3:1,rounds:0,drinks:1};
   const c1=(c.top1??0)||0, c2=(c.top2??0)||0, c3=(c.top3??0)||0;
   const cr=(c.rounds??0)||0, cd=(c.drinks??0)||0;
   const updated={

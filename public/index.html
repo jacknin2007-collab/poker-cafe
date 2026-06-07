@@ -1106,8 +1106,8 @@ async function giveAward(top){
   let customer=customers.find(x=>x.name===name);
   if(!customer){showToast('Không tìm thấy khách!','error');return;}
 
-  const rewards = top===1 ? {top1:1,top2:0,top3:0,rounds:2,drinks:2,label:'🥇 Top 1 — +2 Round, +2 Nước'}
-                : top===2 ? {top1:0,top2:1,top3:0,rounds:1,drinks:1,label:'🥈 Top 2 — +1 Round, +1 Nước'}
+  const rewards = top===1 ? {top1:1,top2:0,top3:0,rounds:1,drinks:2,label:'🥇 Top 1 — +1 Round, +2 Nước'}
+                : top===2 ? {top1:0,top2:1,top3:0,rounds:0,drinks:2,label:'🥈 Top 2 — +2 Nước'}
                 :            {top1:0,top2:0,top3:1,rounds:0,drinks:1,label:'🥉 Top 3 — +1 Nước'};
 
   // Auto-remove player from table
