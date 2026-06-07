@@ -124,10 +124,12 @@ input:focus{border-color:var(--gold);}input::placeholder{color:var(--text3);}
   <div class="login-title">Golden Coffee</div>
   <div class="login-sub">DEALER APP</div>
   <div class="login-box">
-    <div style="font-size:13px;color:var(--text3);margin-bottom:8px;">Chọn dealer:</div>
-    <select id="dealer-select" style="margin-bottom:12px;"><option value="">-- Chọn --</option></select>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:8px;">Chọn nhân viên:</div>
+    <select id="staff-select" style="margin-bottom:12px;"><option value="">-- Chọn --</option></select>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:8px;">Mật khẩu:</div>
+    <input id="staff-password" type="password" placeholder="Nhập mật khẩu" style="margin-bottom:12px;" onkeydown="if(event.key==='Enter')doLogin()"/>
     <div style="color:var(--red);font-size:13px;margin-bottom:8px;min-height:18px;" id="login-err"></div>
-    <button class="btn btn-gold" onclick="doLogin()">✅ Vào làm việc</button>
+    <button class="btn btn-gold" onclick="doLogin()">✅ Đăng nhập</button>
   </div>
 </div>
 
@@ -193,28 +195,10 @@ input:focus{border-color:var(--gold);}input::placeholder{color:var(--text3);}
 <div class="toast" id="toast"></div>
 
 <script>
-// Password protection
-const PASSWORD='19842007';
-function checkPwd(){
-  const pwd=document.getElementById('pwd-input').value;
-  const err=document.getElementById('pwd-error');
-  if(pwd===PASSWORD){
-    sessionStorage.setItem('pwd-auth','1');
-    document.getElementById('pwd-modal').classList.add('hidden');
-    err.textContent='';
-  } else {
-    err.textContent='Mật khẩu không đúng';
-    document.getElementById('pwd-input').value='';
-    document.getElementById('pwd-input').focus();
-  }
-}
+// Hide password modal — using staff authentication instead
 window.addEventListener('load',()=>{
-  if(!sessionStorage.getItem('pwd-auth')){
-    document.getElementById('pwd-modal').classList.remove('hidden');
-    setTimeout(()=>document.getElementById('pwd-input').focus(),100);
-  } else {
-    document.getElementById('pwd-modal').classList.add('hidden');
-  }
+  document.getElementById('pwd-modal').classList.add('hidden');
+  initLogin();
 });
 
 // Auto-detect API URL — cùng WiFi dùng IP máy chủ
@@ -256,24 +240,34 @@ function setConn(state,text){
 
 // ── LOGIN ──────────────────────────────────────────────────────
 async function initLogin(){
-  const dealers=await api('/dealers');
-  if(!dealers){document.getElementById('login-err').textContent='Không kết nối được server!';return;}
-  allDealers=dealers;
-  const sel=document.getElementById('dealer-select');
-  dealers.forEach(d=>{
+  const staffList=await api('/staff');
+  if(!staffList){document.getElementById('login-err').textContent='Không kết nối được server!';return;}
+  const sel=document.getElementById('staff-select');
+  staffList.forEach(s=>{
     const o=document.createElement('option');
-    o.value=d.name;
-    const normalTables=d.tables.filter(id=>id<=3);
-    const tableNames=normalTables.map(id=>'Bàn '+id).join(', ');
-    o.textContent=d.name+' ('+tableNames+')';
+    o.value=s.name;
+    o.textContent=s.name;
     sel.appendChild(o);
   });
 }
 
 async function doLogin(){
-  const val=document.getElementById('dealer-select').value;
-  if(!val){document.getElementById('login-err').textContent='Vui lòng chọn!';return;}
-  dealerName=val;
+  const staffName=document.getElementById('staff-select').value;
+  const password=document.getElementById('staff-password').value;
+  if(!staffName){document.getElementById('login-err').textContent='Vui lòng chọn nhân viên!';return;}
+  if(!password){document.getElementById('login-err').textContent='Vui lòng nhập mật khẩu!';return;}
+
+  const loginRes=await api('/staff/login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:staffName,password,app:'dealer'})
+  });
+  if(!loginRes||!loginRes.ok){
+    document.getElementById('login-err').textContent='Sai mật khẩu!';
+    document.getElementById('staff-password').value='';
+    return;
+  }
+  dealerName=staffName;
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-screen').style.display='block';
   document.getElementById('dealer-badge').textContent=dealerName;
@@ -282,8 +276,15 @@ async function doLogin(){
   pollTimer=setInterval(loadState,2000);
 }
 
-function doLogout(){
+async function doLogout(){
   clearInterval(pollTimer);
+  if(dealerName){
+    await api('/staff/logout',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:dealerName,app:'dealer'})
+    });
+  }
   dealerName='';
   myTables=[];
   tableState=null;
@@ -298,8 +299,9 @@ function doLogout(){
   closeSheet('add-overlay');
   closeSheet('top-overlay');
 
-  // Reset dealer select
-  document.getElementById('dealer-select').value='';
+  // Reset staff select
+  document.getElementById('staff-select').value='';
+  document.getElementById('staff-password').value='';
   document.getElementById('login-err').textContent='';
 
   document.getElementById('main-screen').style.display='none';

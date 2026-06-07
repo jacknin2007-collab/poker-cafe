@@ -65,9 +65,6 @@ app.get('/clock-control', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'clock-control.html'));
 });
 
-// Static files - after route handlers
-app.use(express.static('public'));
-
 // Clock state
 let clockState = {
   running: false, levelIndex: 0, timeLeft: 20*60,
@@ -728,7 +725,10 @@ app.post('/api/staff/login', (req, res) => {
     const staff = db.prepare('SELECT * FROM staff_members WHERE name = ? AND password = ?').get(name, password);
     if(!staff) return res.json({ ok: false, error: 'Tên hoặc mật khẩu sai' });
 
-    // Track session
+    // Record login in database
+    db.prepare('INSERT INTO staff_sessions (staff_name, app_name, login_time) VALUES (?, ?, CURRENT_TIMESTAMP)').run(name, app);
+
+    // Track session in memory
     activeSessions[name] = {
       app: app,
       loginTime: Date.now()
@@ -975,6 +975,9 @@ app.post('/api/print', (req, res) => {
 
 // Schedule auto-reset hàng ngày lúc 23h59p
 scheduleNextReset();
+
+// Static files - after all API routes to prevent shadowing
+app.use(express.static('public'));
 
 app.listen(3000, '0.0.0.0', () => {
   console.log('Server dang chay tai http://192.168.1.146:3000');

@@ -102,13 +102,34 @@ input:focus,select:focus{border-color:var(--gold);}input::placeholder{color:var(
   </div>
 </div>
 
+<div id="login-screen">
+  <img src="/logo.png" class="login-logo" alt="" onerror="this.style.display='none'"/>
+  <div class="login-title">Golden Coffee</div>
+  <div class="login-sub">BÁOÁO CÁO</div>
+  <div class="login-box">
+    <div style="font-size:13px;color:var(--text3);margin-bottom:8px;">Chọn nhân viên:</div>
+    <select id="staff-select" style="margin-bottom:12px;"><option value="">-- Chọn --</option></select>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:8px;">Mật khẩu:</div>
+    <input id="staff-password" type="password" placeholder="Nhập mật khẩu" style="margin-bottom:12px;" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <div style="color:var(--red);font-size:13px;margin-bottom:8px;min-height:18px;" id="login-err"></div>
+    <button class="btn btn-gold" onclick="doLogin()">✅ Đăng nhập</button>
+  </div>
+</div>
+
 <div id="report-screen" style="display:none;">
   <div class="header">
     <img src="/logo.png" alt="" onerror="this.style.display='none'"/>
     <div class="h-title"><div class="h-name">Golden Coffee</div><div class="h-line"></div><div class="h-sub">Báo cáo</div></div>
     <button class="btn btn-sm" onclick="doLogout()">Thoát</button>
   </div>
-  <div class="body">
+
+  <!-- TAB NAVIGATION -->
+  <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;gap:8px;background:var(--surface);">
+    <button class="btn btn-sm" id="tab-reports" style="flex:1;margin:0;background:var(--gold);color:#1a1000;border-color:var(--gold-mid);" onclick="switchReportTab('reports')">📊 Báo cáo</button>
+    <button class="btn btn-sm" id="tab-staff" style="flex:1;margin:0;background:var(--surface2);color:var(--text2);border-color:var(--border2);" onclick="switchReportTab('staff')">👥 Nhân viên</button>
+  </div>
+
+  <div class="body" id="reports-content">
     <div class="status-bar" id="conn-status">
       <div class="status-dot dot-amber" id="conn-dot"></div>
       <span id="conn-text">Đang kết nối...</span>
@@ -137,37 +158,93 @@ input:focus,select:focus{border-color:var(--gold);}input::placeholder{color:var(
       <div id="cust-list"><div class="empty-msg">Nhập và bấm Search để tìm khách hàng</div></div>
     </div>
   </div>
+
+  <div class="body" id="staff-content" style="display:none;">
+    <!-- ADD STAFF FORM -->
+    <div class="card">
+      <div class="card-title">➕ Thêm nhân viên</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input id="new-staff-name" placeholder="Tên nhân viên..." style="margin:0;flex:1;" autocapitalize="words"/>
+        <input id="new-staff-password" type="password" placeholder="Mật khẩu..." style="margin:0;flex:1;"/>
+      </div>
+      <button class="btn btn-gold" onclick="addStaff()">➕ Thêm</button>
+      <div style="color:var(--red);font-size:12px;margin-top:8px;min-height:16px;" id="add-staff-err"></div>
+    </div>
+
+    <!-- STAFF LIST -->
+    <div class="card">
+      <div class="card-title">📋 Danh sách nhân viên</div>
+      <div id="staff-list"><div class="empty-msg">Đang tải...</div></div>
+    </div>
+
+    <!-- ACTIVE SESSIONS -->
+    <div class="card">
+      <div class="card-title">🟢 Đang đăng nhập</div>
+      <div id="active-sessions"><div class="empty-msg">Không ai online</div></div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// Password protection
-const PASSWORD='19842007';
-function checkPwd(){
-  const pwd=document.getElementById('pwd-input').value;
-  const err=document.getElementById('pwd-error');
-  if(pwd===PASSWORD){
-    sessionStorage.setItem('pwd-auth','1');
-    document.getElementById('pwd-modal').classList.add('hidden');
-    document.getElementById('report-screen').style.display='block';
-    err.textContent='';
-    loadAll();
-  } else {
-    err.textContent='Mật khẩu không đúng';
-    document.getElementById('pwd-input').value='';
-    document.getElementById('pwd-input').focus();
-  }
+// Staff authentication
+let currentStaff='';
+
+async function initLogin(){
+  const staffList=await apiGet('/staff');
+  if(!staffList){document.getElementById('login-err').textContent='Không kết nối được server!';return;}
+  const sel=document.getElementById('staff-select');
+  staffList.forEach(s=>{
+    const o=document.createElement('option');
+    o.value=s.name;
+    o.textContent=s.name;
+    sel.appendChild(o);
+  });
 }
-window.addEventListener('load',()=>{
-  if(sessionStorage.getItem('pwd-auth')){
-    document.getElementById('pwd-modal').classList.add('hidden');
-    document.getElementById('report-screen').style.display='block';
-    loadAll();
-  } else {
-    document.getElementById('pwd-modal').classList.remove('hidden');
-    setTimeout(()=>document.getElementById('pwd-input').focus(),100);
+
+async function doLogin(){
+  const staffName=document.getElementById('staff-select').value;
+  const password=document.getElementById('staff-password').value;
+  if(!staffName){document.getElementById('login-err').textContent='Vui lòng chọn nhân viên!';return;}
+  if(!password){document.getElementById('login-err').textContent='Vui lòng nhập mật khẩu!';return;}
+
+  const loginRes=await apiGet('/staff/login', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:staffName,password,app:'report'})
+  });
+  if(!loginRes||!loginRes.ok){
+    document.getElementById('login-err').textContent='Sai mật khẩu!';
+    document.getElementById('staff-password').value='';
+    return;
   }
+  currentStaff=staffName;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('report-screen').style.display='block';
+  document.getElementById('login-err').textContent='';
+  loadAll();
+}
+
+function doLogout(){
+  if(currentStaff){
+    apiGet('/staff/logout',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:currentStaff,app:'report'})
+    });
+  }
+  currentStaff='';
+  document.getElementById('report-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('staff-select').value='';
+  document.getElementById('staff-password').value='';
+  document.getElementById('login-err').textContent='';
+}
+
+window.addEventListener('load',()=>{
+  document.getElementById('pwd-modal').classList.add('hidden');
+  initLogin();
 });
 
 // Tự động dò URL server
@@ -186,9 +263,9 @@ function showToast(msg,type='success'){const el=document.getElementById('toast')
 function closeDlg(id){document.getElementById(id).classList.remove('show');}
 function openDlg(id){document.getElementById(id).classList.add('show');}
 
-async function apiGet(path){
+async function apiGet(path,opts){
   try{
-    const r=await fetch(API+path,{signal:AbortSignal.timeout(8000)});
+    const r=await fetch(API+path,{...opts,signal:AbortSignal.timeout(8000)});
     if(!r.ok)throw new Error('HTTP '+r.status);
     return await r.json();
   }catch(e){setConnStatus('error','Lỗi: '+e.message);return null;}
@@ -203,13 +280,116 @@ function setConnStatus(state,text){
   document.getElementById('conn-dot').className='status-dot '+(state==='ok'?'dot-green':state==='error'?'dot-red':'dot-amber');
 }
 
-function doLogout(){
-  sessionStorage.removeItem('pwd-auth');
-  document.getElementById('report-screen').style.display='none';
-  document.getElementById('pwd-modal').classList.remove('hidden');
-  document.getElementById('pwd-input').value='';
-  document.getElementById('pwd-error').textContent='';
-  document.getElementById('pwd-input').focus();
+// TAB SWITCHING
+function switchReportTab(tab){
+  const reportsCont=document.getElementById('reports-content');
+  const staffCont=document.getElementById('staff-content');
+  const reportsTab=document.getElementById('tab-reports');
+  const staffTab=document.getElementById('tab-staff');
+
+  if(tab==='reports'){
+    reportsCont.style.display='block';
+    staffCont.style.display='none';
+    reportsTab.style.background='var(--gold)';
+    reportsTab.style.color='#1a1000';
+    reportsTab.style.borderColor='var(--gold-mid)';
+    staffTab.style.background='var(--surface2)';
+    staffTab.style.color='var(--text2)';
+    staffTab.style.borderColor='var(--border2)';
+  } else {
+    reportsCont.style.display='none';
+    staffCont.style.display='block';
+    reportsTab.style.background='var(--surface2)';
+    reportsTab.style.color='var(--text2)';
+    reportsTab.style.borderColor='var(--border2)';
+    staffTab.style.background='var(--gold)';
+    staffTab.style.color='#1a1000';
+    staffTab.style.borderColor='var(--gold-mid)';
+    loadStaffData();
+  }
+}
+
+// STAFF MANAGEMENT
+async function addStaff(){
+  const name=document.getElementById('new-staff-name').value.trim();
+  const password=document.getElementById('new-staff-password').value.trim();
+  const errEl=document.getElementById('add-staff-err');
+
+  if(!name){errEl.textContent='Nhập tên!';return;}
+  if(!password){errEl.textContent='Nhập mật khẩu!';return;}
+
+  const res=await apiGet('/staff',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name,password})
+  });
+
+  if(!res||!res.ok){
+    errEl.textContent='Lỗi: '+((res&&res.error)||'không biết');
+    return;
+  }
+
+  errEl.textContent='';
+  document.getElementById('new-staff-name').value='';
+  document.getElementById('new-staff-password').value='';
+  showToast('✅ Đã thêm '+name,'success');
+  loadStaffData();
+}
+
+async function deleteStaff(name){
+  if(!confirm('Xác nhận xóa '+name+'?'))return;
+
+  const res=await apiGet('/staff/'+encodeURIComponent(name),{method:'DELETE'});
+  if(!res||!res.ok){
+    showToast('Lỗi xóa','error');
+    return;
+  }
+
+  showToast('✅ Đã xóa '+name,'success');
+  loadStaffData();
+}
+
+async function loadStaffData(){
+  const staffList=await apiGet('/staff');
+  const activeSessions=await apiGet('/staff/active');
+
+  renderStaffList(staffList||[]);
+  renderActiveSessions(activeSessions||{});
+}
+
+function renderStaffList(list){
+  const el=document.getElementById('staff-list');
+  if(!list.length){
+    el.innerHTML='<div class="empty-msg">Không có nhân viên nào</div>';
+    return;
+  }
+  el.innerHTML=list.map(s=>`
+    <div class="li" style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-weight:700;">${s.name}</span>
+      <button class="btn btn-sm btn-red" style="margin:0;" onclick="deleteStaff('${s.name.replace(/'/g,"\\'")}')">🗑️ Xóa</button>
+    </div>
+  `).join('');
+}
+
+function renderActiveSessions(sessions){
+  const el=document.getElementById('active-sessions');
+  const list=Array.isArray(sessions)?sessions:[];
+
+  if(!list.length){
+    el.innerHTML='<div class="empty-msg">Không ai online</div>';
+    return;
+  }
+
+  el.innerHTML=list.map(s=>{
+    const appLabel=s.app==='dealer'?'🎮 Dealer':s.app==='floor'?'👥 Floor':'📊 Report';
+    const loginTime=new Date(s.loginTime).toLocaleTimeString('vi');
+    return `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;"></span>
+        <span style="flex:1;"><strong>${s.name}</strong><br/><span style="font-size:12px;color:var(--text3);">${appLabel} • ${loginTime}</span></span>
+      </div>
+    `;
+  }).join('');
 }
 
 async function loadAll(){
@@ -228,6 +408,7 @@ async function loadAll(){
 
   renderMetrics();renderStockConsumed();
   document.getElementById('cust-list').innerHTML='<div class="empty-msg">Nhập và bấm Search để tìm khách hàng</div>';
+  loadStaffData();
 }
 
 function searchCustomers(){
