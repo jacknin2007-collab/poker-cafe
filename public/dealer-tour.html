@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="GC Dealer Tour"/>
 <meta name="theme-color" content="#006633"/>
 <style>
-:root{--green:#006633;--text:#fff;--text2:#ddd;--gold:#f0c040;}
+:root{--green:#006633;--text:#fff;--red:#ff2020;}
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{width:100vw;height:100vh;overflow:hidden;background:var(--green);font-family:-apple-system,sans-serif;}
 body{display:flex;flex-direction:column;}
@@ -20,81 +20,76 @@ body{display:flex;flex-direction:column;}
 .login-box{background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);border-radius:12px;padding:24px;width:100%;max-width:360px;}
 select{width:100%;padding:12px;font-size:15px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;background:rgba(0,0,0,0.3);color:#fff;font-family:inherit;margin-bottom:12px;outline:none;}
 select option{background:#006633;color:#fff;}
-.btn{width:100%;padding:12px;font-size:15px;font-weight:700;border:none;border-radius:8px;background:var(--gold);color:#000;cursor:pointer;font-family:inherit;}
+.btn{width:100%;padding:12px;font-size:15px;font-weight:700;border:none;border-radius:8px;background:#f0c040;color:#000;cursor:pointer;font-family:inherit;}
 .btn:active{opacity:0.8;}
-.btn-logout{width:auto;padding:8px 16px;font-size:12px;}
+.logout-btn{width:auto;padding:8px 16px;font-size:12px;}
 .err{color:#ff6666;font-size:13px;margin-bottom:8px;min-height:18px;}
 
 /* PASSWORD MODAL */
 .pwd-modal{display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;align-items:center;justify-content:center;}
 .pwd-modal.hidden{display:none;}
-.pwd-modal-content{background:#1a1a1a;border:2px solid var(--gold);border-radius:12px;padding:40px;width:90%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.8);}
-.pwd-modal-title{font-size:24px;font-weight:800;color:var(--gold);text-align:center;margin-bottom:8px;}
-.pwd-modal-subtitle{font-size:13px;color:var(--text2);text-align:center;margin-bottom:24px;}
+.pwd-modal-content{background:#1a1a1a;border:2px solid #f0c040;border-radius:12px;padding:40px;width:90%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.8);}
+.pwd-modal-title{font-size:24px;font-weight:800;color:#f0c040;text-align:center;margin-bottom:8px;}
+.pwd-modal-subtitle{font-size:13px;color:#ddd;text-align:center;margin-bottom:24px;}
 .pwd-input{width:100%;padding:12px 16px;font-size:16px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(255,255,255,0.1);color:#fff;font-family:inherit;margin-bottom:16px;outline:none;letter-spacing:0.1em;}
-.pwd-input:focus{border-color:var(--gold);box-shadow:0 0 8px rgba(240,192,64,0.3);}
-.pwd-btn{width:100%;padding:12px;font-size:14px;font-weight:700;border:none;border-radius:8px;background:var(--gold);color:#000;cursor:pointer;font-family:inherit;}
+.pwd-input:focus{border-color:#f0c040;box-shadow:0 0 8px rgba(240,192,64,0.3);}
+.pwd-btn{width:100%;padding:12px;font-size:14px;font-weight:700;border:none;border-radius:8px;background:#f0c040;color:#000;cursor:pointer;font-family:inherit;}
 .pwd-error{color:#ff6666;font-size:12px;margin-top:8px;text-align:center;font-weight:600;}
 
 /* MAIN SCREEN */
 #main-screen{display:none;width:100vw;height:100vh;background:var(--green);overflow:hidden;position:relative;}
-.top-bar{position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,0.3);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;z-index:10;color:#fff;}
-.dealer-name{font-size:16px;font-weight:700;}
+.top-bar{position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,0.3);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;z-index:10;color:#fff;font-size:16px;font-weight:700;}
 .logout-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;}
 
-/* POKER TABLE CONTAINER */
-.table-container{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:40px 20px;overflow:auto;}
+/* TABLE CONTAINER */
+.table-container{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;}
 
-/* ROUND TABLE WITH 9 SEATS */
-.poker-table{position:relative;width:90vmin;max-width:100vh;aspect-ratio:1;background:radial-gradient(circle,#004d1a 0%,var(--green) 100%);border:8px solid #8b6914;border-radius:50%;box-shadow:0 20px 60px rgba(0,0,0,0.5),inset 0 0 30px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;}
+/* POKER TABLE - PILL SHAPE */
+.poker-table{position:relative;width:85%;max-width:900px;aspect-ratio:1.8;background:linear-gradient(135deg, #004d1a 0%, var(--green) 100%);border:6px solid #8b6914;border-radius:200px;box-shadow:0 20px 60px rgba(0,0,0,0.5),inset 0 0 30px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;}
 
-/* CENTER TIMER - OVAL SHAPE */
-.timer-center{position:absolute;width:28%;aspect-ratio:2;background:rgba(0,0,0,0.4);border:3px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:20;cursor:pointer;}
-.timer-display{font-size:92px;font-weight:900;color:var(--gold);font-family:monospace;letter-spacing:0;line-height:1;}
-.timer-display.warn{color:#ff8c00;animation:none;}
-.timer-display.blink{color:#ff8c00;animation:blink-timer 0.4s step-end infinite;}
-.timer-display.danger{color:#ff2020;animation:vibrate-timer 0.1s infinite;}
-@keyframes blink-timer{0%,49%{opacity:1;}50%,100%{opacity:0.3;}}
-@keyframes vibrate-timer{0%{transform:translateX(2px);}50%{transform:translateX(-2px);}100%{transform:translateX(0);}}
+/* TIMER CENTER - OVAL */
+.timer-center{position:absolute;width:20%;aspect-ratio:1.2;background:rgba(0,0,0,0.5);border:3px solid #f0c040;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:20;cursor:pointer;}
+.timer-display{font-size:80px;font-weight:900;color:var(--red);font-family:monospace;line-height:1;}
+.timer-display.warn{color:#ff8c00;}
+.timer-display.blink{color:#ff8c00;animation:blink 0.4s step-end infinite;}
+.timer-display.danger{color:var(--red);animation:shake 0.1s infinite;}
+@keyframes blink{0%,49%{opacity:1;}50%,100%{opacity:0.3;}}
+@keyframes shake{0%,100%{transform:translateX(0);}50%{transform:translateX(2px);}}
 
 /* DEALER HEADER */
-.dealer-header{position:absolute;top:8%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.5);border-radius:8px;padding:12px 20px;display:flex;gap:12px;align-items:center;z-index:15;}
-.dealer-label{font-size:18px;font-weight:700;color:#fff;font-family:'Bebas Neue',sans-serif;letter-spacing:0.1em;}
-.settings-icon{width:32px;height:32px;background:rgba(255,255,255,0.2);border:1.5px solid var(--gold);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:all 0.2s;}
-.settings-icon:hover{background:rgba(255,255,255,0.3);}
+.dealer-header{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);border-radius:8px;padding:10px 16px;display:flex;gap:10px;align-items:center;z-index:15;border:1px solid rgba(255,255,255,0.2);}
+.dealer-label{font-size:16px;font-weight:700;color:#fff;font-family:'Bebas Neue',sans-serif;letter-spacing:0.1em;}
+.settings-icon{width:30px;height:30px;background:rgba(255,255,255,0.15);border:1.5px solid #f0c040;border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all 0.2s;}
+.settings-icon:hover{background:rgba(255,255,255,0.25);}
 
 /* SETTINGS MODAL */
-.settings-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center;}
+.settings-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;align-items:center;justify-content:center;}
 .settings-modal.show{display:flex;}
-.settings-content{background:rgba(0,0,0,0.6);border:2px solid var(--gold);border-radius:12px;padding:24px;max-width:320px;text-align:center;}
+.settings-content{background:rgba(0,0,0,0.7);border:2px solid #f0c040;border-radius:12px;padding:24px;max-width:300px;text-align:center;}
 .settings-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:16px;}
-.settings-input{width:100%;padding:12px;font-size:24px;text-align:center;background:rgba(255,255,255,0.1);border:2px solid var(--gold);border-radius:8px;color:var(--gold);font-family:monospace;font-weight:700;margin-bottom:12px;}
-.settings-btn{width:100%;padding:10px;font-size:14px;font-weight:700;background:var(--gold);color:#000;border:none;border-radius:8px;cursor:pointer;margin-bottom:8px;}
+.settings-input{width:100%;padding:12px;font-size:28px;text-align:center;background:rgba(255,255,255,0.05);border:2px solid #f0c040;border-radius:8px;color:#f0c040;font-family:monospace;font-weight:700;margin-bottom:12px;}
+.settings-btn{width:100%;padding:10px;font-size:14px;font-weight:700;background:#f0c040;color:#000;border:none;border-radius:8px;cursor:pointer;margin-bottom:8px;}
 .settings-btn-close{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);}
-.settings-btn-close:hover{background:rgba(255,255,255,0.15);}
 
-/* 9 SEATS AROUND TABLE */
-.seat{position:absolute;width:14%;aspect-ratio:1;background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;padding:6px;}
-.seat:hover{background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.5);}
-.seat.occ{background:rgba(0,102,51,0.3);border-color:var(--gold);}
-.seat-num{font-size:11px;color:rgba(255,255,255,0.7);font-weight:700;}
-.seat-name{font-size:11px;color:#fff;font-weight:700;text-align:center;margin:2px 0;}
-.seat-phone{font-size:9px;color:var(--text2);}
+/* 9 SEATS - DARK CIRCLES */
+.seat{position:absolute;width:12%;aspect-ratio:1;background:#001a0d;border:2px solid #004d1a;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;}
 
-/* SEAT POSITIONS (9 seats in circle) */
-.seat:nth-child(1){top:2%;left:50%;transform:translateX(-50%);}
-.seat:nth-child(2){top:10%;right:8%;transform:translateX(0);}
-.seat:nth-child(3){top:27%;right:2%;transform:translateX(0);}
+/* SEAT POSITIONS */
+.seat:nth-child(1){top:8%;left:50%;transform:translateX(-50%);}
+.seat:nth-child(2){top:18%;right:12%;}
+.seat:nth-child(3){top:35%;right:3%;}
 .seat:nth-child(4){top:50%;right:2%;transform:translateY(-50%);}
-.seat:nth-child(5){top:73%;right:2%;transform:translateX(0);}
-.seat:nth-child(6){top:90%;right:8%;transform:translateX(0);}
-.seat:nth-child(7){top:98%;left:50%;transform:translateX(-50%);}
-.seat:nth-child(8){top:90%;left:8%;transform:translateX(0);}
-.seat:nth-child(9){top:73%;left:2%;transform:translateX(0);}
+.seat:nth-child(5){top:65%;right:3%;}
+.seat:nth-child(6){top:82%;right:12%;}
+.seat:nth-child(7){top:92%;left:50%;transform:translateX(-50%);}
+.seat:nth-child(8){top:82%;left:12%;}
+.seat:nth-child(9){top:65%;left:3%;}
+.seat:nth-child(10){top:50%;left:2%;transform:translateY(-50%);}
+.seat:nth-child(11){top:35%;left:3%;}
+.seat:nth-child(12){top:18%;left:12%;}
 
-/* HIDE BY DEFAULT */
 @media(orientation:portrait){
-  body::after{content:'';position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;text-align:center;z-index:9999;pointer-events:none;line-height:1.5;}
+  body::after{content:'Vui lòng xoay ngang màn hình';position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;z-index:9999;pointer-events:none;}
 }
 </style>
 </head>
@@ -123,18 +118,18 @@ select option{background:#006633;color:#fff;}
 
 <div id="main-screen">
   <div class="top-bar">
-    <div class="dealer-name" id="dealer-name">Dealer</div>
+    <div id="dealer-name-top">Dealer 1</div>
     <button class="logout-btn" onclick="doLogout()">Thoát</button>
   </div>
 
   <div class="dealer-header">
-    <div class="dealer-label" id="dealer-name">Dealer 1</div>
+    <div class="dealer-label" id="dealer-name-header">Dealer 1</div>
     <div class="settings-icon" onclick="openSettings()">⚙️</div>
   </div>
 
   <div class="settings-modal" id="settings-modal">
     <div class="settings-content">
-      <div class="settings-title">⏱️ Cài đặt thời gian</div>
+      <div class="settings-title">⏱️ Thời gian</div>
       <input type="number" class="settings-input" id="timer-input" value="30" min="5" max="300"/>
       <button class="settings-btn" onclick="setTimerDuration()">✓ Đặt</button>
       <button class="settings-btn settings-btn-close" onclick="closeSettings()">✕ Đóng</button>
@@ -157,42 +152,41 @@ function checkPwd(){
   if(pwd===PASSWORD){
     sessionStorage.setItem('pwd-auth','1');
     document.getElementById('pwd-modal').classList.add('hidden');
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('main-screen').style.display='flex';
+    initApp();
   } else {
     document.getElementById('pwd-error').textContent='Sai mật khẩu!';
     document.getElementById('pwd-input').value='';
     document.getElementById('pwd-input').focus();
   }
 }
+
 window.addEventListener('load',()=>{
-  if(!sessionStorage.getItem('pwd-auth')){
+  if(sessionStorage.getItem('pwd-auth')){
+    document.getElementById('pwd-modal').classList.add('hidden');
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('main-screen').style.display='flex';
+    initApp();
+  } else {
     document.getElementById('pwd-modal').classList.remove('hidden');
     setTimeout(()=>document.getElementById('pwd-input').focus(),100);
-  } else {
-    document.getElementById('pwd-modal').classList.add('hidden');
   }
 });
 
 const API='https://poker-cafe.onrender.com/api';
 let dealerName='',tableState=null,allCustomers=[],timerDuration=30,timerRemain=30,timerRunning=false;
-let timerInterval=null,pollTimer=null,lastTouchX=0;
+let timerInterval=null,pollTimer=null,lastTouchX=0,soundBeepInterval=null;
 
 async function api(path){
-  try{
-    const r=await fetch(API+path,{signal:AbortSignal.timeout(6000)});
-    return await r.json();
-  }catch(e){return null;}
+  try{const r=await fetch(API+path,{signal:AbortSignal.timeout(6000)});return await r.json();}catch(e){return null;}
 }
 
 async function initLogin(){
   const dealers=await api('/dealers');
   if(!dealers)return;
   const sel=document.getElementById('dealer-select');
-  dealers.forEach(d=>{
-    const o=document.createElement('option');
-    o.value=d.name;
-    o.textContent=d.name;
-    sel.appendChild(o);
-  });
+  dealers.forEach(d=>{const o=document.createElement('option');o.value=d.name;o.textContent=d.name;sel.appendChild(o);});
 }
 
 function doLogin(){
@@ -201,21 +195,31 @@ function doLogin(){
   dealerName=val;
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-screen').style.display='flex';
-  document.getElementById('dealer-name').textContent=dealerName;
+  document.getElementById('dealer-name-top').textContent=dealerName;
+  document.getElementById('dealer-name-header').textContent=dealerName;
+  document.getElementById('timer-input').value='30';
   closeSettings();
   screen.orientation.lock('landscape').catch(()=>{});
-  loadAll();
-  startTimer();
-  pollTimer=setInterval(loadState,2000);
+  initApp();
 }
 
 function doLogout(){
   clearInterval(pollTimer);
   clearInterval(timerInterval);
+  stopSound();
   dealerName='';timerRunning=false;
   document.getElementById('main-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
+  document.getElementById('pwd-modal').classList.remove('hidden');
+  document.getElementById('pwd-input').value='';
+  document.getElementById('pwd-input').focus();
   screen.orientation.unlock();
+}
+
+function initApp(){
+  loadAll();
+  startTimer();
+  pollTimer=setInterval(loadState,2000);
 }
 
 async function loadAll(){
@@ -244,13 +248,13 @@ function renderSeats(){
   const table=document.getElementById('poker-table');
   const existing=table.querySelectorAll('.seat');
   existing.forEach(s=>s.remove());
-  
+
   for(let i=0;i<9;i++){
     const seat=document.createElement('div');
-    seat.className='seat'+(allSeats[i]?' occ':'');
-    const phone=allSeats[i]?getCustomerPhone(allSeats[i]):'';
-    seat.innerHTML=`<div class="seat-num">G${i+1}</div>
-      ${allSeats[i]?`<div class="seat-name">${allSeats[i]}</div><div class="seat-phone">${phone}</div>`:'<div class="seat-name" style="color:rgba(255,255,255,0.5);">Trống</div>'}`;
+    seat.className='seat';
+    const playerName=allSeats[i]||'';
+    const phone=playerName?getCustomerPhone(playerName):'';
+    seat.textContent=playerName?`${playerName}\n${phone}`:'Trống';
     table.appendChild(seat);
   }
 }
@@ -302,14 +306,11 @@ function togglePauseTimer(){
   timerRunning=!timerRunning;
 }
 
-let soundBeepInterval=null;
 function playSound(){
   const ctx=new(window.AudioContext||window.webkitAudioContext)();
   function beep(){
-    const o=ctx.createOscillator();
-    const g=ctx.createGain();
-    o.frequency.value=1200;
-    o.connect(g);g.connect(ctx.destination);
+    const o=ctx.createOscillator();const g=ctx.createGain();
+    o.frequency.value=1200;o.connect(g);g.connect(ctx.destination);
     g.gain.setValueAtTime(0.3,ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.15);
     o.start();o.stop(ctx.currentTime+0.15);
@@ -317,6 +318,7 @@ function playSound(){
   beep();
   soundBeepInterval=setInterval(beep,300);
 }
+
 function stopSound(){
   if(soundBeepInterval){clearInterval(soundBeepInterval);soundBeepInterval=null;}
 }
@@ -324,7 +326,7 @@ function stopSound(){
 document.addEventListener('touchstart',e=>{lastTouchX=e.touches[0].clientX;});
 document.addEventListener('touchend',e=>{
   const diff=Math.abs(e.changedTouches[0].clientX-lastTouchX);
-  if(diff>80)startTimer();
+  if(diff>80){startTimer();stopSound();}
 });
 
 initLogin();
