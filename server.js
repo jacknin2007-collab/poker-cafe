@@ -23,9 +23,6 @@ try { db.prepare('ALTER TABLE stock ADD COLUMN cost INTEGER DEFAULT 1').run(); }
 app.get('/dealer', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dealer.html'));
 });
-app.get('/dealer-tour', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dealer-tour.html'));
-});
 
 // Trang floor
 app.get('/floor', (req, res) => {
@@ -286,24 +283,6 @@ app.get('/manifest.json', (req, res) => {
 });
 app.get('/report-manifest.json', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'report-manifest.json'));
-});
-
-// PWA Manifest cho dealer-tour
-app.get('/dealer-tour-manifest.json', (req, res) => {
-  res.json({
-    "name": "Golden Coffee – Dealer Tour",
-    "short_name": "GC Tour",
-    "description": "Dealer Tour Management System",
-    "start_url": "/dealer-tour",
-    "display": "standalone",
-    "background_color": "#006633",
-    "theme_color": "#006633",
-    "orientation": "landscape",
-    "icons": [
-      {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
-      {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
-    ]
-  });
 });
 
 // ── MÁY IN KV804 USB ─────────────────────────────────────────
@@ -800,5 +779,5 @@ scheduleNextReset();
 
 app.listen(3000, '0.0.0.0', () => {
   console.log('Server dang chay tai http://192.168.1.146:3000');
-  console.log('✓ All routes configured: /dealer, /dealer-tour, /floor, /report, /clock, /clock-control');
+  console.log('✓ All routes configured: /dealer, /floor, /report, /clock, /clock-control');
 });
