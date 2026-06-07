@@ -254,7 +254,7 @@ function renderSeats(){
 
   // 9 ghế được sắp xếp quanh oval
   for(let i=0;i<9;i++){
-    const angle=(i*40)*Math.PI/180; // 40 độ cho mỗi ghế
+    const angle=(-i*40 + 90)*Math.PI/180; // Bắt đầu từ trên (90°), xoay ngược chiều
     const x=cx+rx*Math.cos(angle);
     const y=cy+ry*Math.sin(angle);
 
