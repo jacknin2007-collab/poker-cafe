@@ -135,9 +135,7 @@ input:focus{border-color:var(--gold);}input::placeholder{color:var(--text3);}
   <div class="header">
     <img src="/logo.png" alt="" onerror="this.style.display='none'"/>
     <div class="h-name">Golden Coffee</div>
-    <select id="dealer-switcher" style="padding:6px 10px;font-size:13px;height:32px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-family:inherit;cursor:pointer;margin-left:auto;" onchange="switchDealer(this.value)">
-      <option value="">-- Chọn dealer --</option>
-    </select>
+    <div class="h-dealer" id="dealer-badge">Dealer</div>
     <button class="btn btn-sm" style="margin-left:6px;" onclick="doLogout()">Thoát</button>
   </div>
   <div class="body">
@@ -278,44 +276,10 @@ async function doLogin(){
   dealerName=val;
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-screen').style.display='block';
-
-  // Populate dealer switcher dropdown
-  const switcher=document.getElementById('dealer-switcher');
-  switcher.innerHTML='<option value="">-- Chọn dealer --</option>';
-  allDealers.forEach(d=>{
-    const o=document.createElement('option');
-    o.value=d.name;
-    o.textContent=d.name;
-    switcher.appendChild(o);
-  });
-  switcher.value=dealerName;
+  document.getElementById('dealer-badge').textContent=dealerName;
 
   await loadAll();
   pollTimer=setInterval(loadState,2000);
-}
-
-async function switchDealer(newDealerName){
-  if(!newDealerName || newDealerName===dealerName) return;
-
-  // Close any open sheets
-  closeSheet('seat-overlay');
-  closeSheet('add-overlay');
-  closeSheet('top-overlay');
-
-  // Clear state
-  moveMode=null;
-  activeSeat=null;
-  addTarget=null;
-  topTarget=null;
-  activeTableTab='normal';
-  tableState=null;
-
-  // Switch dealer
-  dealerName=newDealerName;
-  document.getElementById('dealer-switcher').value=dealerName;
-
-  // Load new dealer's tables
-  await loadAll();
 }
 
 function doLogout(){
@@ -328,7 +292,16 @@ function doLogout(){
   addTarget=null;
   topTarget=null;
   activeTableTab='normal';
-  allDealers=[];
+
+  // Close any open sheets
+  closeSheet('seat-overlay');
+  closeSheet('add-overlay');
+  closeSheet('top-overlay');
+
+  // Reset dealer select
+  document.getElementById('dealer-select').value='';
+  document.getElementById('login-err').textContent='';
+
   document.getElementById('main-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
 }
