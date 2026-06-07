@@ -280,7 +280,15 @@ function doLogin(){
 }
 
 function doLogout(){
-  clearInterval(pollTimer);dealerName='';myTables=[];tableState=null;moveMode=null;
+  clearInterval(pollTimer);
+  dealerName='';
+  myTables=[];
+  tableState=null;
+  moveMode=null;
+  activeSeat=null;
+  addTarget=null;
+  topTarget=null;
+  activeTableTab='normal';
   document.getElementById('main-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
 }
@@ -318,6 +326,12 @@ function getCustomerPhone(name){
 }
 
 // ── RENDER ─────────────────────────────────────────────────────
+function switchTableTab(tab){
+  activeTableTab=tab;
+  document.getElementById('tab-normal').className='tab-btn'+(tab==='normal'?' active':'');
+  renderTables();
+}
+
 function getMyTablesForTab(){
   const allT=[...(tableState?.tablesNormal||[])];
   return allT.filter(t=>myTables.includes(t.id));
