@@ -7,37 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Tạo bảng daily_consumed nếu chưa có
-db.prepare(`CREATE TABLE IF NOT EXISTS daily_consumed (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  date TEXT NOT NULL,
-  qty INTEGER DEFAULT 1,
-  UNIQUE(name,date)
-)`).run();
-
-// Tạo bảng staff_members nếu chưa có
-db.prepare(`CREATE TABLE IF NOT EXISTS staff_members (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL UNIQUE,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)`).run();
-
-// Tạo bảng staff_sessions để track ai login app nào
-db.prepare(`CREATE TABLE IF NOT EXISTS staff_sessions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  staff_name TEXT NOT NULL,
-  app_name TEXT NOT NULL,
-  login_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-  logout_time DATETIME,
-  FOREIGN KEY(staff_name) REFERENCES staff_members(name)
-)`).run();
-
-// Migration: Thêm password column vào staff_members
-try { db.prepare('ALTER TABLE staff_members ADD COLUMN password TEXT NOT NULL DEFAULT "123456"').run(); } catch(e) {}
-
-// Thêm cột cost nếu chưa có (migration)
-try { db.prepare('ALTER TABLE stock ADD COLUMN cost INTEGER DEFAULT 1').run(); } catch(e) {}
+// Schema (tables + migrations) is created in database.js on first connection.
 
 // Current active staff sessions (in memory, reset on server restart)
 // Support multiple concurrent sessions per staff member
@@ -169,7 +139,7 @@ function tickClock(){
 }
 
 // Auto-sync đầy đủ từ DB và table-state
-function syncClockFromData(){
+async function syncClockFromData(){
   // Nếu tournament data đã lock (vừa reset), không update gì cả
   if(tournamentDataLocked) return;
 
@@ -186,8 +156,8 @@ function syncClockFromData(){
     clockState.players=sitting;
 
     // Lấy dữ liệu từ tournament_buyin table (tracking buy-in vs re-buy chính xác)
-    const buyInCount=db.prepare(`SELECT COUNT(*) as cnt FROM tournament_buyin WHERE date=? AND is_rebuy=0`).get(today)?.cnt||0;
-    const rebuyCount=db.prepare(`SELECT COUNT(*) as cnt FROM tournament_buyin WHERE date=? AND is_rebuy=1`).get(today)?.cnt||0;
+    const buyInCount=Number((await db.prepare(`SELECT COUNT(*) as cnt FROM tournament_buyin WHERE date=? AND is_rebuy=0`).get(today))?.cnt)||0;
+    const rebuyCount=Number((await db.prepare(`SELECT COUNT(*) as cnt FROM tournament_buyin WHERE date=? AND is_rebuy=1`).get(today))?.cnt)||0;
 
     clockState.buyIn=buyInCount;
     clockState.rebuy=rebuyCount;
@@ -198,17 +168,17 @@ function syncClockFromData(){
     // Chỉ update nếu prizePool = 0 (chưa nhập)
     if(!clockState.prizePool){
       const filter=`(table_name LIKE 'Tour%' OR table_name LIKE 'tour%' OR note LIKE '%TIEN_MAT_TOUR%' OR note LIKE '%[TOUR]%') AND note NOT LIKE '%[NOPLAY]%'`;
-      const prizeRow=db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE date(created_at)=? AND ${filter} AND amount>0`).get(today);
-      clockState.prizePool=prizeRow?.total||0;
+      const prizeRow=await db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE substr(created_at,1,10)=? AND ${filter} AND amount>0`).get(today);
+      clockState.prizePool=Number(prizeRow?.total)||0;
     }
 
     clockState.updatedAt=Date.now();
   }catch(e){ console.log('[CLOCK SYNC ERR]',e.message); }
 }
 
-app.get('/api/clock',(req,res)=>{
+app.get('/api/clock',async(req,res)=>{
   // Không unlock tournamentDataLocked ở đây, để nó tự unlock theo thời gian
-  syncClockFromData();
+  await syncClockFromData();
   // Tính lại showPayout mỗi lần fetch
   const lvs=clockState.levels||[];
   let realLevel=0;
@@ -255,16 +225,16 @@ app.post('/api/clock',(req,res)=>{
 });
 
 // Reset Clock State (for new day or manual reset)
-app.post('/api/clock/reset', (req, res) => {
+app.post('/api/clock/reset', async (req, res) => {
   console.log('🔄 Manual reset clock triggered');
   const today = new Date().toISOString().slice(0, 10);
 
   // Xóa tournament data từ database
   try {
-    const r1 = db.prepare('DELETE FROM tournament_buyin WHERE date=?').run(today);
+    const r1 = await db.prepare('DELETE FROM tournament_buyin WHERE date=?').run(today);
     console.log(`  - Xóa ${r1.changes} record từ tournament_buyin`);
 
-    const r2 = db.prepare(`DELETE FROM transactions WHERE date(created_at)=? AND (
+    const r2 = await db.prepare(`DELETE FROM transactions WHERE substr(created_at,1,10)=? AND (
       table_name LIKE 'Tour%' OR table_name LIKE 'tour%' OR
       note LIKE '%TIEN_MAT_TOUR%' OR note LIKE '%[TOUR]%'
     )`).run(today);
@@ -429,11 +399,11 @@ app.get('/api/display', (req, res) => {
 });
 
 // CUSTOMERS
-app.get('/api/customers', (req, res) => {
-  res.json(db.prepare('SELECT * FROM customers').all());
+app.get('/api/customers', async (req, res) => {
+  res.json(await db.prepare('SELECT * FROM customers').all());
 });
 
-app.post('/api/customers', (req, res) => {
+app.post('/api/customers', async (req, res) => {
   const { name, phone } = req.body;
   if (!name || typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Tên không hợp lệ' });
@@ -443,120 +413,108 @@ app.post('/api/customers', (req, res) => {
   }
   try {
     const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    const r = db.prepare('INSERT INTO customers (name,phone,top1,top2,top3,rounds,drinks,created_at,last_top_increase) VALUES (?,?,0,0,0,0,0,?,?)').run(name.trim(), phone, now, now);
+    const r = await db.prepare('INSERT INTO customers (name,phone,top1,top2,top3,rounds,drinks,created_at,last_top_increase) VALUES (?,?,0,0,0,0,0,?,?) RETURNING id').run(name.trim(), phone, now, now);
     res.json({ id: r.lastInsertRowid, name: name.trim(), phone, top1:0, top2:0, top3:0, rounds:0, drinks:0 });
   } catch(e) {
     res.status(400).json({ error: 'SĐT hoặc tên đã tồn tại' });
   }
 });
 
-app.put('/api/customers/:phone', (req, res) => {
+app.put('/api/customers/:phone', async (req, res) => {
   const { top1, top2, top3, rounds, drinks } = req.body;
-  const old = db.prepare('SELECT top1,top2,top3 FROM customers WHERE phone=?').get(req.params.phone);
+  const old = await db.prepare('SELECT top1,top2,top3 FROM customers WHERE phone=?').get(req.params.phone);
   const topIncreased = old && (top1 > (old.top1 || 0) || top2 > (old.top2 || 0) || top3 > (old.top3 || 0));
   const now = topIncreased ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null;
 
   if(topIncreased){
-    db.prepare('UPDATE customers SET top1=?,top2=?,top3=?,rounds=?,drinks=?,last_top_increase=? WHERE phone=?')
+    await db.prepare('UPDATE customers SET top1=?,top2=?,top3=?,rounds=?,drinks=?,last_top_increase=? WHERE phone=?')
       .run(top1, top2, top3, rounds, drinks, now, req.params.phone);
   } else {
-    db.prepare('UPDATE customers SET top1=?,top2=?,top3=?,rounds=?,drinks=? WHERE phone=?')
+    await db.prepare('UPDATE customers SET top1=?,top2=?,top3=?,rounds=?,drinks=? WHERE phone=?')
       .run(top1, top2, top3, rounds, drinks, req.params.phone);
   }
   res.json({ ok: true });
 });
 
-app.delete('/api/customers/:phone', (req, res) => {
-  db.prepare('DELETE FROM customers WHERE phone=?').run(req.params.phone);
+app.delete('/api/customers/:phone', async (req, res) => {
+  await db.prepare('DELETE FROM customers WHERE phone=?').run(req.params.phone);
   res.json({ ok: true });
 });
 
 // Auto-cleanup: xóa khách hàng 3 tháng ko tăng top
-app.post('/api/customers/cleanup', (req, res) => {
+app.post('/api/customers/cleanup', async (req, res) => {
   const threeMonthsAgo = new Date();
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
   const dateStr = threeMonthsAgo.toISOString().slice(0, 19).replace('T', ' ');
 
-  const oldCustomers = db.prepare(
+  const oldCustomers = await db.prepare(
     `SELECT phone FROM customers WHERE last_top_increase < ?`
   ).all(dateStr);
 
   let deleted = 0;
-  oldCustomers.forEach(c => {
-    db.prepare('DELETE FROM customers WHERE phone=?').run(c.phone);
+  for (const c of oldCustomers) {
+    await db.prepare('DELETE FROM customers WHERE phone=?').run(c.phone);
     deleted++;
-  });
+  }
 
   console.log(`[CLEANUP] Xóa ${deleted} khách hàng 3 tháng không tăng top`);
   res.json({ deleted });
 });
 
 // TRANSACTIONS
-app.get('/api/transactions', (req, res) => {
-  res.json(db.prepare('SELECT * FROM transactions ORDER BY id DESC LIMIT 500').all());
+app.get('/api/transactions', async (req, res) => {
+  res.json(await db.prepare('SELECT * FROM transactions ORDER BY id DESC LIMIT 500').all());
 });
 
-app.post('/api/transactions', (req, res) => {
+app.post('/api/transactions', async (req, res) => {
   const { payer, phone, amount, table_name, note } = req.body;
   // Chống lưu trùng: kiểm tra giao dịch tương tự trong vòng 10 giây
-  const recent = db.prepare(
-    `SELECT id FROM transactions WHERE payer=? AND amount=? AND created_at >= datetime('now','-10 seconds','localtime')`
-  ).get(payer, amount);
+  const cutoff = new Date(Date.now() - 10000).toISOString().slice(0, 19).replace('T', ' ');
+  const recent = await db.prepare(
+    `SELECT id FROM transactions WHERE payer=? AND amount=? AND created_at >= ?`
+  ).get(payer, amount, cutoff);
   if(recent){
     console.log(`[TX] Bỏ qua trùng lặp — ${payer} ${amount}đ`);
     return res.json({ id: recent.id, duplicate: true });
   }
-  const r = db.prepare('INSERT INTO transactions (payer,phone,amount,table_name,note) VALUES (?,?,?,?,?)')
+  const r = await db.prepare('INSERT INTO transactions (payer,phone,amount,table_name,note) VALUES (?,?,?,?,?) RETURNING id')
     .run(payer, phone, amount, table_name, note);
   res.json({ id: r.lastInsertRowid });
 });
 
 // STOCK
-app.get('/api/stock', (req, res) => {
-  res.json(db.prepare('SELECT * FROM stock').all());
+app.get('/api/stock', async (req, res) => {
+  res.json(await db.prepare('SELECT * FROM stock').all());
 });
 
-app.post('/api/stock', (req, res) => {
+app.post('/api/stock', async (req, res) => {
   const { name, qty, price, cost } = req.body;
-  db.prepare(`INSERT INTO stock (name,qty,price,cost) VALUES (?,?,?,?)
-    ON CONFLICT(name) DO UPDATE SET qty=qty+excluded.qty, price=excluded.price, cost=excluded.cost`)
+  await db.prepare(`INSERT INTO stock (name,qty,price,cost) VALUES (?,?,?,?)
+    ON CONFLICT(name) DO UPDATE SET qty=stock.qty+excluded.qty, price=excluded.price, cost=excluded.cost`)
     .run(name, qty, price || 0, cost || 1);
-  res.json(db.prepare('SELECT * FROM stock WHERE name=?').get(name));
+  res.json(await db.prepare('SELECT * FROM stock WHERE name=?').get(name));
 });
 
-app.delete('/api/stock/:name', (req, res) => {
-  db.prepare('DELETE FROM stock WHERE name=?').run(req.params.name);
+app.delete('/api/stock/:name', async (req, res) => {
+  await db.prepare('DELETE FROM stock WHERE name=?').run(req.params.name);
   res.json({ ok: true });
 });
 
-app.put('/api/stock/:name/use', (req, res) => {
+app.put('/api/stock/:name/use', async (req, res) => {
   const today = new Date().toISOString().slice(0,10);
   const name = req.params.name;
-  db.prepare('UPDATE stock SET qty=MAX(0,qty-1), consumed=consumed+1 WHERE name=?').run(name);
+  await db.prepare('UPDATE stock SET qty=GREATEST(0,qty-1), consumed=consumed+1 WHERE name=?').run(name);
   // Lưu tiêu thụ theo ngày riêng
-  try {
-    db.prepare(`INSERT INTO daily_consumed (name,date,qty) VALUES (?,?,1)
-      ON CONFLICT(name,date) DO UPDATE SET qty=qty+1`).run(name, today);
-  } catch(e) {
-    // Nếu bảng chưa có thì tạo
-    db.prepare(`CREATE TABLE IF NOT EXISTS daily_consumed (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      date TEXT NOT NULL,
-      qty INTEGER DEFAULT 1,
-      UNIQUE(name,date)
-    )`).run();
-    db.prepare(`INSERT INTO daily_consumed (name,date,qty) VALUES (?,?,1)
-      ON CONFLICT(name,date) DO UPDATE SET qty=qty+1`).run(name, today);
-  }
+  await db.prepare(`INSERT INTO daily_consumed (name,date,qty) VALUES (?,?,1)
+    ON CONFLICT(name,date) DO UPDATE SET qty=daily_consumed.qty+1`).run(name, today);
   res.json({ ok: true });
 });
 
 // Tiêu thụ hôm nay từ database
-app.get('/api/stock-daily', (req, res) => {
+app.get('/api/stock-daily', async (req, res) => {
   const today = new Date().toISOString().slice(0,10);
   try {
-    const rows = db.prepare(`
+    const rows = await db.prepare(`
       SELECT dc.name, dc.qty, s.price
       FROM daily_consumed dc
       LEFT JOIN stock s ON s.name=dc.name
@@ -682,9 +640,9 @@ app.post('/api/floor-staff/heartbeat', (req, res) => {
 
 // ── STAFF MANAGEMENT ───────────────────────────────────────────
 // Get all staff members
-app.get('/api/staff', (req, res) => {
+app.get('/api/staff', async (req, res) => {
   try {
-    const staff = db.prepare('SELECT name FROM staff_members ORDER BY name').all();
+    const staff = await db.prepare('SELECT name FROM staff_members ORDER BY name').all();
     res.json(staff);
   } catch(e) {
     res.json([]);
@@ -692,12 +650,12 @@ app.get('/api/staff', (req, res) => {
 });
 
 // Add new staff member
-app.post('/api/staff', (req, res) => {
+app.post('/api/staff', async (req, res) => {
   const { name, password } = req.body;
   if(!name || !password) return res.json({ ok: false, error: 'Thiếu tên hoặc mật khẩu' });
 
   try {
-    db.prepare('INSERT INTO staff_members (name, password) VALUES (?, ?)').run(name, password);
+    await db.prepare('INSERT INTO staff_members (name, password) VALUES (?, ?)').run(name, password);
     res.json({ ok: true });
   } catch(e) {
     res.json({ ok: false, error: 'Nhân viên đã tồn tại' });
@@ -705,12 +663,12 @@ app.post('/api/staff', (req, res) => {
 });
 
 // Delete staff member
-app.delete('/api/staff/:name', (req, res) => {
+app.delete('/api/staff/:name', async (req, res) => {
   const { name } = req.params;
   try {
-    db.prepare('DELETE FROM staff_members WHERE name = ?').run(decodeURIComponent(name));
+    await db.prepare('DELETE FROM staff_members WHERE name = ?').run(decodeURIComponent(name));
     // Also remove from active sessions
-    delete activeSessions[name];
+    delete activeSessions[decodeURIComponent(name)];
     res.json({ ok: true });
   } catch(e) {
     res.json({ ok: false });
@@ -718,19 +676,19 @@ app.delete('/api/staff/:name', (req, res) => {
 });
 
 // Staff login
-app.post('/api/staff/login', (req, res) => {
+app.post('/api/staff/login', async (req, res) => {
   const { name, password, app } = req.body;
   if(!name || !password || !app) return res.json({ ok: false });
 
   try {
-    const staff = db.prepare('SELECT * FROM staff_members WHERE name = ? AND password = ?').get(name, password);
+    const staff = await db.prepare('SELECT * FROM staff_members WHERE name = ? AND password = ?').get(name, password);
     if(!staff) return res.json({ ok: false, error: 'Tên hoặc mật khẩu sai' });
 
     // Generate unique session ID
     const sessionId = `${name}_${app}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Record login in database
-    db.prepare('INSERT INTO staff_sessions (staff_name, app_name, login_time) VALUES (?, ?, CURRENT_TIMESTAMP)').run(name, app);
+    await db.prepare('INSERT INTO staff_sessions (staff_name, app_name, login_time) VALUES (?, ?, CURRENT_TIMESTAMP)').run(name, app);
 
     // Track session in memory - support multiple concurrent sessions
     if (!activeSessions[name]) activeSessions[name] = [];
@@ -747,13 +705,13 @@ app.post('/api/staff/login', (req, res) => {
 });
 
 // Staff logout
-app.post('/api/staff/logout', (req, res) => {
+app.post('/api/staff/logout', async (req, res) => {
   const { name, sessionId } = req.body;
   if(!name) return res.json({ ok: false });
 
   try {
     // Record logout in database
-    db.prepare('UPDATE staff_sessions SET logout_time = CURRENT_TIMESTAMP WHERE staff_name = ? AND logout_time IS NULL').run(name);
+    await db.prepare('UPDATE staff_sessions SET logout_time = CURRENT_TIMESTAMP WHERE staff_name = ? AND logout_time IS NULL').run(name);
 
     // Remove specific session from active sessions
     if (activeSessions[name]) {
@@ -834,41 +792,41 @@ app.post('/api/dealer/seat', (req, res) => {
 
 
 // Xóa 1 giao dịch theo ID (chỉ dùng cho tiền mặt tour)
-app.delete('/api/transactions/:id', (req, res) => {
+app.delete('/api/transactions/:id', async (req, res) => {
   const id = parseInt(req.params.id);
-  const tx = db.prepare('SELECT note FROM transactions WHERE id=?').get(id);
+  const tx = await db.prepare('SELECT note FROM transactions WHERE id=?').get(id);
   if(!tx){ return res.status(404).json({ok:false,error:'Không tìm thấy'}); }
   // Chỉ cho xóa giao dịch tiền mặt tour
   if(!(tx.note||'').includes('[TIEN_MAT_TOUR]')){
     return res.status(403).json({ok:false,error:'Chỉ xóa được giao dịch tiền mặt tour'});
   }
-  db.prepare('DELETE FROM transactions WHERE id=?').run(id);
+  await db.prepare('DELETE FROM transactions WHERE id=?').run(id);
   res.json({ok:true});
 });
 
-app.delete('/api/transactions/day/:date', (req, res) => {
+app.delete('/api/transactions/day/:date', async (req, res) => {
   const date = req.params.date;
-  const r = db.prepare(`DELETE FROM transactions WHERE date(created_at)=?`).run(date);
+  const r = await db.prepare(`DELETE FROM transactions WHERE substr(created_at,1,10)=?`).run(date);
   // Xóa tiêu thụ kho ngày đó luôn
-  try { db.prepare(`DELETE FROM daily_consumed WHERE date=?`).run(date); } catch(e){}
+  try { await db.prepare(`DELETE FROM daily_consumed WHERE date=?`).run(date); } catch(e){}
   console.log(`[RESET] Xóa ${r.changes} giao dịch ngày ${date}`);
   res.json({ ok: true, deleted: r.changes });
 });
 
-app.delete('/api/transactions/month/:month', (req, res) => {
+app.delete('/api/transactions/month/:month', async (req, res) => {
   const month = req.params.month;
-  const r = db.prepare(`DELETE FROM transactions WHERE strftime('%Y-%m', created_at)=?`).run(month);
+  const r = await db.prepare(`DELETE FROM transactions WHERE substr(created_at,1,7)=?`).run(month);
   console.log(`[RESET] Xóa ${r.changes} giao dịch tháng ${month}`);
   res.json({ ok: true, deleted: r.changes });
 });
 
 // ── TOURNAMENT BUY-IN TRACKING ──────────────────────────────────
 // Record buy-in/re-buy
-app.post('/api/tournament/buyin', (req, res) => {
+app.post('/api/tournament/buyin', async (req, res) => {
   const { customerPhone, customerName, isRebuy } = req.body;
   const today = new Date().toISOString().split('T')[0];
   try {
-    db.prepare(`INSERT INTO tournament_buyin (customer_phone, customer_name, date, is_rebuy)
+    await db.prepare(`INSERT INTO tournament_buyin (customer_phone, customer_name, date, is_rebuy)
                VALUES (?, ?, ?, ?)`).run(customerPhone, customerName, today, isRebuy ? 1 : 0);
     res.json({ ok: true });
   } catch(e) {
@@ -877,28 +835,28 @@ app.post('/api/tournament/buyin', (req, res) => {
 });
 
 // Check if customer has tournament_buyin entry for a date
-app.get('/api/tournament-buyin-check', (req, res) => {
+app.get('/api/tournament-buyin-check', async (req, res) => {
   const { phone, date } = req.query;
   if (!phone || !date) {
     return res.json({ count: 0 });
   }
   try {
-    const result = db.prepare(
+    const result = await db.prepare(
       `SELECT COUNT(*) as cnt FROM tournament_buyin WHERE customer_phone=? AND date=?`
     ).get(phone, date);
-    res.json({ count: result?.cnt || 0 });
+    res.json({ count: Number(result?.cnt) || 0 });
   } catch(e) {
     res.json({ count: 0 });
   }
 });
 
 // Get today's tournament stats
-app.get('/api/tournament/stats', (req, res) => {
+app.get('/api/tournament/stats', async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
-  const buyIns = db.prepare(`SELECT COUNT(*) as cnt FROM tournament_buyin WHERE date=? AND is_rebuy=0`)
-    .get(today)?.cnt || 0;
-  const reBuys = db.prepare(`SELECT COUNT(*) as cnt FROM tournament_buyin WHERE date=? AND is_rebuy=1`)
-    .get(today)?.cnt || 0;
+  const buyIns = Number((await db.prepare(`SELECT COUNT(*) as cnt FROM tournament_buyin WHERE date=? AND is_rebuy=0`)
+    .get(today))?.cnt) || 0;
+  const reBuys = Number((await db.prepare(`SELECT COUNT(*) as cnt FROM tournament_buyin WHERE date=? AND is_rebuy=1`)
+    .get(today))?.cnt) || 0;
 
   // Get current players on tour tables
   const playersOnTables = tableState?.tablesTour?.reduce((sum, t) =>
