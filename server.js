@@ -2,6 +2,7 @@ const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
 const db      = require('./database');
+const { startDiscordBot } = require('./discordBot');
 
 const app = express();
 app.use(cors());
@@ -1009,4 +1010,6 @@ app.use(express.static('public'));
 app.listen(3000, '0.0.0.0', () => {
   console.log('Server dang chay tai http://192.168.1.146:3000');
   console.log('✓ All routes configured: /dealer, /floor, /report, /clock, /clock-control');
+  // Khởi động bot Discord (nếu có DISCORD_BOT_TOKEN)
+  startDiscordBot();
 });

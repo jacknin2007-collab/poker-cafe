@@ -14,6 +14,7 @@
   "dependencies": {
     "@electric-sql/pglite": "^0.5.1",
     "cors": "^2.8.6",
+    "discord.js": "^14.26.4",
     "escpos": "^3.0.0-alpha.6",
     "escpos-usb": "^3.0.0-alpha.4",
     "express": "^5.2.1",
