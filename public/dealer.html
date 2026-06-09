@@ -70,7 +70,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 input,select{width:100%;padding:0 11px;font-size:14px;height:38px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-family:inherit;outline:none;margin-bottom:8px;}
 input:focus{border-color:var(--gold);}input::placeholder{color:var(--text3);}
 /* LOGIN */
-#login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;}
+#login-screen,#dealer-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;}
 .login-logo{width:80px;height:80px;object-fit:contain;margin-bottom:16px;filter:drop-shadow(0 0 16px rgba(240,192,64,0.4));}
 .login-title{font-size:24px;font-weight:900;color:var(--gold);margin-bottom:2px;}
 .login-sub{font-size:11px;color:var(--text3);letter-spacing:0.15em;margin-bottom:24px;}
@@ -130,6 +130,19 @@ input:focus{border-color:var(--gold);}input::placeholder{color:var(--text3);}
     <input id="staff-password" type="password" placeholder="Nhập mật khẩu" style="margin-bottom:12px;" onkeydown="if(event.key==='Enter')doLogin()"/>
     <div style="color:var(--red);font-size:13px;margin-bottom:8px;min-height:18px;" id="login-err"></div>
     <button class="btn btn-gold" onclick="doLogin()">✅ Đăng nhập</button>
+  </div>
+</div>
+
+<div id="dealer-screen" style="display:none;">
+  <img src="/logo.png" class="login-logo" alt="" onerror="this.style.display='none'"/>
+  <div class="login-title">Golden Coffee</div>
+  <div class="login-sub" id="dealer-screen-sub">CHỌN BÀN LÀM VIỆC</div>
+  <div class="login-box">
+    <div style="font-size:13px;color:var(--text3);margin-bottom:12px;text-align:center;">Bạn ngồi dealer bàn nào?</div>
+    <button class="btn btn-gold" onclick="chooseDealer(1)">🎲 Bàn 1</button>
+    <button class="btn btn-gold" onclick="chooseDealer(2)">🎲 Bàn 2</button>
+    <button class="btn btn-gold" onclick="chooseDealer(3)">🎲 Bàn 3</button>
+    <button class="btn btn-red" style="margin-top:10px;" onclick="doLogout()">↩ Thoát</button>
   </div>
 </div>
 
@@ -204,7 +217,7 @@ window.addEventListener('load',()=>{
 // Auto-detect API URL — cùng WiFi dùng IP máy chủ
 const API=`https://poker-cafe.onrender.com/api`;
 
-let dealerName='', dealerSessionId='', myTables=[], tableState=null, allCustomers=[];
+let staffName='', dealerName='', dealerSessionId='', myTables=[], tableState=null, allCustomers=[];
 let moveMode=null, addTarget=null, topTarget=null;
 let activeTableTab='normal'; // 'normal' | 'tour'
 let pollTimer=null;
@@ -254,26 +267,35 @@ async function initLogin(){
 }
 
 async function doLogin(){
-  const staffName=document.getElementById('staff-select').value;
+  const staffNameSel=document.getElementById('staff-select').value;
   const password=document.getElementById('staff-password').value;
-  if(!staffName){document.getElementById('login-err').textContent='Vui lòng chọn nhân viên!';return;}
+  if(!staffNameSel){document.getElementById('login-err').textContent='Vui lòng chọn nhân viên!';return;}
   if(!password){document.getElementById('login-err').textContent='Vui lòng nhập mật khẩu!';return;}
 
   const loginRes=await api('/staff/login',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({name:staffName,password,app:'dealer'})
+    body:JSON.stringify({name:staffNameSel,password,app:'dealer'})
   });
   if(!loginRes||!loginRes.ok){
     document.getElementById('login-err').textContent='Sai mật khẩu!';
     document.getElementById('staff-password').value='';
     return;
   }
-  dealerName=staffName;
+  staffName=staffNameSel;
   dealerSessionId=loginRes.sessionId;
+  // Sau khi đăng nhập -> chọn dealer bàn nào (không vào thẳng bàn nữa)
   document.getElementById('login-screen').style.display='none';
+  document.getElementById('dealer-screen').style.display='flex';
+  document.getElementById('dealer-screen-sub').textContent=staffName.toUpperCase()+' · CHỌN BÀN';
+}
+
+// Chọn dealer bàn nào (1/2/3) -> vào bàn thường tương ứng
+async function chooseDealer(n){
+  dealerName='Dealer '+n;
+  document.getElementById('dealer-screen').style.display='none';
   document.getElementById('main-screen').style.display='block';
-  document.getElementById('dealer-badge').textContent=dealerName;
+  document.getElementById('dealer-badge').textContent=staffName+' · Bàn '+n;
 
   await loadAll();
   pollTimer=setInterval(loadState,2000);
@@ -281,13 +303,14 @@ async function doLogin(){
 
 async function doLogout(){
   clearInterval(pollTimer);
-  if(dealerName){
+  if(staffName){
     await api('/staff/logout',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name:dealerName,sessionId:dealerSessionId,app:'dealer'})
+      body:JSON.stringify({name:staffName,sessionId:dealerSessionId,app:'dealer'})
     });
   }
+  staffName='';
   dealerName='';
   dealerSessionId='';
   myTables=[];
@@ -309,6 +332,7 @@ async function doLogout(){
   document.getElementById('login-err').textContent='';
 
   document.getElementById('main-screen').style.display='none';
+  document.getElementById('dealer-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
 }
 
