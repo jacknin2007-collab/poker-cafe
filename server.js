@@ -14,6 +14,9 @@ app.use(express.json());
 // Support multiple concurrent sessions per staff member
 let activeSessions = {}; // { staffName: [{ sessionId, app, loginTime }, ...] }
 
+// Health check nhẹ (dùng cho keep-alive giữ server thức)
+app.get('/healthz', (req, res) => res.json({ ok: true, t: Date.now() }));
+
 // Trang dealer
 app.get('/dealer', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dealer.html'));
@@ -1010,6 +1013,29 @@ app.use(express.static('public'));
 app.listen(3000, '0.0.0.0', () => {
   console.log('Server dang chay tai http://192.168.1.146:3000');
   console.log('✓ All routes configured: /dealer, /floor, /report, /clock, /clock-control');
-  // Khởi động bot Discord (nếu có DISCORD_BOT_TOKEN)
+  // Khởi động 2 bot Discord (nếu có token)
   startDiscordBot();
+  // Giữ server thức để bot luôn online (chỉ chạy trên Render)
+  startKeepAlive();
 });
+
+// ── KEEP-ALIVE ──────────────────────────────────────────────
+// Tự ping chính mình định kỳ để Render free không cho server "ngủ".
+// Render tự cấp biến RENDER_EXTERNAL_URL = URL công khai của web.
+// Mặc định 10 phút (đủ vì Render chỉ ngủ sau 15 phút). Đổi qua KEEPALIVE_SECONDS.
+function startKeepAlive() {
+  const url = process.env.RENDER_EXTERNAL_URL;
+  if (!url) {
+    console.log('[KEEPALIVE] Không có RENDER_EXTERNAL_URL (chạy local) — bỏ qua.');
+    return;
+  }
+  const seconds = Math.max(60, Number(process.env.KEEPALIVE_SECONDS) || 600);
+  console.log(`[KEEPALIVE] Tự ping ${url}/healthz mỗi ${seconds}s để giữ server thức.`);
+  setInterval(async () => {
+    try {
+      await fetch(`${url}/healthz`, { signal: AbortSignal.timeout(20000) });
+    } catch (e) {
+      console.error('[KEEPALIVE] Ping lỗi:', e.message);
+    }
+  }, seconds * 1000);
+}
