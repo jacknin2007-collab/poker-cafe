@@ -495,8 +495,10 @@ function confirmAdd(){
 
 // ── TOP (chỉ bàn thường) ───────────────────────────────────────
 function openTopSelect(name,tableId){
+  // Lưu ghế hiện tại TRƯỚC khi đóng menu (closeSheet sẽ xóa activeSeat)
+  const seatIndex=activeSeat?activeSeat.seatIndex:null;
   closeSheet('seat-overlay');
-  topTarget={name,tableId};
+  topTarget={name,tableId,seatIndex};
   document.getElementById('top-sub').textContent='Trao top cho: '+name;
   document.getElementById('top-grid').innerHTML=`
     <button class="top-btn t1" onclick="giveTop('${name.replace(/'/g,"\\'")}',1)">🥇 Top 1<br><span style="font-size:11px;font-weight:400;color:var(--text3);">+1R +2N</span></button>
@@ -507,6 +509,8 @@ function openTopSelect(name,tableId){
 }
 
 async function giveTop(name,topNum){
+  // Lưu ghế cần out TRƯỚC khi đóng sheet (closeSheet sẽ xóa topTarget)
+  const outSeat=(topTarget&&topTarget.seatIndex!=null)?{tableId:topTarget.tableId,seatIndex:topTarget.seatIndex}:null;
   closeSheet('top-overlay');
   // Fetch dữ liệu mới nhất từ server để tránh xung đột với app index
   await refreshAllCustomers();
@@ -530,7 +534,7 @@ async function giveTop(name,topNum){
   if(r){
     const bounty = updated.top1*30 + updated.top2*20 + updated.top3*10;
     showToast(`${name}: Top ${topNum} — Bounty: ${bounty} ✅`);
-    if(activeSeat){updateSeat(activeSeat.tableId,activeSeat.seatIndex,'');}
+    if(outSeat){updateSeat(outSeat.tableId,outSeat.seatIndex,'');}
     await refreshAllCustomers();
   }else showToast('Lỗi lưu!','e');
 }
