@@ -461,6 +461,56 @@ app.post('/api/customers/cleanup', async (req, res) => {
   res.json({ deleted });
 });
 
+// ── BOUNTY API (cho Discord bot tra cứu theo SĐT) ───────────────
+// Bot gọi: GET /api/bounty?sdt=0901234567  (kèm header x-api-key)
+// Bounty = top1*30 + top2*20 + top3*10
+const BOUNTY_API_KEY = process.env.BOUNTY_API_KEY || '';
+app.get('/api/bounty', async (req, res) => {
+  // 1) Bảo mật: chỉ ai có đúng khóa bí mật (bot của bạn) mới gọi được
+  if (!BOUNTY_API_KEY || req.get('x-api-key') !== BOUNTY_API_KEY) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+
+  // 2) Lấy SĐT, bỏ ký tự không phải số
+  const sdt = String(req.query.sdt || '').replace(/\D/g, '');
+  if (!sdt) {
+    return res.status(400).json({ error: 'missing sdt' });
+  }
+
+  try {
+    // 3) Tra database (PostgreSQL) theo cột phone
+    const c = await db.prepare(
+      'SELECT name, top1, top2, top3, rounds, drinks FROM customers WHERE phone = ? LIMIT 1'
+    ).get(sdt);
+
+    if (!c) {
+      return res.json({ found: false });
+    }
+
+    // 4) Tính bounty từ top
+    const top1 = Number(c.top1) || 0;
+    const top2 = Number(c.top2) || 0;
+    const top3 = Number(c.top3) || 0;
+    const bounty = top1 * 30 + top2 * 20 + top3 * 10;
+
+    // 5) Trả kết quả cho bot
+    return res.json({
+      found: true,
+      sdt: sdt,
+      ten: c.name,
+      bounty: bounty,
+      top1: top1,
+      top2: top2,
+      top3: top3,
+      rounds: Number(c.rounds) || 0,
+      drinks: Number(c.drinks) || 0,
+    });
+  } catch (err) {
+    console.error('Loi /api/bounty:', err);
+    return res.status(500).json({ error: 'server error' });
+  }
+});
+
 // TRANSACTIONS
 app.get('/api/transactions', async (req, res) => {
   res.json(await db.prepare('SELECT * FROM transactions ORDER BY id DESC LIMIT 500').all());
