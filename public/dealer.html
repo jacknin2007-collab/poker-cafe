@@ -221,6 +221,7 @@ let staffName='', dealerName='', dealerSessionId='', myTables=[], tableState=nul
 let moveMode=null, addTarget=null, topTarget=null;
 let activeTableTab='normal'; // 'normal' | 'tour'
 let pollTimer=null;
+let heartbeatTimer=null;
 let allDealers=[];
 
 function showToast(msg,type='s'){
@@ -284,6 +285,11 @@ async function doLogin(){
   }
   staffName=staffNameSel;
   dealerSessionId=loginRes.sessionId;
+  // Heartbeat giữ phiên sống (chống "ghost" khi đóng app không Thoát)
+  clearInterval(heartbeatTimer);
+  heartbeatTimer=setInterval(()=>{
+    if(staffName&&dealerSessionId) api('/staff/heartbeat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:staffName,sessionId:dealerSessionId})});
+  },60000);
   // Sau khi đăng nhập -> chọn dealer bàn nào (không vào thẳng bàn nữa)
   document.getElementById('login-screen').style.display='none';
   document.getElementById('dealer-screen').style.display='flex';
@@ -303,6 +309,7 @@ async function chooseDealer(n){
 
 async function doLogout(){
   clearInterval(pollTimer);
+  clearInterval(heartbeatTimer);
   if(staffName){
     await api('/staff/logout',{
       method:'POST',

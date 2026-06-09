@@ -390,7 +390,7 @@ async function loadAll(){
     await fetch(API+'/customers/cleanup',{method:'POST'});
   } catch(e) {}
 
-  renderMetrics();renderStockConsumed();
+  renderMetrics();renderStockConsumed();renderFloorToday();
   document.getElementById('cust-list').innerHTML='<div class="empty-msg">Nhập và bấm Search để tìm khách hàng</div>';
 }
 
@@ -416,21 +416,26 @@ function renderMetrics(){
     document.getElementById('table-tour').textContent=tourActive+'/3';
     document.getElementById('queue-normal').textContent=(tableState.queue||[]).length;
     document.getElementById('queue-tour').textContent=(tableState.queueTour||[]).length;
+  }
+}
 
-    // Hiển thị danh sách floor staff với chỉ báo active
-    const history=tableState.floorStaffHistory||[];
-    const active=tableState.floorStaffActive;
-    const el=document.getElementById('floor-staff');
-    if(!history.length){
+// Floor hôm nay — lấy từ hệ thống tài khoản nhân viên (ai đăng nhập app floor hôm nay)
+async function renderFloorToday(){
+  const el=document.getElementById('floor-staff');
+  try{
+    const list=await apiGet('/floor-today');
+    if(!list||!list.length){
       el.innerHTML='<div style="font-size:13px;color:var(--text3);">--</div>';
-    } else {
-      el.innerHTML=history.map(name=>`
-        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;">
-          <span style="width:10px;height:10px;border-radius:50%;background:${active===name?'var(--green)':'var(--border)'};flex-shrink:0;"></span>
-          <span style="color:${active===name?'var(--gold)':'var(--text2)'};font-weight:${active===name?'700':'400'};">${name}</span>
-        </div>
-      `).join('');
+      return;
     }
+    el.innerHTML=list.map(s=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;">
+        <span style="width:10px;height:10px;border-radius:50%;background:${s.active?'var(--green)':'var(--border)'};flex-shrink:0;"></span>
+        <span style="color:${s.active?'var(--gold)':'var(--text2)'};font-weight:${s.active?'700':'400'};">${s.name}${s.active?' · đang làm':''}</span>
+      </div>
+    `).join('');
+  }catch(e){
+    el.innerHTML='<div style="font-size:13px;color:var(--text3);">--</div>';
   }
 }
 
@@ -510,6 +515,7 @@ setInterval(async()=>{
   if(ts)tableState=ts;
   renderMetrics();
   await renderStockConsumed();
+  renderFloorToday();
 },10000);
 
 // Auto-refresh staff data mỗi 10 giây khi ở staff tab

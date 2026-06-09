@@ -215,7 +215,7 @@ async function initLogin(){
 const API=`https://poker-cafe.onrender.com/api`;
 
 let floorName='', floorSessionId='', tableState=null, allCustomers=[];
-let activeTab='tables', pollTimer=null;
+let activeTab='tables', pollTimer=null, heartbeatTimer=null;
 let pendingRemove={tableId:null,seatIndex:null,playerName:null};
 
 // Tour tables: id 4,5,6 = Tour 1,2,3
@@ -268,9 +268,15 @@ async function doLogin(){
   document.getElementById('floor-badge').textContent=floorName;
   loadAll();
   pollTimer=setInterval(loadState,2000);
+  // Heartbeat giữ phiên sống (chống "ghost" khi đóng app không Thoát)
+  clearInterval(heartbeatTimer);
+  heartbeatTimer=setInterval(()=>{
+    if(floorName&&floorSessionId) api('/staff/heartbeat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:floorName,sessionId:floorSessionId})});
+  },60000);
 }
 async function doLogout(){
   clearInterval(pollTimer);
+  clearInterval(heartbeatTimer);
 
   if(floorName){
     await api('/staff/logout',{

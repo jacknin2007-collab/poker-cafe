@@ -652,44 +652,23 @@ app.get('/api/table-state', (req, res) => {
   });
 });
 
-// ── FLOOR STAFF STATUS ──────────────────────────────────────────
-app.post('/api/floor-staff/login', (req, res) => {
-  const { name } = req.body;
-  if(!tableState) return res.json({ ok: false });
-
-  // Thêm vào history nếu chưa có
-  if(!tableState.floorStaffHistory) tableState.floorStaffHistory = [];
-  if(!tableState.floorStaffHistory.includes(name)){
-    tableState.floorStaffHistory.push(name);
+// ── FLOOR HÔM NAY ───────────────────────────────────────────────
+// Danh sách nhân viên đã đăng nhập app floor trong hôm nay (từ hệ thống tài khoản).
+app.get('/api/floor-today', async (req, res) => {
+  try {
+    // Dùng CURRENT_DATE của DB để khớp đúng múi giờ với login_time (CURRENT_TIMESTAMP)
+    const rows = await db.prepare(
+      `SELECT DISTINCT staff_name FROM staff_sessions WHERE app_name='floor' AND login_time::date = CURRENT_DATE ORDER BY staff_name`
+    ).all();
+    // Ai đang online app floor ngay lúc này
+    const activeFloor = new Set();
+    Object.entries(activeSessions).forEach(([name, sessions]) => {
+      if (Array.isArray(sessions) && sessions.some(s => s.app === 'floor')) activeFloor.add(name);
+    });
+    res.json(rows.map(r => ({ name: r.staff_name, active: activeFloor.has(r.staff_name) })));
+  } catch(e) {
+    res.json([]);
   }
-
-  // Set active staff
-  tableState.floorStaffActive = name;
-  tableState.lastFloorActivity = Date.now();
-  tableState.updatedAt = Date.now();
-  saveTableStateFile();
-
-  res.json({ ok: true });
-});
-
-app.post('/api/floor-staff/logout', (req, res) => {
-  if(!tableState) return res.json({ ok: false });
-  tableState.floorStaffActive = null;
-  tableState.lastFloorActivity = null;
-  tableState.updatedAt = Date.now();
-  saveTableStateFile();
-  res.json({ ok: true });
-});
-
-app.post('/api/floor-staff/heartbeat', (req, res) => {
-  const { name } = req.body;
-  if(!tableState || tableState.floorStaffActive !== name) return res.json({ ok: false });
-
-  tableState.lastFloorActivity = Date.now();
-  tableState.updatedAt = Date.now();
-  saveTableStateFile();
-
-  res.json({ ok: true });
 });
 
 // ── STAFF MANAGEMENT ───────────────────────────────────────────
@@ -749,7 +728,8 @@ app.post('/api/staff/login', async (req, res) => {
     activeSessions[name].push({
       sessionId: sessionId,
       app: app,
-      loginTime: Date.now()
+      loginTime: Date.now(),
+      lastSeen: Date.now()
     });
 
     res.json({ ok: true, staffName: name, sessionId: sessionId });
@@ -784,6 +764,31 @@ app.post('/api/staff/logout', async (req, res) => {
     res.json({ ok: false });
   }
 });
+
+// Heartbeat: app gọi định kỳ để báo còn đang dùng (chống phiên "ghost")
+app.post('/api/staff/heartbeat', (req, res) => {
+  const { name, sessionId } = req.body;
+  if (!name || !sessionId) return res.json({ ok: false });
+  const sessions = activeSessions[name];
+  if (Array.isArray(sessions)) {
+    const s = sessions.find(x => x.sessionId === sessionId);
+    if (s) s.lastSeen = Date.now();
+  }
+  res.json({ ok: true });
+});
+
+// Tự xóa phiên "ghost": nhân viên đóng app mà không bấm Thoát -> sau 5 phút
+// không có heartbeat thì coi như offline và xóa khỏi danh sách đang online.
+const GHOST_TIMEOUT_MS = 5 * 60 * 1000;
+setInterval(() => {
+  const now = Date.now();
+  Object.keys(activeSessions).forEach(name => {
+    activeSessions[name] = (activeSessions[name] || []).filter(
+      s => now - (s.lastSeen || s.loginTime || 0) <= GHOST_TIMEOUT_MS
+    );
+    if (activeSessions[name].length === 0) delete activeSessions[name];
+  });
+}, 60 * 1000);
 
 // Get active staff sessions
 app.get('/api/staff/active', (req, res) => {
