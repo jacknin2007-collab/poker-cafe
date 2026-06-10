@@ -40,10 +40,11 @@ function tachTop(noiDung) {
   return m ? { sdt: m[1], top: m[2] } : null;
 }
 
-// Mẫu trả lời cho kênh TOP (giống discord_bot.py cũ)
-function mauTop(sdt, top) {
+// Mẫu trả lời cho kênh TOP (kèm tên khách)
+function mauTop(sdt, top, ten) {
   return '━━━━━━━━━━━━━━━━━━\n'
        + `📱 Số điện thoại: ${sdt}\n`
+       + (ten ? `👤 Khách: ${ten}\n` : '')
        + `🔝 Số top: ${top}\n`
        + '━━━━━━━━━━━━━━━━━━\n'
        + '✅ Đã ghi nhận thông tin.';
@@ -123,8 +124,8 @@ function startDiscordBot() {
       await message.channel.send(`❌ Không tìm thấy khách với SĐT **${kq.sdt}**.`);
       return;
     }
-    // Có khách -> xác nhận (chỉ lưu trên Discord, không đụng main app)
-    await message.channel.send(mauTop(kq.sdt, kq.top));
+    // Có khách -> xác nhận kèm tên (chỉ lưu trên Discord, không đụng main app)
+    await message.channel.send(mauTop(kq.sdt, kq.top, khach.name));
   });
 }
 
