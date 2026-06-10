@@ -652,25 +652,6 @@ app.get('/api/table-state', (req, res) => {
   });
 });
 
-// ── FLOOR HÔM NAY ───────────────────────────────────────────────
-// Danh sách nhân viên đã đăng nhập app floor trong hôm nay (từ hệ thống tài khoản).
-app.get('/api/floor-today', async (req, res) => {
-  try {
-    // Dùng CURRENT_DATE của DB để khớp đúng múi giờ với login_time (CURRENT_TIMESTAMP)
-    const rows = await db.prepare(
-      `SELECT DISTINCT staff_name FROM staff_sessions WHERE app_name='floor' AND login_time::date = CURRENT_DATE ORDER BY staff_name`
-    ).all();
-    // Ai đang online app floor ngay lúc này
-    const activeFloor = new Set();
-    Object.entries(activeSessions).forEach(([name, sessions]) => {
-      if (Array.isArray(sessions) && sessions.some(s => s.app === 'floor')) activeFloor.add(name);
-    });
-    res.json(rows.map(r => ({ name: r.staff_name, active: activeFloor.has(r.staff_name) })));
-  } catch(e) {
-    res.json([]);
-  }
-});
-
 // ── STAFF MANAGEMENT ───────────────────────────────────────────
 // Get all staff members
 app.get('/api/staff', async (req, res) => {

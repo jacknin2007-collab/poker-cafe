@@ -115,6 +115,15 @@ function startDiscordBot() {
     if (message.channel.id !== TOP_CHANNEL_ID) return;
     const kq = tachTop(message.content);
     if (!kq) return;
+    // Kiểm tra SĐT có trong hệ thống main app không (CHỈ ĐỌC — không thêm/sửa main app)
+    const khach = await db.prepare(
+      'SELECT name FROM customers WHERE phone = ? LIMIT 1'
+    ).get(kq.sdt);
+    if (!khach) {
+      await message.channel.send(`❌ Không tìm thấy khách với SĐT **${kq.sdt}**.`);
+      return;
+    }
+    // Có khách -> xác nhận (chỉ lưu trên Discord, không đụng main app)
     await message.channel.send(mauTop(kq.sdt, kq.top));
   });
 }
