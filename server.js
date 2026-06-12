@@ -426,11 +426,16 @@ app.post('/api/customers', async (req, res) => {
 
 app.put('/api/customers/:phone', async (req, res) => {
   const { top1, top2, top3, rounds, drinks } = req.body;
-  const old = await db.prepare('SELECT top1,top2,top3 FROM customers WHERE phone=?').get(req.params.phone);
-  const topIncreased = old && (top1 > (old.top1 || 0) || top2 > (old.top2 || 0) || top3 > (old.top3 || 0));
-  const now = topIncreased ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null;
+  const old = await db.prepare('SELECT top1,top2,top3,rounds,drinks FROM customers WHERE phone=?').get(req.params.phone);
+  // "Hoạt động" = tăng top HOẶC tăng round HOẶC tăng nước
+  const activityIncreased = old && (
+    top1 > (old.top1 || 0) || top2 > (old.top2 || 0) || top3 > (old.top3 || 0) ||
+    rounds > (old.rounds || 0) || drinks > (old.drinks || 0)
+  );
+  const now = activityIncreased ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null;
 
-  if(topIncreased){
+  if(activityIncreased){
+    // last_top_increase giờ là "lần cuối có hoạt động" (top/round/nước)
     await db.prepare('UPDATE customers SET top1=?,top2=?,top3=?,rounds=?,drinks=?,last_top_increase=? WHERE phone=?')
       .run(top1, top2, top3, rounds, drinks, now, req.params.phone);
   } else {
@@ -445,12 +450,13 @@ app.delete('/api/customers/:phone', async (req, res) => {
   res.json({ ok: true });
 });
 
-// Auto-cleanup: xóa khách hàng 3 tháng ko tăng top
+// Auto-cleanup: xóa khách 3 tháng KHÔNG có hoạt động nào (không top, không round, không nước)
 app.post('/api/customers/cleanup', async (req, res) => {
   const threeMonthsAgo = new Date();
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
   const dateStr = threeMonthsAgo.toISOString().slice(0, 19).replace('T', ' ');
 
+  // last_top_increase = lần cuối có hoạt động (top/round/nước). Quá 3 tháng -> xóa.
   const oldCustomers = await db.prepare(
     `SELECT phone FROM customers WHERE last_top_increase < ?`
   ).all(dateStr);
@@ -461,7 +467,7 @@ app.post('/api/customers/cleanup', async (req, res) => {
     deleted++;
   }
 
-  console.log(`[CLEANUP] Xóa ${deleted} khách hàng 3 tháng không tăng top`);
+  console.log(`[CLEANUP] Xóa ${deleted} khách 3 tháng không hoạt động (top/round/nước)`);
   res.json({ deleted });
 });
 
