@@ -309,6 +309,9 @@ async function loadState(){
   if(state.updatedAt&&state.updatedAt===(window._floorLastUpdate||0))return;
   window._floorLastUpdate=state.updatedAt;
   tableState=state;
+  // Làm mới danh sách khách để hiện đúng 4 số cuối SĐT
+  const custs=await api('/customers');
+  if(custs)allCustomers=custs;
   renderTables();
   renderQueues();
 }
@@ -328,6 +331,12 @@ function renderTab(){
 }
 
 // ── BÀN TOUR ──────────────────────────────────────────────────
+// Lấy 4 số cuối SĐT của khách theo tên
+function getCustomerPhone(name){
+  const c=allCustomers.find(x=>x.name===name);
+  return c?('···'+c.phone.slice(-4)):'';
+}
+
 function renderTables(){
   if(!tableState){document.getElementById('tab-content').innerHTML='<div class="empty-msg">Đang tải...</div>';return;}
   const tourTables=(tableState.tablesTour||[]).filter(t=>TOUR_IDS.includes(t.id));
@@ -341,10 +350,11 @@ function renderTables(){
       </div>
       ${t.status!=='active'?'<div class="empty-msg">Bàn chưa mở</div>':`
         <div class="seats-grid">
-          ${t.seats.map((name,si)=>name
-            ?`<div class="seat occ" onclick="confirmRemovePlayer(${t.id},${si},'${name.replace(/'/g,"\\'")}')"><div class="seat-num">G${si+1}</div><div class="seat-name">${name}</div></div>`
-            :`<div class="seat"><div class="seat-num">G${si+1}</div><div class="seat-empty">Trống</div></div>`
-          ).join('')}
+          ${t.seats.map((name,si)=>{
+            if(!name) return `<div class="seat"><div class="seat-num">G${si+1}</div><div class="seat-empty">Trống</div></div>`;
+            const phone=getCustomerPhone(name);
+            return `<div class="seat occ" onclick="confirmRemovePlayer(${t.id},${si},'${name.replace(/'/g,"\\'")}')"><div class="seat-num">G${si+1}</div><div class="seat-name">${name}</div>${phone?`<div style="font-size:10px;color:var(--text2);">${phone}</div>`:''}</div>`;
+          }).join('')}
         </div>`}
     </div>`).join('');
 }
