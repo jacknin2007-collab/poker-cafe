@@ -4,6 +4,14 @@ const path    = require('path');
 const db      = require('./database');
 const { startDiscordBot } = require('./discordBot');
 
+// Lưới an toàn: lỗi async bất ngờ chỉ ghi log, KHÔNG làm sập server.
+process.on('unhandledRejection', (reason) => {
+  console.error('[UNHANDLED REJECTION]', reason && reason.message ? reason.message : reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[UNCAUGHT EXCEPTION]', err && err.message ? err.message : err);
+});
+
 const app = express();
 app.use(cors());
 app.use(express.json());

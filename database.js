@@ -18,6 +18,11 @@ async function makeBackend() {
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false },
     });
+    // QUAN TRỌNG: bắt lỗi của client nhàn rỗi (DB restart / mất kết nối) để
+    // KHÔNG làm sập tiến trình ("Exited with status 1"). Pool tự tạo kết nối mới.
+    pool.on('error', (err) => {
+      console.error('[DB] Lỗi kết nối nhàn rỗi (đã bỏ qua, pool sẽ tự kết nối lại):', err.message);
+    });
     return { query: (sql, params) => pool.query(sql, params) };
   }
   // Local: embedded Postgres (no system install needed), persisted to disk.
