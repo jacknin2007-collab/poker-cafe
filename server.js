@@ -425,7 +425,7 @@ app.post('/api/customers', async (req, res) => {
   }
   try {
     const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    const pwd = (typeof req.body.password === 'string' && req.body.password) ? req.body.password : '123456';
+    const pwd = (typeof req.body.password === 'string' && req.body.password) ? req.body.password : '';
     const isAdmin = req.body.is_admin === true;
     const r = await db.prepare('INSERT INTO customers (name,phone,password,is_admin,top1,top2,top3,rounds,drinks,created_at,last_top_increase) VALUES (?,?,?,?,0,0,0,0,0,?,?) RETURNING id').run(name.trim(), phone, pwd, isAdmin, now, now);
     res.json({ id: r.lastInsertRowid, name: name.trim(), phone, password: pwd, is_admin: isAdmin, top1:0, top2:0, top3:0, rounds:0, drinks:0 });
@@ -545,7 +545,8 @@ app.put('/api/customers/:phone/profile', async (req, res) => {
   const c = await db.prepare('SELECT * FROM customers WHERE phone=?').get(req.params.phone);
   if (!c) return res.status(404).json({ error: 'Không tìm thấy khách' });
   const newName = (typeof name === 'string' && name.trim()) ? name.trim() : c.name;
-  const newPwd = (typeof password === 'string' && password) ? password : c.password;
+  // Có gửi 'password' (kể cả chuỗi rỗng để xoá) -> dùng; không gửi -> giữ nguyên
+  const newPwd = (password !== undefined && password !== null) ? String(password) : c.password;
   const newAdmin = (typeof is_admin === 'boolean') ? is_admin : c.is_admin;
   await db.prepare('UPDATE customers SET name=?, password=?, is_admin=? WHERE phone=?')
     .run(newName, newPwd, newAdmin, req.params.phone);
