@@ -553,6 +553,35 @@ app.put('/api/customers/:phone/profile', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── NỘI DUNG APP (admin chỉnh, mọi khách thấy) ──────────────────
+// Lấy toàn bộ nội dung: GET /api/app-content -> { key: value, ... }
+app.get('/api/app-content', async (req, res) => {
+  try {
+    const rows = await db.prepare('SELECT key, value FROM app_content').all();
+    const obj = {};
+    for (const r of rows) obj[r.key] = r.value;
+    res.json(obj);
+  } catch (e) {
+    res.json({});
+  }
+});
+
+// Admin lưu nội dung: POST /api/app-content { key: value, ... }
+app.post('/api/app-content', async (req, res) => {
+  const body = req.body || {};
+  try {
+    for (const [k, v] of Object.entries(body)) {
+      await db.prepare(
+        `INSERT INTO app_content (key, value) VALUES (?, ?)
+         ON CONFLICT (key) DO UPDATE SET value = excluded.value`
+      ).run(String(k), String(v));
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Lỗi lưu nội dung' });
+  }
+});
+
 // ── BOUNTY API (cho Discord bot tra cứu theo SĐT) ───────────────
 // Bot gọi: GET /api/bounty?sdt=0901234567  (kèm header x-api-key)
 // Bounty = top1*30 + top2*20 + top3*10

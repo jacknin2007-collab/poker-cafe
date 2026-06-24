@@ -152,6 +152,12 @@ async function initSchema() {
     logout_time TIMESTAMP
   )`);
 
+  // App khách hàng: nội dung chung admin chỉnh (banner, thông báo) - mọi khách thấy
+  await run(`CREATE TABLE IF NOT EXISTS app_content (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL DEFAULT ''
+  )`);
+
   // Idempotent migrations for older databases
   try { await run(`ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS password TEXT NOT NULL DEFAULT '123456'`); } catch (e) {}
   try { await run(`ALTER TABLE stock ADD COLUMN IF NOT EXISTS cost INTEGER DEFAULT 1`); } catch (e) {}
