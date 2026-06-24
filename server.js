@@ -520,10 +520,10 @@ app.get('/api/customer/:phone', async (req, res) => {
   res.json(shapeCustomer(c));
 });
 
-// Danh sách khách cho app admin (không trả mật khẩu): GET /api/customers/app-list
+// Danh sách khách cho app admin (kèm mật khẩu để admin quản lý): GET /api/customers/app-list
 app.get('/api/customers/app-list', async (req, res) => {
   const rows = await db.prepare('SELECT * FROM customers ORDER BY name').all();
-  res.json(rows.map(shapeCustomer));
+  res.json(rows.map(r => ({ ...shapeCustomer(r), password: r.password })));
 });
 
 // Khách tự đổi mật khẩu: POST /api/customer/change-password { phone, oldPassword, newPassword }
