@@ -425,8 +425,10 @@ app.post('/api/customers', async (req, res) => {
   }
   try {
     const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    const r = await db.prepare('INSERT INTO customers (name,phone,top1,top2,top3,rounds,drinks,created_at,last_top_increase) VALUES (?,?,0,0,0,0,0,?,?) RETURNING id').run(name.trim(), phone, now, now);
-    res.json({ id: r.lastInsertRowid, name: name.trim(), phone, top1:0, top2:0, top3:0, rounds:0, drinks:0 });
+    const pwd = (typeof req.body.password === 'string' && req.body.password) ? req.body.password : '123456';
+    const isAdmin = req.body.is_admin === true;
+    const r = await db.prepare('INSERT INTO customers (name,phone,password,is_admin,top1,top2,top3,rounds,drinks,created_at,last_top_increase) VALUES (?,?,?,?,0,0,0,0,0,?,?) RETURNING id').run(name.trim(), phone, pwd, isAdmin, now, now);
+    res.json({ id: r.lastInsertRowid, name: name.trim(), phone, password: pwd, is_admin: isAdmin, top1:0, top2:0, top3:0, rounds:0, drinks:0 });
   } catch(e) {
     res.status(400).json({ error: 'SĐT hoặc tên đã tồn tại' });
   }
@@ -477,6 +479,77 @@ app.post('/api/customers/cleanup', async (req, res) => {
 
   console.log(`[CLEANUP] Xóa ${deleted} khách 3 tháng không hoạt động (top/round/nước)`);
   res.json({ deleted });
+});
+
+// ── APP KHÁCH HÀNG: đăng nhập + quản lý tài khoản ────────────────
+// Chuẩn hoá dữ liệu khách trả về cho app (tính bounty, ẩn mật khẩu)
+function shapeCustomer(c) {
+  const top1 = Number(c.top1) || 0;
+  const top2 = Number(c.top2) || 0;
+  const top3 = Number(c.top3) || 0;
+  return {
+    name: c.name,
+    phone: c.phone,
+    is_admin: c.is_admin === true || c.is_admin === 't' || c.is_admin === 1,
+    bounty: top1 * 30 + top2 * 20 + top3 * 10,
+    top1, top2, top3,
+    rounds: Number(c.rounds) || 0,
+    drinks: Number(c.drinks) || 0,
+  };
+}
+
+// Đăng nhập khách: POST /api/customer/login { phone, password }
+app.post('/api/customer/login', async (req, res) => {
+  const phone = String(req.body.phone || '').replace(/\D/g, '');
+  const password = String(req.body.password || '');
+  if (!phone || !password) return res.json({ ok: false, error: 'Thiếu SĐT hoặc mật khẩu' });
+  try {
+    const c = await db.prepare('SELECT * FROM customers WHERE phone=? AND password=? LIMIT 1').get(phone, password);
+    if (!c) return res.json({ ok: false, error: 'SĐT hoặc mật khẩu không đúng' });
+    res.json({ ok: true, customer: shapeCustomer(c) });
+  } catch (e) {
+    res.json({ ok: false, error: 'Lỗi hệ thống' });
+  }
+});
+
+// Lấy thông tin 1 khách (cho app làm mới khi mở lại): GET /api/customer/:phone
+app.get('/api/customer/:phone', async (req, res) => {
+  const phone = String(req.params.phone || '').replace(/\D/g, '');
+  const c = await db.prepare('SELECT * FROM customers WHERE phone=? LIMIT 1').get(phone);
+  if (!c) return res.status(404).json({ error: 'Không tìm thấy khách' });
+  res.json(shapeCustomer(c));
+});
+
+// Danh sách khách cho app admin (không trả mật khẩu): GET /api/customers/app-list
+app.get('/api/customers/app-list', async (req, res) => {
+  const rows = await db.prepare('SELECT * FROM customers ORDER BY name').all();
+  res.json(rows.map(shapeCustomer));
+});
+
+// Khách tự đổi mật khẩu: POST /api/customer/change-password { phone, oldPassword, newPassword }
+app.post('/api/customer/change-password', async (req, res) => {
+  const phone = String(req.body.phone || '').replace(/\D/g, '');
+  const oldP = String(req.body.oldPassword || '');
+  const newP = String(req.body.newPassword || '');
+  if (!phone || !newP) return res.json({ ok: false, error: 'Thiếu thông tin' });
+  const c = await db.prepare('SELECT * FROM customers WHERE phone=? AND password=?').get(phone, oldP);
+  if (!c) return res.json({ ok: false, error: 'Mật khẩu cũ không đúng' });
+  await db.prepare('UPDATE customers SET password=? WHERE phone=?').run(newP, phone);
+  res.json({ ok: true });
+});
+
+// Admin sửa hồ sơ khách (tên / mật khẩu / quyền admin):
+// PUT /api/customers/:phone/profile { name, password, is_admin }
+app.put('/api/customers/:phone/profile', async (req, res) => {
+  const { name, password, is_admin } = req.body;
+  const c = await db.prepare('SELECT * FROM customers WHERE phone=?').get(req.params.phone);
+  if (!c) return res.status(404).json({ error: 'Không tìm thấy khách' });
+  const newName = (typeof name === 'string' && name.trim()) ? name.trim() : c.name;
+  const newPwd = (typeof password === 'string' && password) ? password : c.password;
+  const newAdmin = (typeof is_admin === 'boolean') ? is_admin : c.is_admin;
+  await db.prepare('UPDATE customers SET name=?, password=?, is_admin=? WHERE phone=?')
+    .run(newName, newPwd, newAdmin, req.params.phone);
+  res.json({ ok: true });
 });
 
 // ── BOUNTY API (cho Discord bot tra cứu theo SĐT) ───────────────
@@ -1010,8 +1083,9 @@ scheduleNextReset();
 // Static files - after all API routes to prevent shadowing
 app.use(express.static('public'));
 
-app.listen(3000, '0.0.0.0', () => {
-  console.log('Server dang chay tai http://192.168.1.146:3000');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log('Server dang chay tai cong ' + PORT);
   console.log('✓ All routes configured: /dealer, /floor, /report, /clock, /clock-control');
   // Khởi động 2 bot Discord (nếu có token)
   startDiscordBot();

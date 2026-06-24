@@ -155,6 +155,11 @@ async function initSchema() {
   // Idempotent migrations for older databases
   try { await run(`ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS password TEXT NOT NULL DEFAULT '123456'`); } catch (e) {}
   try { await run(`ALTER TABLE stock ADD COLUMN IF NOT EXISTS cost INTEGER DEFAULT 1`); } catch (e) {}
+  // App khách hàng: thêm mật khẩu đăng nhập + quyền admin cho khách
+  // Mặc định mật khẩu RỖNG -> khách chưa đăng nhập được cho tới khi admin đặt mật khẩu.
+  try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS password TEXT NOT NULL DEFAULT ''`); } catch (e) {}
+  try { await run(`ALTER TABLE customers ALTER COLUMN password SET DEFAULT ''`); } catch (e) {}
+  try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE`); } catch (e) {}
 }
 
 module.exports = db;
