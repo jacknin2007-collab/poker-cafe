@@ -158,6 +158,13 @@ async function initSchema() {
     value TEXT NOT NULL DEFAULT ''
   )`);
 
+  // App khách hàng: ảnh carousel trang chủ (lưu base64 trong DB cho bền)
+  await run(`CREATE TABLE IF NOT EXISTS banner_images (
+    id SERIAL PRIMARY KEY,
+    image TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   // Idempotent migrations for older databases
   try { await run(`ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS password TEXT NOT NULL DEFAULT '123456'`); } catch (e) {}
   try { await run(`ALTER TABLE stock ADD COLUMN IF NOT EXISTS cost INTEGER DEFAULT 1`); } catch (e) {}
