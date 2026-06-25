@@ -583,27 +583,62 @@ app.post('/api/app-content', async (req, res) => {
 });
 
 // ── ẢNH CAROUSEL TRANG CHỦ (admin thêm, lưu trong DB) ───────────
-// Lấy danh sách ảnh: GET /api/banner-images -> [{id, image}]
+// Lấy danh sách ảnh: GET /api/banner-images -> [{id, image, caption}]
 app.get('/api/banner-images', async (req, res) => {
   try {
-    const rows = await db.prepare('SELECT id, image FROM banner_images ORDER BY id').all();
+    const rows = await db.prepare('SELECT id, image, caption FROM banner_images ORDER BY id').all();
     res.json(rows);
   } catch (e) {
     res.json([]);
   }
 });
 
-// Admin thêm ảnh (base64): POST /api/banner-images { image }  (tối đa 5)
+// Admin thêm ảnh (base64): POST /api/banner-images { image, caption }  (tối đa 5)
 app.post('/api/banner-images', async (req, res) => {
   const image = req.body && req.body.image;
+  const caption = (req.body && typeof req.body.caption === 'string') ? req.body.caption : '';
   if (!image || typeof image !== 'string') return res.status(400).json({ error: 'Thiếu ảnh' });
   try {
     const cnt = await db.prepare('SELECT COUNT(*) AS n FROM banner_images').get();
     if (Number(cnt.n) >= 5) return res.status(400).json({ error: 'Tối đa 5 ảnh' });
-    const r = await db.prepare('INSERT INTO banner_images (image) VALUES (?) RETURNING id').run(image);
+    const r = await db.prepare('INSERT INTO banner_images (image, caption) VALUES (?, ?) RETURNING id').run(image, caption);
     res.json({ ok: true, id: r.lastInsertRowid });
   } catch (e) {
     res.status(500).json({ error: 'Lỗi lưu ảnh' });
+  }
+});
+
+// Admin sửa caption ảnh: PUT /api/banner-images/:id/caption { caption }
+app.put('/api/banner-images/:id/caption', async (req, res) => {
+  const caption = (req.body && typeof req.body.caption === 'string') ? req.body.caption : '';
+  try {
+    await db.prepare('UPDATE banner_images SET caption=? WHERE id=?').run(caption, req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Lỗi sửa caption' });
+  }
+});
+
+// ── THÔNG BÁO (admin phát -> hiện ở chuông của khách) ────────────
+app.get('/api/notifications', async (req, res) => {
+  try {
+    const rows = await db.prepare('SELECT id, message, created_at FROM notifications ORDER BY id DESC LIMIT 50').all();
+    res.json(rows);
+  } catch (e) {
+    res.json([]);
+  }
+});
+
+app.post('/api/notifications', async (req, res) => {
+  const message = req.body && req.body.message;
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ error: 'Thiếu nội dung thông báo' });
+  }
+  try {
+    const r = await db.prepare('INSERT INTO notifications (message) VALUES (?) RETURNING id').run(message.trim());
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch (e) {
+    res.status(500).json({ error: 'Lỗi gửi thông báo' });
   }
 });
 

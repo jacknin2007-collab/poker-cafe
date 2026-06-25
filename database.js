@@ -162,6 +162,14 @@ async function initSchema() {
   await run(`CREATE TABLE IF NOT EXISTS banner_images (
     id SERIAL PRIMARY KEY,
     image TEXT NOT NULL,
+    caption TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // App khách hàng: thông báo gửi tới khách (hiện ở chuông)
+  await run(`CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    message TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 
@@ -173,6 +181,7 @@ async function initSchema() {
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS password TEXT NOT NULL DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ALTER COLUMN password SET DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE`); } catch (e) {}
+  try { await run(`ALTER TABLE banner_images ADD COLUMN IF NOT EXISTS caption TEXT NOT NULL DEFAULT ''`); } catch (e) {}
 }
 
 module.exports = db;
