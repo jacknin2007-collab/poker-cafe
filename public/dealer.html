@@ -554,8 +554,9 @@ async function giveTop(name,topNum){
 
 // ── UPDATE SEAT ────────────────────────────────────────────────
 async function updateSeat(tableId,seatIndex,playerName){
+  tableId=Number(tableId);
   const allT=[...(tableState?.tablesNormal||[]),...(tableState?.tablesTour||[])];
-  const t=allT.find(x=>x.id===tableId);
+  const t=allT.find(x=>Number(x.id)===tableId);
   if(t)t.seats[seatIndex]=playerName||'';
   renderTables();
   await api('/dealer/seat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tableId,seatIndex,playerName:playerName||''})});

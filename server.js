@@ -1009,7 +1009,7 @@ app.post('/api/dealer/seat', (req, res) => {
   const { tableId, seatIndex, playerName } = req.body;
   if(!tableState) return res.status(400).json({ error: 'Chưa có table state' });
   const allTables = [...(tableState.tablesNormal||[]), ...(tableState.tablesTour||[])];
-  const t = allTables.find(x => x.id === tableId);
+  const t = allTables.find(x => Number(x.id) === Number(tableId));
   if(!t) return res.status(404).json({ error: 'Không tìm thấy bàn' });
   t.seats[seatIndex] = playerName || '';
   tableState.updatedAt = Date.now();
