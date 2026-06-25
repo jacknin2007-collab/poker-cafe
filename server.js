@@ -495,6 +495,8 @@ function shapeCustomer(c) {
     top1, top2, top3,
     rounds: Number(c.rounds) || 0,
     drinks: Number(c.drinks) || 0,
+    email: c.email || '',
+    avatar: c.avatar || '',
   };
 }
 
@@ -541,15 +543,17 @@ app.post('/api/customer/change-password', async (req, res) => {
 // Admin sửa hồ sơ khách (tên / mật khẩu / quyền admin):
 // PUT /api/customers/:phone/profile { name, password, is_admin }
 app.put('/api/customers/:phone/profile', async (req, res) => {
-  const { name, password, is_admin } = req.body;
+  const { name, password, is_admin, email, avatar } = req.body;
   const c = await db.prepare('SELECT * FROM customers WHERE phone=?').get(req.params.phone);
   if (!c) return res.status(404).json({ error: 'Không tìm thấy khách' });
   const newName = (typeof name === 'string' && name.trim()) ? name.trim() : c.name;
   // Có gửi 'password' (kể cả chuỗi rỗng để xoá) -> dùng; không gửi -> giữ nguyên
   const newPwd = (password !== undefined && password !== null) ? String(password) : c.password;
   const newAdmin = (typeof is_admin === 'boolean') ? is_admin : c.is_admin;
-  await db.prepare('UPDATE customers SET name=?, password=?, is_admin=? WHERE phone=?')
-    .run(newName, newPwd, newAdmin, req.params.phone);
+  const newEmail = (email !== undefined && email !== null) ? String(email) : (c.email || '');
+  const newAvatar = (avatar !== undefined && avatar !== null) ? String(avatar) : (c.avatar || '');
+  await db.prepare('UPDATE customers SET name=?, password=?, is_admin=?, email=?, avatar=? WHERE phone=?')
+    .run(newName, newPwd, newAdmin, newEmail, newAvatar, req.params.phone);
   res.json({ ok: true });
 });
 
@@ -586,7 +590,7 @@ app.post('/api/app-content', async (req, res) => {
 // Lấy danh sách ảnh: GET /api/banner-images -> [{id, image, caption}]
 app.get('/api/banner-images', async (req, res) => {
   try {
-    const rows = await db.prepare('SELECT id, image, caption FROM banner_images ORDER BY id').all();
+    const rows = await db.prepare('SELECT id, image, caption, created_at FROM banner_images ORDER BY id').all();
     res.json(rows);
   } catch (e) {
     res.json([]);
@@ -650,6 +654,34 @@ app.delete('/api/banner-images/:id', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Lỗi xoá ảnh' });
   }
+});
+
+// ── LỊCH THI ĐẤU (admin đăng, khách xem) ────────────────────────
+app.get('/api/schedules', async (req, res) => {
+  try {
+    const rows = await db.prepare('SELECT id, weekday, title, time_text FROM schedules ORDER BY weekday, id').all();
+    res.json(rows);
+  } catch (e) { res.json([]); }
+});
+
+app.post('/api/schedules', async (req, res) => {
+  const { weekday, title, time_text } = req.body || {};
+  const wd = Number(weekday);
+  if (!(wd >= 1 && wd <= 7) || !title || typeof title !== 'string' || !title.trim()) {
+    return res.status(400).json({ error: 'Dữ liệu lịch không hợp lệ' });
+  }
+  try {
+    const r = await db.prepare('INSERT INTO schedules (weekday, title, time_text) VALUES (?, ?, ?) RETURNING id')
+      .run(wd, title.trim(), typeof time_text === 'string' ? time_text.trim() : '');
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch (e) { res.status(500).json({ error: 'Lỗi lưu lịch' }); }
+});
+
+app.delete('/api/schedules/:id', async (req, res) => {
+  try {
+    await db.prepare('DELETE FROM schedules WHERE id=?').run(req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'Lỗi xoá lịch' }); }
 });
 
 // ── BOUNTY API (cho Discord bot tra cứu theo SĐT) ───────────────
