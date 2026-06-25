@@ -1669,6 +1669,17 @@ function clearSearch(){
   document.getElementById('customer-result').innerHTML='';
 }
 
+// Avatar tròn theo tên: màu cố định theo tên + chữ cái đầu (đặt giữa thẻ khách)
+function avatarColor(name){
+  const colors=['#f0c040','#22c97a','#60a8ff','#c080ff','#ff5555','#e08040','#40c0c0','#ff80c0'];
+  let h=0; const s=name||''; for(let i=0;i<s.length;i++) h=s.charCodeAt(i)+((h<<5)-h);
+  return colors[Math.abs(h)%colors.length];
+}
+function bigAvatar(name){
+  const letter=((name||'?').trim().charAt(0)||'?').toUpperCase();
+  return `<div style="width:74px;height:74px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900;color:#1a1000;margin:0 auto 10px;background:${avatarColor(name||'')};box-shadow:0 0 0 3px var(--gold-mid),0 0 16px rgba(240,192,64,0.3);">${letter}</div>`;
+}
+
 function renderCustomerCard(c){
   const last4=c.phone.slice(-4);
   const onTable=isOnTable(c.name);
@@ -1677,7 +1688,8 @@ function renderCustomerCard(c){
   const blockRound=onTable||inQueue;
   const statusMsg=onTable?`⚠ Đang chơi tại ${tableName}`:inQueue?'⏳ Đang trong hàng chờ':'';
   return `<div class="cust-card">
-    <div class="cust-name">${c.name} <span style="font-size:13px;color:var(--text3);">(${last4})</span></div>
+    ${bigAvatar(c.name)}
+    <div class="cust-name" style="text-align:center;">${c.name} <span style="font-size:13px;color:var(--text3);">(${last4})</span></div>
     <div class="cust-phone">${c.phone}</div>
     ${statusMsg?`<div class="warn-box">${statusMsg}</div>`:''}
     <div class="stat-grid">
