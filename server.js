@@ -437,6 +437,23 @@ app.post('/api/customers', async (req, res) => {
 app.put('/api/customers/:phone', async (req, res) => {
   const { top1, top2, top3, rounds, drinks } = req.body;
   const old = await db.prepare('SELECT top1,top2,top3,rounds,drinks FROM customers WHERE phone=?').get(req.params.phone);
+
+  // Ghi lịch sử mỗi khi được trao top mới (cho app khách tra cứu)
+  if (old) {
+    const units = { 1: 30, 2: 20, 3: 10 };
+    const news = { 1: Number(top1) || 0, 2: Number(top2) || 0, 3: Number(top3) || 0 };
+    const olds = { 1: Number(old.top1) || 0, 2: Number(old.top2) || 0, 3: Number(old.top3) || 0 };
+    for (const rank of [1, 2, 3]) {
+      const delta = news[rank] - olds[rank];
+      for (let k = 0; k < delta && k < 50; k++) {
+        try {
+          await db.prepare('INSERT INTO match_history (phone, top_rank, points) VALUES (?, ?, ?)')
+            .run(req.params.phone, rank, units[rank]);
+        } catch (e) {}
+      }
+    }
+  }
+
   // "Hoạt động" = tăng top HOẶC tăng round HOẶC tăng nước
   const activityIncreased = old && (
     top1 > (old.top1 || 0) || top2 > (old.top2 || 0) || top3 > (old.top3 || 0) ||
@@ -654,6 +671,17 @@ app.delete('/api/banner-images/:id', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Lỗi xoá ảnh' });
   }
+});
+
+// ── LỊCH SỬ ĐẤU (lịch sử được trao top của 1 khách) ─────────────
+app.get('/api/customer/:phone/history', async (req, res) => {
+  const phone = String(req.params.phone || '').replace(/\D/g, '');
+  try {
+    const rows = await db.prepare(
+      'SELECT id, top_rank, points, created_at FROM match_history WHERE phone=? ORDER BY id DESC LIMIT 200'
+    ).all(phone);
+    res.json(rows);
+  } catch (e) { res.json([]); }
 });
 
 // ── LỊCH THI ĐẤU (admin đăng, khách xem) ────────────────────────

@@ -182,6 +182,15 @@ async function initSchema() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  // App khách hàng: lịch sử được trao top (top mấy, +bao nhiêu bounty, khi nào)
+  await run(`CREATE TABLE IF NOT EXISTS match_history (
+    id SERIAL PRIMARY KEY,
+    phone TEXT NOT NULL,
+    top_rank INTEGER NOT NULL,
+    points INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   // Idempotent migrations for older databases
   try { await run(`ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS password TEXT NOT NULL DEFAULT '123456'`); } catch (e) {}
   try { await run(`ALTER TABLE stock ADD COLUMN IF NOT EXISTS cost INTEGER DEFAULT 1`); } catch (e) {}
