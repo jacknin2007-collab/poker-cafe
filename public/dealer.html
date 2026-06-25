@@ -546,7 +546,7 @@ async function giveTop(name,topNum){
   });
   if(r){
     const bounty = updated.top1*30 + updated.top2*20 + updated.top3*10;
-    showToast(`${name}: Top ${topNum} — Bounty: ${bounty} ✅`);
+    showToast(`${name}: Top ${topNum} — Tier: ${bounty} ✅`);
     if(outSeat){updateSeat(outSeat.tableId,outSeat.seatIndex,'');}
     await refreshAllCustomers();
   }else showToast('Lỗi lưu!','e');

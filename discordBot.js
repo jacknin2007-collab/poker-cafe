@@ -107,7 +107,7 @@ function startDiscordBot() {
     await message.channel.send(
       `📱 SĐT: ${sdt}\n` +
       `👤 Khách: ${data.ten}\n` +
-      `🏆 Số bounty: ${data.bounty}`
+      `🏆 Tier: ${data.bounty}`
     );
   });
 

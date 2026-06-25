@@ -1088,7 +1088,7 @@ async function giveTourRound(){
     await refreshCustomers();
   }
 
-  showToast(`${name}: +${roundsToAdd} Round = +${roundsToAdd} TOP 1 (Bounty +${roundsToAdd*30}) — đã out bàn`);
+  showToast(`${name}: +${roundsToAdd} Round = +${roundsToAdd} TOP 1 (Tier +${roundsToAdd*30}) — đã out bàn`);
   renderTablesLeft();
   renderQueue();
   saveTableState();
@@ -1139,7 +1139,7 @@ async function giveAward(top){
       table_name:srcTable?.name||'', note: rewards.label
     });
     const bounty=updated.top1*30+updated.top2*20+updated.top3*10;
-    showToast(`${name}: ${rewards.label} — Bounty: ${bounty} ✅`);
+    showToast(`${name}: ${rewards.label} — Tier: ${bounty} ✅`);
     // Refresh ngay lập tức sau update để sync với app dealer
     await refreshCustomers();
   } else {
@@ -1691,7 +1691,7 @@ function renderCustomerCard(c){
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:22px;">💰</span>
         <div>
-          <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:0.08em;text-transform:uppercase;">Bounty</div>
+          <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:0.08em;text-transform:uppercase;">Tier</div>
           <div style="font-size:11px;color:var(--text3);">🥇×30 + 🥈×20 + 🥉×10</div>
         </div>
       </div>
