@@ -220,15 +220,21 @@ function showToast(msg,type='success'){const el=document.getElementById('toast')
 function closeDlg(id){document.getElementById(id).classList.remove('show');}
 function openDlg(id){document.getElementById(id).classList.add('show');}
 
+// Timeout tương thích iOS 15.7 (AbortSignal.timeout chỉ có từ iOS 16)
+function timeoutSignal(ms){
+  const c=new AbortController();
+  setTimeout(()=>c.abort(),ms);
+  return c.signal;
+}
 async function apiGet(path,opts){
   try{
-    const r=await fetch(API+path,{...opts,signal:AbortSignal.timeout(8000)});
+    const r=await fetch(API+path,{...opts,signal:timeoutSignal(8000)});
     if(!r.ok)throw new Error('HTTP '+r.status);
     return await r.json();
   }catch(e){setConnStatus('error','Lỗi: '+e.message);return null;}
 }
 async function apiPut(path,body){
-  try{const r=await fetch(API+path,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});return await r.json();}
+  try{const r=await fetch(API+path,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:timeoutSignal(8000)});return await r.json();}
   catch(e){showToast('Lỗi lưu','error');return null;}
 }
 

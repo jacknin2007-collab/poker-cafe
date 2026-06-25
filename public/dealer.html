@@ -238,9 +238,15 @@ function closeSheet(id){
 }
 function openSheet(id){document.getElementById(id).classList.add('show');}
 
+// Timeout tương thích iOS 15.7 (AbortSignal.timeout chỉ có từ iOS 16)
+function timeoutSignal(ms){
+  const c=new AbortController();
+  setTimeout(()=>c.abort(),ms);
+  return c.signal;
+}
 async function api(path,opts={}){
   try{
-    const r=await fetch(API+path,{...opts,signal:AbortSignal.timeout(6000)});
+    const r=await fetch(API+path,{...opts,signal:timeoutSignal(6000)});
     const json=await r.json();
     if(!r.ok){console.error('[API ERROR]',path,r.status,json);return null;}
     return json;
