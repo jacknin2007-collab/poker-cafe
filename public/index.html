@@ -1725,15 +1725,15 @@ function renderCustomerCard(c){
       <div class="stat-box rounds"><div class="stat-icon">🎮</div><div class="stat-label">ROUND</div><div class="stat-value">${c.rounds||0}</div></div>
       <div class="stat-box drinks"><div class="stat-icon">🥤</div><div class="stat-label">NƯỚC</div><div class="stat-value">${c.drinks||0}</div></div>
     </div>
-    <div style="background:linear-gradient(135deg,#2a1a00,#1a1000);border:1px solid var(--gold-mid);border-radius:var(--radius);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:22px;">${getRankIconAndName(c.bounty||0).icon}</span>
+    <div style="background:linear-gradient(135deg,#2a1a00,#1a1000);border:1px solid var(--gold-mid);border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:28px;">${getRankIconAndName(c.tuổi||0).icon}</span>
         <div>
-          <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:0.08em;text-transform:uppercase;">${getRankIconAndName(c.bounty||0).name}</div>
-          <div style="font-size:11px;color:var(--text3);">🥇×30 + 🥈×20 + 🥉×10</div>
+          <div style="font-size:18px;font-weight:900;color:var(--gold);letter-spacing:0.05em;">TUỔI</div>
+          <div style="font-size:10px;color:var(--text3);">🥇×30 + 🥈×20 + 🥉×10</div>
         </div>
       </div>
-      <div style="font-size:28px;font-weight:900;color:var(--gold);text-shadow:0 0 12px rgba(240,192,64,0.4);">${(c.top1||0)*30+(c.top2||0)*20+(c.top3||0)*10}</div>
+      <div style="font-size:36px;font-weight:900;color:var(--gold);text-shadow:0 0 12px rgba(240,192,64,0.4);">${c.tuổi||0}</div>
     </div>
     <div class="cust-btns">
       <button class="cust-btn ${blockRound?'cb-disabled':'cb-blue'}" onclick="${blockRound?'':'redeemRound(\''+c.phone+'\')'}">Đổi Round</button>
