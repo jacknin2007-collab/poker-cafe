@@ -412,7 +412,8 @@ app.get('/api/display', (req, res) => {
 
 // CUSTOMERS
 app.get('/api/customers', async (req, res) => {
-  res.json(await db.prepare('SELECT * FROM customers').all());
+  const rows = await db.prepare('SELECT * FROM customers').all();
+  res.json(rows.map(shapeCustomer));
 });
 
 app.post('/api/customers', async (req, res) => {
