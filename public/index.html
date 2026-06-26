@@ -503,7 +503,7 @@ window.addEventListener('load',()=>{
   }
 });
 
-const API = `https://poker-cafe.onrender.com/api`;
+const API = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : `https://poker-cafe.onrender.com/api`;
 const OWNER_PASS='19842007';
 let reportUnlocked=false;
 
@@ -2122,8 +2122,9 @@ function renderAllCustomerList(list){
       const onTable=isOnTable(c.name);
       const inQ=isInQueue(c.name);
       const status=onTable?`<span class="badge b-green" style="font-size:10px;">Đang chơi</span>`:inQ?`<span class="badge b-amber" style="font-size:10px;">Hàng chờ</span>`:'';
-      if(c.avatar) console.log('Avatar của',c.name,'=',c.avatar.substring(0,50));
-      const avatarHtml=c.avatar?`<img src="${c.avatar}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--gold-dim);flex-shrink:0;" onerror="this.style.display='none'">`:
+      const hasAvatar=c.avatar&&c.avatar.trim().length>0;
+      if(hasAvatar) console.log('Avatar của',c.name,'=',c.avatar.substring(0,50));
+      const avatarHtml=hasAvatar?`<img src="${c.avatar}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--gold-dim);flex-shrink:0;" onerror="this.style.display='none'">`:
         `<div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-mid));flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#000;font-size:16px;">${c.name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2)}</div>`;
       return `<div style="border-bottom:1px solid var(--border);">
         <div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
