@@ -163,6 +163,12 @@ async function initSchema() {
     id SERIAL PRIMARY KEY,
     image TEXT NOT NULL,
     caption TEXT NOT NULL DEFAULT '',
+    top1 TEXT DEFAULT '',
+    top2 TEXT DEFAULT '',
+    top3 TEXT DEFAULT '',
+    top4 TEXT DEFAULT '',
+    top5 TEXT DEFAULT '',
+    top6 TEXT DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 

@@ -604,10 +604,10 @@ app.post('/api/app-content', async (req, res) => {
 });
 
 // ── ẢNH CAROUSEL TRANG CHỦ (admin thêm, lưu trong DB) ───────────
-// Lấy danh sách ảnh: GET /api/banner-images -> [{id, image, caption}]
+// Lấy danh sách ảnh: GET /api/banner-images -> [{id, image, caption, top1-6, created_at}]
 app.get('/api/banner-images', async (req, res) => {
   try {
-    const rows = await db.prepare('SELECT id, image, caption, created_at FROM banner_images ORDER BY id').all();
+    const rows = await db.prepare('SELECT id, image, caption, top1, top2, top3, top4, top5, top6, created_at FROM banner_images ORDER BY id').all();
     res.json(rows);
   } catch (e) {
     res.json([]);
@@ -637,6 +637,18 @@ app.put('/api/banner-images/:id/caption', async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Lỗi sửa caption' });
+  }
+});
+
+// Admin cập nhật top 1-6 của ảnh: PUT /api/banner-images/:id/tops { top1, top2, ..., top6 }
+app.put('/api/banner-images/:id/tops', async (req, res) => {
+  const { top1, top2, top3, top4, top5, top6 } = req.body || {};
+  try {
+    await db.prepare('UPDATE banner_images SET top1=?, top2=?, top3=?, top4=?, top5=?, top6=? WHERE id=?')
+      .run(top1 || '', top2 || '', top3 || '', top4 || '', top5 || '', top6 || '', req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Lỗi sửa top' });
   }
 });
 
