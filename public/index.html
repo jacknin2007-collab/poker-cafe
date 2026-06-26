@@ -614,7 +614,12 @@ async function loadAll(){
     apiGet('/transactions'),
     apiGet('/stock')
   ]);
-  if(custs)customers=custs;
+  if(custs){
+    console.log('Fetched customers:', custs.length);
+    const phuong = custs.find(c => c.name === 'Phương');
+    if(phuong) console.log('Phương avatar length:', phuong.avatar.length);
+    customers=custs;
+  }
   if(txs)transactions=txs;
   if(stk)stock=stk;
 
