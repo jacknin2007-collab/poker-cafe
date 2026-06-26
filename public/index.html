@@ -609,10 +609,11 @@ async function saveTableState(){
 }
 
 async function loadAll(){
-  const [custs,txs,stk]=await Promise.all([
+  const [custs,txs,stk,appContent]=await Promise.all([
     apiGet('/customers'),
     apiGet('/transactions'),
-    apiGet('/stock')
+    apiGet('/stock'),
+    apiGet('/app-content')
   ]);
   if(custs){
     console.log('Fetched customers:', custs.length);
@@ -622,6 +623,9 @@ async function loadAll(){
   }
   if(txs)transactions=txs;
   if(stk)stock=stk;
+  if(appContent&&appContent.rank_tiers){
+    try{cachedRankTiers=JSON.parse(appContent.rank_tiers);}catch(e){console.error('Failed to parse rank_tiers',e);}
+  }
 
   // Xóa sessionStorage để khôi phục trạng thái sạch mỗi lần load trang
   try{ sessionStorage.removeItem('gcTableState'); }catch(e){}
@@ -1681,13 +1685,9 @@ function avatarColor(name){
   return colors[Math.abs(h)%colors.length];
 }
 
+let cachedRankTiers=[];
 function getRankIconAndName(bounty){
-  let rankTiers=[];
-  try{
-    const content=localStorage.getItem('appContent');
-    if(content){const parsed=JSON.parse(content);if(parsed.rank_tiers)rankTiers=JSON.parse(parsed.rank_tiers);}
-  }catch(e){}
-  if(!rankTiers.length) rankTiers=[{name:'Hạng 1',icon:'⭐',min:0},{name:'Hạng 2',icon:'🔥',min:50},{name:'Hạng 3',icon:'👑',min:100}];
+  let rankTiers=cachedRankTiers.length?cachedRankTiers:[{name:'Hạng 1',icon:'⭐',min:0},{name:'Hạng 2',icon:'🔥',min:50},{name:'Hạng 3',icon:'👑',min:100}];
   const matched=[...rankTiers].sort((a,b)=>b.min-a.min).find(r=>bounty>=(r.min||0))||rankTiers[0];
   return {icon:matched.icon||'💎',name:matched.name||'Hạng'};
 }
