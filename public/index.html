@@ -1093,7 +1093,7 @@ async function giveTourRound(){
     await refreshCustomers();
   }
 
-  showToast(`${name}: +${roundsToAdd} Round = +${roundsToAdd} TOP 1 (Tier +${roundsToAdd*30}) — đã out bàn`);
+  showToast(`${name}: +${roundsToAdd} Round = +${roundsToAdd} TOP 1 (Tuổi +${roundsToAdd*30}) — đã out bàn`);
   renderTablesLeft();
   renderQueue();
   saveTableState();
@@ -1144,7 +1144,7 @@ async function giveAward(top){
       table_name:srcTable?.name||'', note: rewards.label
     });
     const bounty=updated.top1*30+updated.top2*20+updated.top3*10;
-    showToast(`${name}: ${rewards.label} — Tier: ${bounty} ✅`);
+    showToast(`${name}: ${rewards.label} — Tuổi: ${bounty} ✅`);
     // Refresh ngay lập tức sau update để sync với app dealer
     await refreshCustomers();
   } else {
@@ -1680,6 +1680,17 @@ function avatarColor(name){
   let h=0; const s=name||''; for(let i=0;i<s.length;i++) h=s.charCodeAt(i)+((h<<5)-h);
   return colors[Math.abs(h)%colors.length];
 }
+
+function getRankIconAndName(bounty){
+  let rankTiers=[];
+  try{
+    const content=localStorage.getItem('appContent');
+    if(content){const parsed=JSON.parse(content);if(parsed.rank_tiers)rankTiers=JSON.parse(parsed.rank_tiers);}
+  }catch(e){}
+  if(!rankTiers.length) rankTiers=[{name:'Hạng 1',icon:'⭐',min:0},{name:'Hạng 2',icon:'🔥',min:50},{name:'Hạng 3',icon:'👑',min:100}];
+  const matched=[...rankTiers].sort((a,b)=>b.min-a.min).find(r=>bounty>=(r.min||0))||rankTiers[0];
+  return {icon:matched.icon||'💎',name:matched.name||'Hạng'};
+}
 function bigAvatar(name){
   const letter=((name||'?').trim().charAt(0)||'?').toUpperCase();
   return `<div style="width:74px;height:74px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900;color:#1a1000;margin:0 auto 10px;background:${avatarColor(name||'')};box-shadow:0 0 0 3px var(--gold-mid),0 0 16px rgba(240,192,64,0.3);">${letter}</div>`;
@@ -1708,9 +1719,9 @@ function renderCustomerCard(c){
     </div>
     <div style="background:linear-gradient(135deg,#2a1a00,#1a1000);border:1px solid var(--gold-mid);border-radius:var(--radius);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
       <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:22px;">💰</span>
+        <span style="font-size:22px;">${getRankIconAndName(c.bounty||0).icon}</span>
         <div>
-          <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:0.08em;text-transform:uppercase;">Tier</div>
+          <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:0.08em;text-transform:uppercase;">${getRankIconAndName(c.bounty||0).name}</div>
           <div style="font-size:11px;color:var(--text3);">🥇×30 + 🥈×20 + 🥉×10</div>
         </div>
       </div>
