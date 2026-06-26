@@ -648,7 +648,8 @@ app.put('/api/banner-images/:id/tops', async (req, res) => {
       .run(top1 || '', top2 || '', top3 || '', top4 || '', top5 || '', top6 || '', req.params.id);
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: 'Lỗi sửa top' });
+    console.error('[PUT /banner-images/:id/tops]', e.message);
+    res.status(500).json({ error: 'Cột top1-6 chưa tồn tại trong DB. Hãy cập nhật schema.' });
   }
 });
 

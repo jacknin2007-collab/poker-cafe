@@ -206,6 +206,12 @@ async function initSchema() {
   try { await run(`ALTER TABLE customers ALTER COLUMN password SET DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE`); } catch (e) {}
   try { await run(`ALTER TABLE banner_images ADD COLUMN IF NOT EXISTS caption TEXT NOT NULL DEFAULT ''`); } catch (e) {}
+  try { await run(`ALTER TABLE banner_images ADD COLUMN IF NOT EXISTS top1 TEXT DEFAULT ''`); } catch (e) {}
+  try { await run(`ALTER TABLE banner_images ADD COLUMN IF NOT EXISTS top2 TEXT DEFAULT ''`); } catch (e) {}
+  try { await run(`ALTER TABLE banner_images ADD COLUMN IF NOT EXISTS top3 TEXT DEFAULT ''`); } catch (e) {}
+  try { await run(`ALTER TABLE banner_images ADD COLUMN IF NOT EXISTS top4 TEXT DEFAULT ''`); } catch (e) {}
+  try { await run(`ALTER TABLE banner_images ADD COLUMN IF NOT EXISTS top5 TEXT DEFAULT ''`); } catch (e) {}
+  try { await run(`ALTER TABLE banner_images ADD COLUMN IF NOT EXISTS top6 TEXT DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS email TEXT NOT NULL DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS avatar TEXT NOT NULL DEFAULT ''`); } catch (e) {}
 }
