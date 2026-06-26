@@ -1102,7 +1102,7 @@ async function giveTourRound(){
     await refreshCustomers();
   }
 
-  showToast(`${name}: +${roundsToAdd} Round = +${roundsToAdd} TOP 1 (Tuổi +${roundsToAdd*30}) — đã out bàn`);
+  showToast(`${name}: +${roundsToAdd} Round = +${roundsToAdd} TOP 1 (Tier +${roundsToAdd*30}) — đã out bàn`);
   renderTablesLeft();
   renderQueue();
   saveTableState();
@@ -1153,7 +1153,7 @@ async function giveAward(top){
       table_name:srcTable?.name||'', note: rewards.label
     });
     const bounty=updated.top1*30+updated.top2*20+updated.top3*10;
-    showToast(`${name}: ${rewards.label} — Tuổi: ${bounty} ✅`);
+    showToast(`${name}: ${rewards.label} — Tier: ${bounty} ✅`);
     // Refresh ngay lập tức sau update để sync với app dealer
     await refreshCustomers();
   } else {
