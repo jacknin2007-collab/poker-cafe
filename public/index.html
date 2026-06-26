@@ -1692,8 +1692,10 @@ function renderCustomerCard(c){
   const tableName=getTableOf(c.name);
   const blockRound=onTable||inQueue;
   const statusMsg=onTable?`⚠ Đang chơi tại ${tableName}`:inQueue?'⏳ Đang trong hàng chờ':'';
+  const hasAvatar=c.avatar&&typeof c.avatar==='string'&&c.avatar.trim().length>0&&c.avatar.startsWith('data:image');
+  const avatarHtml=hasAvatar?`<img src="${c.avatar}" style="width:74px;height:74px;border-radius:50%;display:block;margin:0 auto 10px;object-fit:cover;border:3px solid var(--gold-mid);box-shadow:0 0 16px rgba(240,192,64,0.3);">`:bigAvatar(c.name);
   return `<div class="cust-card">
-    ${bigAvatar(c.name)}
+    ${avatarHtml}
     <div class="cust-name" style="text-align:center;">${c.name} <span style="font-size:13px;color:var(--text3);">(${last4})</span></div>
     <div class="cust-phone">${c.phone}</div>
     ${statusMsg?`<div class="warn-box">${statusMsg}</div>`:''}
