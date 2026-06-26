@@ -624,7 +624,12 @@ async function loadAll(){
   if(txs)transactions=txs;
   if(stk)stock=stk;
   if(appContent&&appContent.rank_tiers){
-    try{cachedRankTiers=JSON.parse(appContent.rank_tiers);}catch(e){console.error('Failed to parse rank_tiers',e);}
+    try{
+      cachedRankTiers=JSON.parse(appContent.rank_tiers);
+      console.log('✓ Loaded rank_tiers:', cachedRankTiers.length, 'tiers');
+    }catch(e){console.error('Failed to parse rank_tiers',e);}
+  } else {
+    console.log('⚠ No rank_tiers in appContent');
   }
 
   // Xóa sessionStorage để khôi phục trạng thái sạch mỗi lần load trang
@@ -1688,7 +1693,10 @@ function avatarColor(name){
 let cachedRankTiers=[];
 function getRankIconAndName(bounty){
   let rankTiers=cachedRankTiers.length?cachedRankTiers:[{name:'Hạng 1',icon:'⭐',min:0},{name:'Hạng 2',icon:'🔥',min:50},{name:'Hạng 3',icon:'👑',min:100}];
-  const matched=[...rankTiers].sort((a,b)=>b.min-a.min).find(r=>bounty>=(r.min||0))||rankTiers[0];
+  if(!cachedRankTiers.length) console.warn('⚠ cachedRankTiers empty, using default tiers');
+  const sorted=[...rankTiers].sort((a,b)=>b.min-a.min);
+  const matched=sorted.find(r=>bounty>=(r.min||0))||rankTiers[0];
+  if(bounty===260) console.log('🔍 getRankIconAndName(260):', matched);
   return {icon:matched.icon||'💎',name:matched.name||'Hạng'};
 }
 function bigAvatar(name){
