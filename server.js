@@ -658,12 +658,26 @@ app.put('/api/banner-images/:id/tops', async (req, res) => {
 // ── THÔNG BÁO (admin phát -> hiện ở chuông của khách) ────────────
 app.get('/api/notifications', async (req, res) => {
   try {
+    const phone = req.query.phone ? String(req.query.phone).replace(/\D/g, '') : null;
     const rows = await db.prepare('SELECT id, message, created_at FROM notifications ORDER BY id DESC LIMIT 50').all();
     const formatted = rows.map(r => ({
       id: r.id,
       message: r.message,
-      created_at: r.created_at ? new Date(r.created_at).toISOString() : null
+      created_at: r.created_at ? new Date(r.created_at).toISOString() : null,
+      is_read: false  // Default, will be overwritten if phone provided
     }));
+
+    // If phone provided, get read status from notification_reads table
+    if (phone) {
+      const reads = await db.prepare('SELECT notification_id, is_read FROM notification_reads WHERE phone=?').all(phone);
+      const readMap = Object.fromEntries(reads.map(r => [r.notification_id, r.is_read]));
+      formatted.forEach(n => {
+        if (readMap.hasOwnProperty(n.id)) {
+          n.is_read = readMap[n.id];
+        }
+      });
+    }
+
     res.json(formatted);
   } catch (e) {
     console.error('[ERROR] getNotifications:', e.message);
@@ -681,6 +695,26 @@ app.post('/api/notifications', async (req, res) => {
     res.json({ ok: true, id: r.lastInsertRowid });
   } catch (e) {
     res.status(500).json({ error: 'Lỗi gửi thông báo' });
+  }
+});
+
+// Mark notification as read: PUT /api/notifications/:id/read { phone }
+app.put('/api/notifications/:id/read', async (req, res) => {
+  const notiId = parseInt(req.params.id);
+  const phone = req.body && req.body.phone ? String(req.body.phone).replace(/\D/g, '') : null;
+  if (!notiId || !phone) {
+    return res.json({ ok: false, error: 'Thiếu thông tin' });
+  }
+  try {
+    await db.prepare(`
+      INSERT INTO notification_reads (notification_id, phone, is_read, read_at)
+      VALUES (?, ?, true, now())
+      ON CONFLICT(notification_id, phone) DO UPDATE SET is_read=true, read_at=now()
+    `).run(notiId, phone);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[ERROR] markNotificationRead:', e.message);
+    res.json({ ok: false, error: 'Lỗi cập nhật' });
   }
 });
 

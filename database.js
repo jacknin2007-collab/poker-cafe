@@ -197,6 +197,16 @@ async function initSchema() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  // Track notification read status per customer
+  await run(`CREATE TABLE IF NOT EXISTS notification_reads (
+    id SERIAL PRIMARY KEY,
+    notification_id INTEGER NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
+    phone TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    read_at TIMESTAMP,
+    UNIQUE(notification_id, phone)
+  )`);
+
   // Idempotent migrations for older databases
   try { await run(`ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS password TEXT NOT NULL DEFAULT '123456'`); } catch (e) {}
   try { await run(`ALTER TABLE stock ADD COLUMN IF NOT EXISTS cost INTEGER DEFAULT 1`); } catch (e) {}
