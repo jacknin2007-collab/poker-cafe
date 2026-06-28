@@ -515,7 +515,7 @@ function shapeCustomer(c) {
     drinks: Number(c.drinks) || 0,
     email: c.email || '',
     avatar: c.avatar || '',
-    created_at: c.created_at || '',
+    created_at: c.created_at ? new Date(c.created_at).toISOString() : null,
   };
 }
 
