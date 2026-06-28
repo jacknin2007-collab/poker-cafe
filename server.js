@@ -718,6 +718,28 @@ app.put('/api/notifications/:id/read', async (req, res) => {
   }
 });
 
+// Mark all notifications as read for customer: PUT /api/notifications/read-all { phone }
+app.put('/api/notifications/read-all', async (req, res) => {
+  const phone = req.body && req.body.phone ? String(req.body.phone).replace(/\D/g, '') : null;
+  if (!phone) {
+    return res.json({ ok: false, error: 'Thiếu thông tin' });
+  }
+  try {
+    const notiIds = await db.prepare('SELECT id FROM notifications').all();
+    for (const n of notiIds) {
+      await db.prepare(`
+        INSERT INTO notification_reads (notification_id, phone, is_read, read_at)
+        VALUES (?, ?, true, now())
+        ON CONFLICT(notification_id, phone) DO UPDATE SET is_read=true, read_at=now()
+      `).run(n.id, phone);
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[ERROR] markAllNotificationsRead:', e.message);
+    res.json({ ok: false, error: 'Lỗi cập nhật' });
+  }
+});
+
 // Admin xoá ảnh: DELETE /api/banner-images/:id
 app.delete('/api/banner-images/:id', async (req, res) => {
   try {
