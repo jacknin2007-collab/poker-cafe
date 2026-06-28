@@ -659,7 +659,12 @@ app.put('/api/banner-images/:id/tops', async (req, res) => {
 app.get('/api/notifications', async (req, res) => {
   try {
     const rows = await db.prepare('SELECT id, message, created_at FROM notifications ORDER BY id DESC LIMIT 50').all();
-    res.json(rows);
+    const formatted = rows.map(r => ({
+      id: r.id,
+      message: r.message,
+      created_at: r.created_at ? new Date(r.created_at).toISOString() : null
+    }));
+    res.json(formatted);
   } catch (e) {
     console.error('[ERROR] getNotifications:', e.message);
     res.json([]);
