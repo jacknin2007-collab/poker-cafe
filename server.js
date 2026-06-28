@@ -657,9 +657,27 @@ app.put('/api/banner-images/:id/tops', async (req, res) => {
 // ── THÔNG BÁO (admin phát -> hiện ở chuông của khách) ────────────
 app.get('/api/notifications', async (req, res) => {
   try {
-    const rows = await db.prepare('SELECT id, message, created_at FROM notifications ORDER BY id DESC LIMIT 50').all();
+    const phone = req.query.phone;
+
+    // Nếu không có phone, trả về tất cả thông báo (cho web/admin)
+    if (!phone) {
+      const rows = await db.prepare('SELECT id, message, created_at FROM notifications ORDER BY id DESC LIMIT 50').all();
+      return res.json(rows);
+    }
+
+    // Nếu có phone, lấy account created_at và chỉ hiện thông báo sau đó
+    const customer = await db.prepare('SELECT created_at FROM customers WHERE phone = ?').get(phone);
+    if (!customer) {
+      return res.json([]);
+    }
+
+    // Lấy thông báo được tạo sau khi customer được tạo
+    const rows = await db.prepare(
+      'SELECT id, message, created_at FROM notifications WHERE created_at > ? ORDER BY id DESC LIMIT 50'
+    ).all(customer.created_at);
     res.json(rows);
   } catch (e) {
+    console.error('[ERROR] getNotifications:', e.message);
     res.json([]);
   }
 });
