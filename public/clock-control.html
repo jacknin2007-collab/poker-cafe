@@ -499,16 +499,8 @@ async function fetchTournamentStats(){
 
 function populateForm(){
   if(!state)return;
-  document.getElementById('f-name').value=state.tournamentName||'GOLDEN COFFEE TOURNAMENT';
-  document.getElementById('f-sstack').value=state.startingStack||50000;
-  document.getElementById('f-rstack').value=state.rebuyStack||50000;
-  if(document.getElementById('f-prize')) document.getElementById('f-prize').value=state.prizePool||0;
-  // Chỉ update f-payout khi user không đang focus
-  if(document.activeElement.id!=='f-payout'){
-    const payoutMillion=Math.round((state.prizePool||0)/1000000);
-    document.getElementById('f-payout').value=payoutMillion||0;
-  }
-  // Update tournament stats từ state (không fetch từ server liên tục)
+
+  // ── Số liệu trực tiếp (auto) — cập nhật mỗi lần poll ──
   document.getElementById('f-buyin').value=state.buyIn||0;
   document.getElementById('f-rebuy').value=state.rebuy||0;
   document.getElementById('f-players').value=state.players||0;
@@ -518,7 +510,19 @@ function populateForm(){
   const tstack=(state.buyIn||0)*sstack+(state.rebuy||0)*rstack;
   document.getElementById('f-tstack').value=tstack;
 
+  // f-prize / f-payout: chỉ đồng bộ khi user KHÔNG đang gõ (tránh reset lúc chỉnh)
+  if(document.activeElement.id!=='f-prize' && document.getElementById('f-prize')){
+    document.getElementById('f-prize').value=state.prizePool||0;
+  }
+  if(document.activeElement.id!=='f-payout'){
+    document.getElementById('f-payout').value=Math.round((state.prizePool||0)/1000000)||0;
+  }
+
+  // ── Ô cấu hình (Tên, Stack) — chỉ set 1 LẦN khi tải, sau đó để user tự chỉnh ──
   if(loaded===false){
+    document.getElementById('f-name').value=state.tournamentName||'GOLDEN COFFEE TOURNAMENT';
+    document.getElementById('f-sstack').value=state.startingStack||50000;
+    document.getElementById('f-rstack').value=state.rebuyStack||50000;
     updatePayoutPreview();
     const buysClosed=document.getElementById('f-buysclosed');
     if(buysClosed) buysClosed.checked=state.buysClosed||false;
