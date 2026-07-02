@@ -533,7 +533,15 @@ async function poll(){
   try{
     const r=await fetch(API+'/clock');
     const st=await r.json();
-    if(st.updatedAt!==lastUpdate){lastUpdate=st.updatedAt;state=st;renderCtrl();populateForm();renderLevels();}
+    if(st.updatedAt!==lastUpdate){
+      lastUpdate=st.updatedAt;
+      // GIỮ blind levels đang chỉnh — không để poll ghi đè / vẽ lại (sẽ xóa số đang gõ)
+      const localLevels=(state&&state.levels)?state.levels:st.levels;
+      state=st;
+      state.levels=localLevels;
+      renderCtrl();populateForm();
+      // KHÔNG gọi renderLevels() ở đây
+    }
   }catch(e){document.getElementById('h-status').textContent='🔴 Mất kết nối';}
 }
 poll();setInterval(poll,1000);
