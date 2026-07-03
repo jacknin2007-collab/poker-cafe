@@ -576,6 +576,21 @@ app.put('/api/customers/:phone/profile', async (req, res) => {
   res.json({ ok: true });
 });
 
+// PUT /api/customers/:phone/stats { top1, top2, top3, rounds, drinks }
+app.put('/api/customers/:phone/stats', async (req, res) => {
+  const { top1, top2, top3, rounds, drinks } = req.body;
+  const c = await db.prepare('SELECT * FROM customers WHERE phone=?').get(req.params.phone);
+  if (!c) return res.status(404).json({ error: 'Không tìm thấy khách' });
+  const newTop1 = Number(top1) || 0;
+  const newTop2 = Number(top2) || 0;
+  const newTop3 = Number(top3) || 0;
+  const newRounds = Number(rounds) || 0;
+  const newDrinks = Number(drinks) || 0;
+  await db.prepare('UPDATE customers SET top1=?, top2=?, top3=?, rounds=?, drinks=? WHERE phone=?')
+    .run(newTop1, newTop2, newTop3, newRounds, newDrinks, req.params.phone);
+  res.json({ ok: true });
+});
+
 // ── NỘI DUNG APP (admin chỉnh, mọi khách thấy) ──────────────────
 // Lấy toàn bộ nội dung: GET /api/app-content -> { key: value, ... }
 app.get('/api/app-content', async (req, res) => {
