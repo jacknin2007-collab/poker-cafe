@@ -131,14 +131,6 @@ input:focus,select:focus{border-color:var(--gold);}input::placeholder{color:var(
       <div class="card-title">Tiêu thụ kho hôm nay</div>
       <div id="stock-consumed"><div class="empty-msg">Chưa có</div></div>
     </div>
-    <div class="card">
-      <div class="card-title">Toàn bộ khách hàng</div>
-      <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <input id="cust-search" placeholder="Nhập ID hoặc tên..." autocomplete="off" style="margin:0;flex:1;"/>
-        <button class="btn btn-gold btn-sm" onclick="searchCustomers()" style="flex-shrink:0;margin:0;">🔍 Search</button>
-      </div>
-      <div id="cust-list"><div class="empty-msg">Nhập và bấm Search để tìm khách hàng</div></div>
-    </div>
   </div>
 
   <div class="body" id="staff-content" style="display:none;">
@@ -393,7 +385,6 @@ async function loadAll(){
   } catch(e) {}
 
   renderMetrics();renderStockConsumed();
-  document.getElementById('cust-list').innerHTML='<div class="empty-msg">Nhập và bấm Search để tìm khách hàng</div>';
 }
 
 function searchCustomers(){
