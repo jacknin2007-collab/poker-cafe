@@ -1734,9 +1734,10 @@ function fallbackCopy(text,done){
 }
 function copyCustName(phone){
   const c=customers.find(x=>x.phone===phone);
-  const text=c?c.name:'';
-  if(!text){showToast('Không tìm thấy khách','error');return;}
-  const done=()=>showToast('Đã sao chép: '+text);
+  if(!c){showToast('Không tìm thấy khách','error');return;}
+  // Sao chép cả tên và SĐT (tên trên, SĐT dưới)
+  const text=c.name+'\n'+c.phone;
+  const done=()=>showToast('Đã sao chép tên + SĐT');
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));
   } else fallbackCopy(text,done);
