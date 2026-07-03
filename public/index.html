@@ -1736,7 +1736,8 @@ function copyCustName(phone){
   const c=customers.find(x=>x.phone===phone);
   if(!c){showToast('Không tìm thấy khách','error');return;}
   // Sao chép: "Tên (4 số cuối)" ở dòng trên, SĐT đầy đủ ở dòng dưới
-  const text=c.name+' ('+c.phone.slice(-4)+')\n'+c.phone;
+  // Dùng \r\n để chắc chắn xuống hàng trên mọi phần mềm (Windows/KiotViet)
+  const text=c.name+' ('+c.phone.slice(-4)+')\r\n'+c.phone;
   const done=()=>showToast('Đã sao chép tên + SĐT');
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));
