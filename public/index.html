@@ -1724,6 +1724,24 @@ function bigAvatar(name){
   return `<div style="width:74px;height:74px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900;color:#1a1000;margin:0 auto 10px;background:${avatarColor(name||'')};box-shadow:0 0 0 3px var(--gold-mid),0 0 16px rgba(240,192,64,0.3);">${letter}</div>`;
 }
 
+// Sao chép tên khách (id) vào clipboard
+function fallbackCopy(text,done){
+  const ta=document.createElement('textarea');
+  ta.value=text; ta.style.position='fixed'; ta.style.top='-1000px'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{document.execCommand('copy'); if(done)done();}catch(e){showToast('Không sao chép được','error');}
+  document.body.removeChild(ta);
+}
+function copyCustName(phone){
+  const c=customers.find(x=>x.phone===phone);
+  const text=c?c.name:'';
+  if(!text){showToast('Không tìm thấy khách','error');return;}
+  const done=()=>showToast('Đã sao chép: '+text);
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));
+  } else fallbackCopy(text,done);
+}
+
 function renderCustomerCard(c){
   const last4=c.phone.slice(-4);
   const onTable=isOnTable(c.name);
@@ -1735,8 +1753,13 @@ function renderCustomerCard(c){
   const avatarHtml=hasAvatar?`<img src="${c.avatar}" style="width:74px;height:74px;border-radius:50%;display:block;margin:0 auto 10px;object-fit:cover;border:3px solid var(--gold-mid);box-shadow:0 0 16px rgba(240,192,64,0.3);">`:bigAvatar(c.name);
   return `<div class="cust-card">
     ${avatarHtml}
-    <div class="cust-name" style="text-align:center;">${c.name} <span style="font-size:13px;color:var(--text3);">(${last4})</span></div>
-    <div class="cust-phone">${c.phone}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <div style="flex:1;min-width:0;">
+        <div class="cust-name" style="margin-bottom:2px;">${c.name} <span style="font-size:13px;color:var(--text3);">(${last4})</span></div>
+        <div style="font-size:13px;color:var(--text3);">${c.phone}</div>
+      </div>
+      <button class="btn btn-gold btn-sm" style="flex-shrink:0;white-space:nowrap;" onclick="copyCustName('${c.phone}')">📋 Sao chép</button>
+    </div>
     ${statusMsg?`<div class="warn-box">${statusMsg}</div>`:''}
     <div class="stat-grid">
       <div class="stat-box top1"><div class="stat-icon">🥇</div><div class="stat-label">TOP 1</div><div class="stat-value">${c.top1||0}</div></div>
