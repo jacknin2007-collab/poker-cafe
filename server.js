@@ -208,6 +208,40 @@ app.get('/api/clock',async(req,res)=>{
 // Tự sync mỗi 2 giây
 setInterval(syncClockFromData, 2000);
 
+// ── LƯU CẤU HÌNH CLOCK VÀO DB (sống sót qua restart) ──────────────
+// Chỉ lưu phần CẤU HÌNH (levels, tên, stack, payout, ảnh nền) — không lưu
+// trạng thái đang chạy (running/timeLeft) vì đó là tạm thời.
+async function saveClockConfig(){
+  try{
+    const cfg=JSON.stringify({
+      levels: clockState.levels,
+      tournamentName: clockState.tournamentName,
+      startingStack: clockState.startingStack,
+      rebuyStack: clockState.rebuyStack,
+      payoutPct: clockState.payoutPct,
+      bgImage: clockState.bgImage,
+    });
+    await db.prepare(`INSERT INTO app_content (key,value) VALUES ('clock_config',?) ON CONFLICT(key) DO UPDATE SET value=?`).run(cfg,cfg);
+  }catch(e){ console.error('[CLOCK SAVE]', e.message); }
+}
+async function loadClockConfig(){
+  try{
+    const row=await db.prepare(`SELECT value FROM app_content WHERE key='clock_config'`).get();
+    if(row&&row.value){
+      const cfg=JSON.parse(row.value);
+      if(Array.isArray(cfg.levels)&&cfg.levels.length) clockState.levels=cfg.levels;
+      if(cfg.tournamentName) clockState.tournamentName=cfg.tournamentName;
+      if(cfg.startingStack) clockState.startingStack=cfg.startingStack;
+      if(cfg.rebuyStack) clockState.rebuyStack=cfg.rebuyStack;
+      if(Array.isArray(cfg.payoutPct)) clockState.payoutPct=cfg.payoutPct;
+      if(cfg.bgImage) clockState.bgImage=cfg.bgImage;
+      clockState.updatedAt=Date.now();
+      console.log('[CLOCK] Đã nạp cấu hình clock đã lưu từ DB');
+    }
+  }catch(e){ console.error('[CLOCK LOAD]', e.message); }
+}
+loadClockConfig(); // nạp khi khởi động
+
 app.post('/api/clock',(req,res)=>{
   const {action,...data}=req.body;
   if(action==='start'){
@@ -231,6 +265,10 @@ app.post('/api/clock',(req,res)=>{
     Object.assign(clockState,data);
     if(clockState.running&&!clockTimer) clockTimer=setInterval(tickClock,1000);
     if(!clockState.running&&clockTimer){clearInterval(clockTimer);clockTimer=null;}
+    // Lưu cấu hình vào DB nếu có thay đổi phần cấu hình (levels/tên/stack/payout/nền)
+    if('levels' in data || 'tournamentName' in data || 'startingStack' in data || 'rebuyStack' in data || 'payoutPct' in data || 'bgImage' in data){
+      saveClockConfig();
+    }
   }
   clockState.updatedAt=Date.now();
   res.json(clockState);
