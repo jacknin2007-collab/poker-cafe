@@ -276,14 +276,23 @@ function switchTab(t){
   document.getElementById('tab-'+t)?.classList.add('active');
 }
 
-async function doAction(action){
-  const r=await fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});
-  state=await r.json();renderCtrl();
+function doAction(action){
+  // Optimistic: cập nhật local + render NGAY, gửi server ở nền
+  if(state){
+    if(action==='start') state.running=true;
+    else if(action==='pause') state.running=false;
+    else if(action==='next' && state.levelIndex<(state.levels?.length||1)-1){ state.levelIndex++; state.timeLeft=(state.levels[state.levelIndex].duration||20)*60; }
+    else if(action==='prev' && state.levelIndex>0){ state.levelIndex--; state.timeLeft=(state.levels[state.levelIndex].duration||20)*60; }
+    renderCtrl();
+  }
+  fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})})
+    .then(r=>r.json()).then(s=>{const lv=state?.levels; state=s; if(lv)state.levels=lv; lastUpdate=s.updatedAt; renderCtrl();}).catch(()=>{});
 }
 
-async function addTime(sec){
-  const r=await fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'addTime',seconds:sec})});
-  state=await r.json();renderCtrl();
+function addTime(sec){
+  if(state){ state.timeLeft=Math.max(0,(state.timeLeft||0)+sec); renderCtrl(); }
+  fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'addTime',seconds:sec})})
+    .then(r=>r.json()).then(s=>{const lv=state?.levels; state=s; if(lv)state.levels=lv; lastUpdate=s.updatedAt;}).catch(()=>{});
 }
 
 async function toggleBuys(){
