@@ -1111,61 +1111,50 @@ async function giveTourRound(){
   awardTarget = null;
 }
 
-async function giveAward(top){
+function giveAward(top){
   document.getElementById('award-dialog').classList.remove('show');
   if(!awardTarget) return;
   const {name, tid, si} = awardTarget;
-  // Fetch dữ liệu mới nhất từ server để tránh xung đột với app dealer
-  await refreshCustomers();
-  let customer=customers.find(x=>x.name===name);
+  awardTarget = null;
+  const customer=customers.find(x=>x.name===name);
   if(!customer){showToast('Không tìm thấy khách!','error');return;}
 
   const rewards = top===1 ? {top1:1,top2:0,top3:0,rounds:1,drinks:2,label:'🥇 Top 1 — +1 Round, +2 Nước'}
                 : top===2 ? {top1:0,top2:1,top3:0,rounds:0,drinks:2,label:'🥈 Top 2 — +2 Nước'}
                 :            {top1:0,top2:0,top3:1,rounds:0,drinks:1,label:'🥉 Top 3 — +1 Nước'};
 
-  // Auto-remove player from table
+  // Out khách khỏi bàn (local)
   const srcTable = tables.find(x=>x.id===tid);
-  if(srcTable && si>=0 && srcTable.seats[si]===name){
-    srcTable.seats[si] = '';
-  }
+  if(srcTable && si>=0 && srcTable.seats[si]===name) srcTable.seats[si]='';
 
-  if(customer){
-    const c1=(customer.top1??0)||0, c2=(customer.top2??0)||0, c3=(customer.top3??0)||0;
-    const cr=(customer.rounds??0)||0, cd=(customer.drinks??0)||0;
-    const updated={
-      top1:c1+rewards.top1,
-      top2:c2+rewards.top2,
-      top3:c3+rewards.top3,
-      rounds:cr+rewards.rounds,
-      drinks:cd+rewards.drinks
-    };
-
-    const r=await apiPut('/customers/'+customer.phone,{
-      top1:updated.top1, top2:updated.top2, top3:updated.top3,
-      rounds:updated.rounds, drinks:updated.drinks
-    });
-    if(!r){showToast('Lỗi lưu dữ liệu!','error');return;}
-
-    Object.assign(customer,updated);
-    await apiPost('/transactions',{
-      payer:name, phone:customer.phone, amount:0,
-      table_name:srcTable?.name||'', note: rewards.label
-    });
-    const bounty=updated.top1*30+updated.top2*20+updated.top3*10;
-    showToast(`${name}: ${rewards.label} — Tier: ${bounty} ✅`);
-    // Refresh ngay lập tức sau update để sync với app dealer
-    await refreshCustomers();
-  } else {
-    showToast(`${name}: ${rewards.label} — đã out bàn`);
-  }
+  // ── Cập nhật local + hiển thị NGAY (không chờ server) ──
+  const updated={
+    top1:((customer.top1??0)||0)+rewards.top1,
+    top2:((customer.top2??0)||0)+rewards.top2,
+    top3:((customer.top3??0)||0)+rewards.top3,
+    rounds:((customer.rounds??0)||0)+rewards.rounds,
+    drinks:((customer.drinks??0)||0)+rewards.drinks
+  };
+  Object.assign(customer,updated);
+  const bounty=updated.top1*30+updated.top2*20+updated.top3*10;
+  showToast(`${name}: ${rewards.label} — Tier: ${bounty} ✅`);
   renderTablesLeft();
   renderQueue();
   saveTableState();
-  // Update search result ngay lập tức
   const searchBox = document.getElementById('search-phone');
   if(searchBox && searchBox.value.length>=4) doSearch();
-  awardTarget = null;
+
+  // ── Đồng bộ server ở nền ──
+  apiPut('/customers/'+customer.phone,{
+    top1:updated.top1, top2:updated.top2, top3:updated.top3,
+    rounds:updated.rounds, drinks:updated.drinks
+  }).then(r=>{
+    if(!r) showToast('Lỗi lưu — kiểm tra mạng','error');
+    return apiPost('/transactions',{
+      payer:name, phone:customer.phone, amount:0,
+      table_name:srcTable?.name||'', note: rewards.label
+    });
+  }).then(()=>refreshCustomers()).catch(()=>showToast('Lỗi đồng bộ','error'));
 }
 
 function clickSeat(tid,si){
@@ -1937,19 +1926,21 @@ async function redeemRound(phone){
   const c=customers.find(x=>x.phone===phone);if(!c)return;
   if(isOnTable(c.name)){showToast('Khách đang trên bàn!','error');return;}
   if((c.rounds||0)<=0){showToast('Không đủ round!','error');return;}
-  showNoteDialog('Đổi Free Round','Ghi chú chế độ chơi:',false,async(note)=>{
+  showNoteDialog('Đổi Free Round','Ghi chú chế độ chơi:',false,(note)=>{
     c.rounds--;
     const c1=(c.top1??0)||0, c2=(c.top2??0)||0, c3=(c.top3??0)||0;
     const cr=(c.rounds??0)||0, cd=(c.drinks??0)||0;
-    await apiPut('/customers/'+phone,{top1:c1,top2:c2,top3:c3,rounds:cr,drinks:cd});
-    await apiPost('/transactions',{payer:c.name,phone,amount:0,table_name:'',note:'Đổi round'+(note?': '+note:'')});
-
-    // Tự động vào hàng chờ sau khi đổi round
+    // Hiển thị NGAY
     if(!getActiveQueue().find(q=>q.name===c.name)){
       getActiveQueue().push({name:c.name,table:'Hàng chờ',time:nowTime()});
       renderQueue();
-    }    showToast('Đã đổi round — '+c.name+' vào hàng chờ!');
+    }
+    showToast('Đã đổi round — '+c.name+' vào hàng chờ!');
     clearSearch();
+    // Đồng bộ server ở nền
+    apiPut('/customers/'+phone,{top1:c1,top2:c2,top3:c3,rounds:cr,drinks:cd})
+      .then(()=>apiPost('/transactions',{payer:c.name,phone,amount:0,table_name:'',note:'Đổi round'+(note?': '+note:'')}))
+      .catch(()=>showToast('Lỗi lưu — kiểm tra mạng','error'));
   });
 }
 
@@ -1972,22 +1963,27 @@ async function redeemDrink(phone){
     c.drinks=Math.max(0,(c.drinks||0)-totalCost);
     const c1=(c.top1??0)||0, c2=(c.top2??0)||0, c3=(c.top3??0)||0;
     const cr=(c.rounds??0)||0, cd=(c.drinks??0)||0;
-    await apiPut('/customers/'+phone,{top1:c1,top2:c2,top3:c3,rounds:cr,drinks:cd});
     const noteStr=items.map(x=>`${x.name}×${x.qty}`).join(', ');
-    await apiPost('/transactions',{payer:c.name,phone,amount:0,table_name:'',note:`Đổi nước: ${noteStr}${totalCost>0?` (-${totalCost}🥤)`:' (miễn phí)'}`});
-    // Trừ kho từng loại
+    // Trừ kho local + hiển thị NGAY
     for(const {item,s} of itemDetails){
       if(s&&s.qty>=item.qty){
         s.qty-=item.qty;
         s.consumed=(s.consumed||0)+item.qty;
         for(let i=0;i<item.qty;i++) addDailyConsumed(s.name);
-        await fetch(API+'/stock/'+encodeURIComponent(s.name)+'/use',{method:'PUT'});
-        // Nếu qty > 1 gọi thêm
-        for(let i=1;i<item.qty;i++)
-          await fetch(API+'/stock/'+encodeURIComponent(s.name)+'/use',{method:'PUT'});
       }
     }
-    showToast(`Đã đổi: ${noteStr}${totalCost>0?` (-${totalCost}🥤)`:''}`);clearSearch();
+    showToast(`Đã đổi: ${noteStr}${totalCost>0?` (-${totalCost}🥤)`:''}`);
+    clearSearch();
+    // Đồng bộ server ở nền
+    (async()=>{
+      try{
+        await apiPut('/customers/'+phone,{top1:c1,top2:c2,top3:c3,rounds:cr,drinks:cd});
+        await apiPost('/transactions',{payer:c.name,phone,amount:0,table_name:'',note:`Đổi nước: ${noteStr}${totalCost>0?` (-${totalCost}🥤)`:' (miễn phí)'}`});
+        for(const {item,s} of itemDetails){
+          if(s){ for(let i=0;i<item.qty;i++) await fetch(API+'/stock/'+encodeURIComponent(s.name)+'/use',{method:'PUT'}); }
+        }
+      }catch(e){ showToast('Lỗi lưu — kiểm tra mạng','error'); }
+    })();
   });
 }
 

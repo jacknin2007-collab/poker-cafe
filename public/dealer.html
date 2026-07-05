@@ -521,12 +521,10 @@ function openTopSelect(name,tableId){
   openSheet('top-overlay');
 }
 
-async function giveTop(name,topNum){
+function giveTop(name,topNum){
   // Lưu ghế cần out TRƯỚC khi đóng sheet (closeSheet sẽ xóa topTarget)
   const outSeat=(topTarget&&topTarget.seatIndex!=null)?{tableId:topTarget.tableId,seatIndex:topTarget.seatIndex}:null;
   closeSheet('top-overlay');
-  // Fetch dữ liệu mới nhất từ server để tránh xung đột với app index
-  await refreshAllCustomers();
   const c=allCustomers.find(x=>x.name===name);
   if(!c){showToast('Không tìm thấy khách!','e');return;}
   const rewards=topNum===1?{top1:1,top2:0,top3:0,rounds:1,drinks:2}:topNum===2?{top1:0,top2:1,top3:0,rounds:0,drinks:2}:{top1:0,top2:0,top3:1,rounds:0,drinks:1};
@@ -539,17 +537,20 @@ async function giveTop(name,topNum){
     rounds:cr+rewards.rounds,
     drinks:cd+rewards.drinks
   };
-  const r=await api('/customers/'+c.phone,{
+  const bounty = updated.top1*30 + updated.top2*20 + updated.top3*10;
+  // ── Hiển thị NGAY: out ghế + toast (không chờ server) ──
+  showToast(`${name}: Top ${topNum} — Tier: ${bounty} ✅`);
+  if(outSeat){updateSeat(outSeat.tableId,outSeat.seatIndex,'');}
+  Object.assign(c,updated); // cập nhật local
+  // ── Đồng bộ server ở nền ──
+  api('/customers/'+c.phone,{
     method:'PUT',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify(updated)
-  });
-  if(r){
-    const bounty = updated.top1*30 + updated.top2*20 + updated.top3*10;
-    showToast(`${name}: Top ${topNum} — Tier: ${bounty} ✅`);
-    if(outSeat){updateSeat(outSeat.tableId,outSeat.seatIndex,'');}
-    await refreshAllCustomers();
-  }else showToast('Lỗi lưu!','e');
+  }).then(r=>{
+    if(!r) showToast('Lỗi lưu!','e');
+    return refreshAllCustomers();
+  }).catch(()=>showToast('Lỗi lưu!','e'));
 }
 
 // ── UPDATE SEAT ────────────────────────────────────────────────
