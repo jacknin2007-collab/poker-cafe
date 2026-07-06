@@ -1988,6 +1988,12 @@ async function redeemDrink(phone){
 }
 
 function confirmAddToQueue(name, phone){
+  // Khách đang trong bàn thì KHÔNG cho thêm vào hàng chờ
+  if(isOnTable(name)){
+    const tn=getTableOf(name);
+    showToast(`${name} đang chơi tại ${tn||'bàn'} — không thêm vào hàng chờ!`,'error');
+    return;
+  }
   showConfirm('Thêm vào hàng chờ?',`Xác nhận thêm ${name} vào hàng chờ?`,[
     {label:'✓ Có',cls:'btn btn-gold',cb:()=>{closeDialog();addToQueueConfirmed(name,phone);}},
     {label:'✕ Không',cls:'btn',cb:()=>{closeDialog();}}
@@ -1995,6 +2001,12 @@ function confirmAddToQueue(name, phone){
 }
 
 async function addToQueueConfirmed(name, phone){
+  // Chặn thêm lần nữa (phòng trường hợp gọi trực tiếp)
+  if(isOnTable(name)){
+    const tn=getTableOf(name);
+    showToast(`${name} đang chơi tại ${tn||'bàn'} — không thêm vào hàng chờ!`,'error');
+    return;
+  }
   if(!getActiveQueue().find(q=>q.name===name)){
     getActiveQueue().push({name:name,table:'Hàng chờ',time:nowTime()});
     renderQueue();
