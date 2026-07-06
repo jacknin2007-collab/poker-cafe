@@ -400,8 +400,43 @@ function renderTables(){
   document.getElementById('tables-area').innerHTML=tabs.map(t=>`
     <div class="card">
       <div class="card-title">${t.name} ${t.status==='active'?'<span style="color:var(--green);">● Đang mở</span>':'<span style="color:var(--text3);">○ Chưa mở</span>'}</div>
-      ${t.status!=='active'?'<div class="empty-msg">Bàn chưa mở</div>':`<div class="seats-grid">${t.seats.map((n,si)=>renderSeat(t,si,n)).join('')}</div>`}
+      ${t.status!=='active'
+        ? `<div class="empty-msg">Bàn chưa mở</div><button class="btn btn-gold" style="margin-top:6px;" onclick="openDealerTable(${t.id})">🔓 Mở bàn</button>`
+        : `<div class="seats-grid">${t.seats.map((n,si)=>renderSeat(t,si,n)).join('')}</div><button class="btn btn-red" style="margin-top:8px;" onclick="closeDealerTable(${t.id})">🔒 Đóng bàn</button>`}
     </div>`).join('');
+}
+
+// ── MỞ / ĐÓNG BÀN (dealer tự thao tác) ─────────────────────────
+function findMyTable(tableId){
+  const allT=[...(tableState?.tablesNormal||[]),...(tableState?.tablesTour||[])];
+  return allT.find(x=>Number(x.id)===Number(tableId));
+}
+async function saveTableStateToServer(){
+  if(!tableState)return;
+  tableState.updatedAt=Date.now();
+  await api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(tableState)});
+}
+function openDealerTable(tableId){
+  const t=findMyTable(tableId);
+  if(!t)return;
+  t.status='active';
+  t.started=new Date().toLocaleTimeString('vi',{hour:'2-digit',minute:'2-digit'});
+  window._dealerLastUpdate=Date.now();
+  renderTables();
+  showToast(t.name+' đã mở!');
+  saveTableStateToServer().catch(()=>{});
+}
+function closeDealerTable(tableId){
+  const t=findMyTable(tableId);
+  if(!t)return;
+  if(!confirm('Đóng '+t.name+'?\nToàn bộ khách trên bàn sẽ bị xóa.'))return;
+  t.status='idle';
+  t.seats=t.seats.map(()=>'');
+  t.started=null;
+  window._dealerLastUpdate=Date.now();
+  renderTables();
+  showToast(t.name+' đã đóng!');
+  saveTableStateToServer().catch(()=>{});
 }
 
 function renderSeat(t,si,name){
