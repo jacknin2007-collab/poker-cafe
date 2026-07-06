@@ -98,6 +98,7 @@ function resetClockState(){
   tournamentDataLocked = false; // Unlock để fetch từ DB ngày mới
   if(clockTimer) {clearInterval(clockTimer); clockTimer=null;}
   scheduleNextReset();
+  if(typeof saveClockConfig==='function') saveClockConfig(); // lưu trạng thái reset
 }
 
 function scheduleNextReset(){
@@ -208,9 +209,11 @@ app.get('/api/clock',async(req,res)=>{
 // Tự sync mỗi 2 giây
 setInterval(syncClockFromData, 2000);
 
-// ── LƯU CẤU HÌNH CLOCK VÀO DB (sống sót qua restart) ──────────────
-// Chỉ lưu phần CẤU HÌNH (levels, tên, stack, payout, ảnh nền) — không lưu
-// trạng thái đang chạy (running/timeLeft) vì đó là tạm thời.
+// ── LƯU TOÀN BỘ TRẠNG THÁI CLOCK VÀO DB (sống sót qua restart) ─────
+// Lưu cả cấu hình (levels, tên, stack...) LẪN trạng thái chạy (running,
+// levelIndex, timeLeft) kèm savedAt, để khi server restart thì đồng hồ
+// TIẾP TỤC chạy đúng chỗ (fast-forward theo thời gian đã trôi) thay vì
+// nhảy về Level 1 / 20:00.
 async function saveClockConfig(){
   try{
     const cfg=JSON.stringify({
@@ -220,6 +223,10 @@ async function saveClockConfig(){
       rebuyStack: clockState.rebuyStack,
       payoutPct: clockState.payoutPct,
       bgImage: clockState.bgImage,
+      running: clockState.running,
+      levelIndex: clockState.levelIndex,
+      timeLeft: clockState.timeLeft,
+      savedAt: Date.now(),
     });
     await db.prepare(`INSERT INTO app_content (key,value) VALUES ('clock_config',?) ON CONFLICT(key) DO UPDATE SET value=?`).run(cfg,cfg);
   }catch(e){ console.error('[CLOCK SAVE]', e.message); }
@@ -227,20 +234,40 @@ async function saveClockConfig(){
 async function loadClockConfig(){
   try{
     const row=await db.prepare(`SELECT value FROM app_content WHERE key='clock_config'`).get();
-    if(row&&row.value){
-      const cfg=JSON.parse(row.value);
-      if(Array.isArray(cfg.levels)&&cfg.levels.length) clockState.levels=cfg.levels;
-      if(cfg.tournamentName) clockState.tournamentName=cfg.tournamentName;
-      if(cfg.startingStack) clockState.startingStack=cfg.startingStack;
-      if(cfg.rebuyStack) clockState.rebuyStack=cfg.rebuyStack;
-      if(Array.isArray(cfg.payoutPct)) clockState.payoutPct=cfg.payoutPct;
-      if(cfg.bgImage) clockState.bgImage=cfg.bgImage;
-      clockState.updatedAt=Date.now();
-      console.log('[CLOCK] Đã nạp cấu hình clock đã lưu từ DB');
+    if(!row||!row.value) return;
+    const cfg=JSON.parse(row.value);
+    if(Array.isArray(cfg.levels)&&cfg.levels.length) clockState.levels=cfg.levels;
+    if(cfg.tournamentName) clockState.tournamentName=cfg.tournamentName;
+    if(cfg.startingStack) clockState.startingStack=cfg.startingStack;
+    if(cfg.rebuyStack) clockState.rebuyStack=cfg.rebuyStack;
+    if(Array.isArray(cfg.payoutPct)) clockState.payoutPct=cfg.payoutPct;
+    if(cfg.bgImage) clockState.bgImage=cfg.bgImage;
+    if(typeof cfg.levelIndex==='number') clockState.levelIndex=cfg.levelIndex;
+    if(typeof cfg.timeLeft==='number') clockState.timeLeft=cfg.timeLeft;
+
+    if(cfg.running){
+      // Tính thời gian đã trôi từ lúc lưu, "tua nhanh" đồng hồ cho đúng
+      let elapsed=Math.floor((Date.now()-(cfg.savedAt||Date.now()))/1000);
+      let idx=clockState.levelIndex||0;
+      let tl=clockState.timeLeft||0;
+      const lvs=clockState.levels||[];
+      while(elapsed>0 && idx<lvs.length-1 && elapsed>=tl){
+        elapsed-=tl; idx++; tl=(lvs[idx]?.duration||20)*60;
+      }
+      tl=Math.max(0, tl-elapsed);
+      clockState.levelIndex=idx;
+      clockState.timeLeft=tl;
+      clockState.running=true;
+      if(!clockTimer) clockTimer=setInterval(tickClock,1000);
     }
+    clockState.updatedAt=Date.now();
+    console.log('[CLOCK] Đã nạp trạng thái clock từ DB (running='+clockState.running+', level='+(clockState.levelIndex+1)+', timeLeft='+clockState.timeLeft+')');
   }catch(e){ console.error('[CLOCK LOAD]', e.message); }
 }
 loadClockConfig(); // nạp khi khởi động
+
+// Lưu định kỳ trạng thái đồng hồ khi đang chạy (để restart giữa chừng vẫn đúng)
+setInterval(()=>{ if(clockState.running) saveClockConfig(); }, 10000);
 
 app.post('/api/clock',(req,res)=>{
   const {action,...data}=req.body;
@@ -265,12 +292,10 @@ app.post('/api/clock',(req,res)=>{
     Object.assign(clockState,data);
     if(clockState.running&&!clockTimer) clockTimer=setInterval(tickClock,1000);
     if(!clockState.running&&clockTimer){clearInterval(clockTimer);clockTimer=null;}
-    // Lưu cấu hình vào DB nếu có thay đổi phần cấu hình (levels/tên/stack/payout/nền)
-    if('levels' in data || 'tournamentName' in data || 'startingStack' in data || 'rebuyStack' in data || 'payoutPct' in data || 'bgImage' in data){
-      saveClockConfig();
-    }
   }
   clockState.updatedAt=Date.now();
+  // Lưu trạng thái clock vào DB sau mọi thao tác (để sống sót qua restart)
+  if(['start','pause','next','prev','addTime','update'].includes(action)) saveClockConfig();
   res.json(clockState);
 });
 
