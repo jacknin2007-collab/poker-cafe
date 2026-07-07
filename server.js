@@ -1309,22 +1309,36 @@ app.get('/api/tournament/stats', async (req, res) => {
 
 // Upload ảnh nền cho clock
 const multer = require('multer');
-const uploadStorage = multer.diskStorage({
-  destination: (req,file,cb) => cb(null, path.join(__dirname,'public','uploads')),
-  filename: (req,file,cb) => cb(null,'bg-'+Date.now()+path.extname(file.originalname))
-});
-const upload = multer({storage:uploadStorage, limits:{fileSize:10*1024*1024}});
-// Tạo thư mục uploads nếu chưa có
-const fs = require('fs');
-const uploadDir = path.join(__dirname,'public','uploads');
-if(!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir,{recursive:true});
+// Lưu ảnh vào bộ nhớ rồi đẩy vào DB (KHÔNG lưu file trên ổ đĩa tạm — sẽ mất khi restart)
+const upload = multer({storage: multer.memoryStorage(), limits:{fileSize:10*1024*1024}});
 
-app.post('/api/upload-bg', upload.single('image'), (req,res)=>{
+// Tải ảnh nền clock -> lưu base64 vào DB (sống sót qua restart)
+app.post('/api/upload-bg', upload.single('image'), async (req,res)=>{
   if(!req.file) return res.status(400).json({error:'No file'});
-  const url='/uploads/'+req.file.filename;
-  clockState.bgImage=url;
-  clockState.updatedAt=Date.now();
-  res.json({ok:true, url});
+  try{
+    const mime=req.file.mimetype||'image/jpeg';
+    const value=mime+';'+req.file.buffer.toString('base64'); // "image/png;<base64>"
+    await db.prepare(`INSERT INTO app_content (key,value) VALUES ('clock_bg',?) ON CONFLICT(key) DO UPDATE SET value=?`).run(value,value);
+    const url='/api/clock-bg?v='+Date.now(); // ?v để đổi URL khi thay ảnh (bỏ cache)
+    clockState.bgImage=url;
+    clockState.updatedAt=Date.now();
+    saveClockConfig();
+    res.json({ok:true, url});
+  }catch(e){ res.status(500).json({error:e.message}); }
+});
+
+// Phục vụ ảnh nền clock từ DB
+app.get('/api/clock-bg', async (req,res)=>{
+  try{
+    const row=await db.prepare(`SELECT value FROM app_content WHERE key='clock_bg'`).get();
+    if(!row||!row.value) return res.status(404).end();
+    const idx=row.value.indexOf(';');
+    const mime=row.value.slice(0,idx);
+    const buf=Buffer.from(row.value.slice(idx+1),'base64');
+    res.set('Content-Type',mime);
+    res.set('Cache-Control','public, max-age=3600');
+    res.send(buf);
+  }catch(e){ res.status(500).end(); }
 });
 
 // ── PRINT SERVER ──────────────────────────────────────────
