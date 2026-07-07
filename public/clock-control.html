@@ -343,6 +343,27 @@ function handleImgDrop(e){
   if(file&&file.type.startsWith('image/')) uploadImg(file);
 }
 
+// Nén/thu nhỏ ảnh về tối đa 1920px, JPEG chất lượng ~0.82 -> file nhẹ để TV load được
+function resizeImage(file, maxW, quality){
+  return new Promise(function(resolve){
+    try{
+      const img=new Image();
+      const url=URL.createObjectURL(file);
+      img.onload=function(){
+        URL.revokeObjectURL(url);
+        let w=img.width, h=img.height;
+        if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        canvas.toBlob(function(blob){ resolve(blob||file); }, 'image/jpeg', quality);
+      };
+      img.onerror=function(){ URL.revokeObjectURL(url); resolve(file); };
+      img.src=url;
+    }catch(e){ resolve(file); }
+  });
+}
+
 async function uploadImg(file){
   if(!file)return;
   // Preview
@@ -350,16 +371,18 @@ async function uploadImg(file){
   reader.onload=e=>{
     document.getElementById('img-preview').style.display='block';
     document.getElementById('img-preview-el').src=e.target.result;
-    document.getElementById('img-status').textContent='Đang tải lên...';
+    document.getElementById('img-status').textContent='Đang nén & tải lên...';
   };
   reader.readAsDataURL(file);
-  // Upload
-  const fd=new FormData();fd.append('image',file);
+  // Thu nhỏ trước khi tải (giúp TV load nhanh)
+  const blob=await resizeImage(file, 1920, 0.82);
+  const fd=new FormData();fd.append('image',blob,'bg.jpg');
   try{
     const r=await fetch(API+'/upload-bg',{method:'POST',body:fd});
     const data=await r.json();
     if(data.ok){
-      document.getElementById('img-status').textContent='✅ Đã đặt ảnh nền!';
+      const kb=Math.round((blob.size||0)/1024);
+      document.getElementById('img-status').textContent='✅ Đã đặt ảnh nền! ('+kb+' KB)';
       document.getElementById('f-bg').value=data.url;
     }
   }catch(e){document.getElementById('img-status').textContent='❌ Lỗi tải ảnh';}
