@@ -62,7 +62,7 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
 /* CLOCK */
 .clock{
   font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(120px,18vw,200px);
+  font-size:200px;
   letter-spacing:6px;line-height:0.88;
   color:#fff;
   transition:color 0.4s;
@@ -76,10 +76,10 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
 /* BLINDS */
 .blinds-section{margin-top:12px;text-align:left;}
 .bl-row{display:flex;align-items:center;gap:24px;margin-bottom:4px;}
-.bl-label{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,4vw,48px);color:#fff;letter-spacing:0.1em;width:160px;}
-.bl-value{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,5.5vw,64px);color:#fff;letter-spacing:0.05em;}
+.bl-label{font-family:'Bebas Neue',sans-serif;font-size:48px;color:#fff;letter-spacing:0.1em;width:160px;}
+.bl-value{font-family:'Bebas Neue',sans-serif;font-size:64px;color:#fff;letter-spacing:0.05em;}
 .bl-sep{font-family:'Bebas Neue',sans-serif;font-size:52px;color:rgba(255,255,255,0.25);padding:0 4px;}
-.next-row{font-family:'Bebas Neue',sans-serif;font-size:clamp(20px,2.6vw,35px);font-weight:300;font-style:italic;color:#fff;letter-spacing:0.1em;margin-top:6px;}
+.next-row{font-family:'Bebas Neue',sans-serif;font-size:35px;font-weight:300;font-style:italic;color:#fff;letter-spacing:0.1em;margin-top:6px;}
 .next-row span{font-style:normal;font-weight:400;color:#fff;}
 </style>
 </head>
@@ -145,10 +145,12 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
 </div>
 
 <script>
-const API=`https://poker-cafe.onrender.com/api`;
-let lastUpdate=0;
-function fmtN(n){return Math.round(n||0).toLocaleString('vi');}
-function fmtT(s){s=Math.max(0,Math.floor(s||0));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+var API='https://poker-cafe.onrender.com/api';
+var lastUpdate=0;
+function pad2(n){n=''+n;return n.length<2?'0'+n:n;}
+function fmtN(n){n=Math.round(n||0);return (''+n).replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
+function fmtT(s){s=Math.max(0,Math.floor(s||0));return pad2(Math.floor(s/60))+':'+pad2(s%60);}
+function nextRealLevel(lvs,from){for(var i=from;i<lvs.length;i++){if(lvs[i]&&!lvs[i].isBreak)return lvs[i];}return null;}
 
 function render(st){
   const lvs=st.levels||[];
@@ -156,7 +158,7 @@ function render(st){
   const lv=lvs[li]||{};
   const isBreak=!!lv.isBreak;
 
-  if(st.bgImage) document.getElementById('bg').style.backgroundImage=`url('${st.bgImage}')`;
+  if(st.bgImage) document.getElementById('bg').style.backgroundImage="url('"+st.bgImage+"')";
   document.getElementById('t-title').textContent=st.tournamentName||'GOLDEN COFFEE – TOURNAMENT';
 
   // Left stats
@@ -188,7 +190,7 @@ function render(st){
   if(isBreak){
     bo.classList.add('show');
     document.getElementById('break-clock').textContent=fmtT(st.timeLeft||0);
-    const nextReal=lvs.slice(li+1).find(x=>!x.isBreak);
+    var nextReal=nextRealLevel(lvs,li+1);
     document.getElementById('break-next').textContent=nextReal?('NEXT: '+fmtN(nextReal.sb)+' / '+fmtN(nextReal.bb)+' ANTE '+fmtN(nextReal.ante)):'FINAL';
     const bt=st.timeLeft||0;
     document.getElementById('break-clock').style.color=bt<=60?'#ff2020':bt<=180?'#ff8c00':'#fff';
@@ -202,7 +204,7 @@ function render(st){
   document.getElementById('paused-lbl').className='paused-lbl'+(st.running?'':' show');
 
   // Level number
-  let realN=0; for(let i=0;i<=li;i++) if(!lvs[i]?.isBreak) realN++;
+  var realN=0; for(var i=0;i<=li;i++){ if(lvs[i]&&!lvs[i].isBreak) realN++; }
   document.getElementById('c-level').textContent=realN||1;
 
   // Blinds
@@ -211,44 +213,38 @@ function render(st){
   document.getElementById('c-ante').textContent=fmtN(lv.ante||0);
 
   // Next blinds
-  const nextReal=lvs.slice(li+1).find(x=>!x.isBreak);
-  const nextBreak=!isBreak&&lvs[li+1]?.isBreak?lvs[li+1]:null;
+  var nextReal=nextRealLevel(lvs,li+1);
+  var nextBreak=(!isBreak&&lvs[li+1]&&lvs[li+1].isBreak)?lvs[li+1]:null;
   let nextTxt='–';
   if(nextBreak) nextTxt='BREAK ('+fmtT((nextBreak.duration||10)*60)+')';
   else if(nextReal) nextTxt=fmtN(nextReal.sb)+' – '+fmtN(nextReal.bb)+' ('+fmtN(nextReal.ante)+')';
   document.getElementById('c-next').textContent=nextTxt;
 }
 
-async function poll(){
-  try{
-    const r=await fetch(API+'/clock');
-    const st=await r.json();
-    if(st.updatedAt!==lastUpdate){lastUpdate=st.updatedAt;
-      // Fetch tournament stats để update players, stacks
-      try{
-        const rStats=await fetch(API+'/tournament/stats');
-        const stats=await rStats.json();
-        st.players=stats.playersOnTables||0;
-        st.totalPlayers=stats.totalPlayers||0;
-        st.buyIn=stats.buyIns||0;
-        st.rebuy=stats.reBuys||0;
-        // Calculate total stack = (buy-ins × starting stack) + (re-buys × re-buy stack)
-        const sstack=st.startingStack||50000;
-        const rstack=st.rebuyStack||50000;
-        st.totalStack=(stats.buyIns||0)*sstack+(stats.reBuys||0)*rstack;
-      }catch(e){}
+function poll(){
+  fetch(API+'/clock').then(function(r){return r.json();}).then(function(st){
+    if(st.updatedAt===lastUpdate) return;
+    lastUpdate=st.updatedAt;
+    fetch(API+'/tournament/stats').then(function(r){return r.json();}).then(function(stats){
+      st.players=stats.playersOnTables||0;
+      st.totalPlayers=stats.totalPlayers||0;
+      st.buyIn=stats.buyIns||0;
+      st.rebuy=stats.reBuys||0;
+      var sstack=st.startingStack||50000;
+      var rstack=st.rebuyStack||50000;
+      st.totalStack=(stats.buyIns||0)*sstack+(stats.reBuys||0)*rstack;
       render(st);
-    }
-  }catch(e){}
+    })['catch'](function(){ render(st); });
+  })['catch'](function(){});
 }
 poll();setInterval(poll,1000);
 
 // Cập nhật giờ hiện tại mỗi giây
-setInterval(()=>{
-  const el=document.getElementById('s-latereg');
+setInterval(function(){
+  var el=document.getElementById('s-latereg');
   if(el&&(!window._lateRegCustom)){
-    const now=new Date();
-    el.textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+    var now=new Date();
+    el.textContent=pad2(now.getHours())+':'+pad2(now.getMinutes())+':'+pad2(now.getSeconds());
   }
 },1000);
 </script>
