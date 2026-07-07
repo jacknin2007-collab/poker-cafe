@@ -10,8 +10,8 @@
 html,body{width:100vw;height:100vh;overflow:hidden;background:#111;}
 body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:column;position:relative;}
 
-#bg{position:fixed;inset:0;background-size:cover;background-position:center;opacity:0.9;z-index:0;transition:opacity 0.5s;}
-#bg-dark{position:fixed;inset:0;background:rgba(0,0,0,0.02);z-index:1;}
+#bg{position:fixed;top:0;left:0;right:0;bottom:0;background-size:cover;background-position:center;opacity:0.9;z-index:0;transition:opacity 0.5s;}
+#bg-dark{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.02);z-index:1;}
 .wrap{position:relative;z-index:2;display:flex;flex-direction:column;height:100vh;}
 
 /* TOP */
@@ -19,10 +19,10 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
   background:rgba(0,0,0,0.55);
   border-bottom:2px solid rgba(255,255,255,0.1);
   padding:10px 30px;
-  display:flex;align-items:center;justify-content:center;gap:20px;
+  display:flex;align-items:center;justify-content:center;
   flex-shrink:0;
 }
-.top-logo{width:44px;height:44px;object-fit:contain;}
+.top-logo{width:44px;height:44px;object-fit:contain;margin-right:20px;}
 .top-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.3em;color:#fff;text-align:center;}
 
 /* MAIN 3 COLS */
@@ -50,7 +50,7 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
 .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 20px;position:relative;text-align:center;}
 
 /* BREAK */
-.break-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.9);flex-direction:column;align-items:center;justify-content:center;z-index:20;}
+.break-overlay{display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);flex-direction:column;align-items:center;justify-content:center;z-index:20;}
 .break-overlay.show{display:flex;}
 .break-title{font-family:'Bebas Neue',sans-serif;font-size:100px;letter-spacing:0.3em;color:#fff;margin-bottom:0;}
 .break-clock{font-family:'Bebas Neue',sans-serif;font-size:150px;color:#fff;letter-spacing:6px;line-height:0.9;}
@@ -75,7 +75,8 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
 
 /* BLINDS */
 .blinds-section{margin-top:12px;text-align:left;}
-.bl-row{display:flex;align-items:center;gap:24px;margin-bottom:4px;}
+.bl-row{display:flex;align-items:center;margin-bottom:4px;}
+.bl-row>div{margin-right:24px;}
 .bl-label{font-family:'Bebas Neue',sans-serif;font-size:48px;color:#fff;letter-spacing:0.1em;width:160px;}
 .bl-value{font-family:'Bebas Neue',sans-serif;font-size:64px;color:#fff;letter-spacing:0.05em;}
 .bl-sep{font-family:'Bebas Neue',sans-serif;font-size:52px;color:rgba(255,255,255,0.25);padding:0 4px;}
