@@ -343,20 +343,31 @@ function handleImgDrop(e){
   if(file&&file.type.startsWith('image/')) uploadImg(file);
 }
 
-// Nén/thu nhỏ ảnh về tối đa 1920px, JPEG chất lượng ~0.82 -> file nhẹ để TV load được
-function resizeImage(file, maxW, quality){
+// Nén thông minh: thu nhỏ + tự giảm chất lượng cho tới khi <= targetKB.
+// Bất kể ảnh gốc nặng cỡ nào, kết quả luôn đủ nhẹ để TV LG hiển thị được.
+function resizeImage(file, maxW, targetKB){
   return new Promise(function(resolve){
     try{
       const img=new Image();
       const url=URL.createObjectURL(file);
       img.onload=function(){
         URL.revokeObjectURL(url);
-        let w=img.width, h=img.height;
-        if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
+        const targetBytes=(targetKB||350)*1024;
+        let baseW=img.width, baseH=img.height;
+        if(baseW>maxW){ baseH=Math.round(baseH*maxW/baseW); baseW=maxW; }
         const canvas=document.createElement('canvas');
-        canvas.width=w; canvas.height=h;
-        canvas.getContext('2d').drawImage(img,0,0,w,h);
-        canvas.toBlob(function(blob){ resolve(blob||file); }, 'image/jpeg', quality);
+        function attempt(w,h,q){
+          canvas.width=w; canvas.height=h;
+          canvas.getContext('2d').drawImage(img,0,0,w,h);
+          canvas.toBlob(function(blob){
+            if(!blob){ resolve(file); return; }
+            if(blob.size<=targetBytes){ resolve(blob); return; }
+            if(q>0.45){ attempt(w,h,q-0.1); }               // hạ chất lượng trước
+            else if(w>900){ attempt(Math.round(w*0.85),Math.round(h*0.85),0.72); } // rồi thu nhỏ
+            else { resolve(blob); }                          // hết cỡ, chấp nhận
+          },'image/jpeg', q);
+        }
+        attempt(baseW,baseH,0.82);
       };
       img.onerror=function(){ URL.revokeObjectURL(url); resolve(file); };
       img.src=url;
@@ -374,8 +385,8 @@ async function uploadImg(file){
     document.getElementById('img-status').textContent='Đang nén & tải lên...';
   };
   reader.readAsDataURL(file);
-  // Thu nhỏ trước khi tải (giúp TV load nhanh)
-  const blob=await resizeImage(file, 1920, 0.82);
+  // Nén xuống <= 350KB trước khi tải (bất kể ảnh gốc nặng cỡ nào -> TV luôn hiện được)
+  const blob=await resizeImage(file, 1920, 350);
   const fd=new FormData();fd.append('image',blob,'bg.jpg');
   try{
     const r=await fetch(API+'/upload-bg',{method:'POST',body:fd});
