@@ -59,7 +59,7 @@ async function traBounty(sdt) {
   const top1 = Number(c.top1) || 0;
   const top2 = Number(c.top2) || 0;
   const top3 = Number(c.top3) || 0;
-  return { ten: c.name, bounty: top1 * 30 + top2 * 20 + top3 * 10 };
+  return { ten: c.name, stars: top1 * 5 + top2 * 3 + top3 * 1 };
 }
 
 // ── HÀM TẠO 1 BOT ───────────────────────────────────────────
@@ -107,7 +107,7 @@ function startDiscordBot() {
     await message.channel.send(
       `📱 SĐT: ${sdt}\n` +
       `👤 Khách: ${data.ten}\n` +
-      `🏆 Tier: ${data.bounty}`
+      `⭐ Số sao: ${data.stars}`
     );
   });
 

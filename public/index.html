@@ -1102,7 +1102,7 @@ async function giveTourRound(){
     await refreshCustomers();
   }
 
-  showToast(`${name}: +${roundsToAdd} Round = +${roundsToAdd} TOP 1 (Tier +${roundsToAdd*30}) — đã out bàn`);
+  showToast(`${name}: +${roundsToAdd} Round = +${roundsToAdd} TOP 1 (⭐ +${roundsToAdd*5}) — đã out bàn`);
   renderTablesLeft();
   renderQueue();
   saveTableState();
@@ -1136,8 +1136,8 @@ function giveAward(top){
     drinks:((customer.drinks??0)||0)+rewards.drinks
   };
   Object.assign(customer,updated);
-  const bounty=updated.top1*30+updated.top2*20+updated.top3*10;
-  showToast(`${name}: ${rewards.label} — Tier: ${bounty} ✅`);
+  const stars=updated.top1*5+updated.top2*3+updated.top3*1;
+  showToast(`${name}: ${rewards.label} — ⭐ ${stars} ✅`);
   renderTablesLeft();
   renderQueue();
   saveTableState();
@@ -1763,11 +1763,11 @@ function renderCustomerCard(c){
       <div style="display:flex;align-items:center;gap:10px;">
         <img src="${getRankIconAndName(c.bounty||0).asset}" style="width:40px;height:40px;object-fit:contain;" alt="rank">
         <div>
-          <div style="font-size:18px;font-weight:900;color:var(--gold);letter-spacing:0.05em;">TIER</div>
-          <div style="font-size:10px;color:var(--text3);">🥇×30 + 🥈×20 + 🥉×10</div>
+          <div style="font-size:18px;font-weight:900;color:var(--gold);letter-spacing:0.05em;">⭐ SAO</div>
+          <div style="font-size:10px;color:var(--text3);">🥇×5 + 🥈×3 + 🥉×1</div>
         </div>
       </div>
-      <div style="font-size:36px;font-weight:900;color:var(--gold);text-shadow:0 0 12px rgba(240,192,64,0.4);">${c.bounty||0}</div>
+      <div style="font-size:36px;font-weight:900;color:var(--gold);text-shadow:0 0 12px rgba(240,192,64,0.4);">${(c.top1||0)*5+(c.top2||0)*3+(c.top3||0)*1} ⭐</div>
     </div>
     <div class="cust-btns">
       <button class="cust-btn ${blockRound?'cb-disabled':'cb-blue'}" onclick="${blockRound?'':'redeemRound(\''+c.phone+'\')'}">Đổi Round</button>

@@ -563,7 +563,7 @@ app.post('/api/customers/cleanup', async (req, res) => {
 });
 
 // ── APP KHÁCH HÀNG: đăng nhập + quản lý tài khoản ────────────────
-// Chuẩn hoá dữ liệu khách trả về cho app (tính bounty, ẩn mật khẩu)
+// Chuẩn hoá dữ liệu khách trả về cho app (tính stars, ẩn mật khẩu)
 function shapeCustomer(c) {
   const top1 = Number(c.top1) || 0;
   const top2 = Number(c.top2) || 0;
@@ -572,7 +572,7 @@ function shapeCustomer(c) {
     name: c.name,
     phone: c.phone,
     is_admin: c.is_admin === true || c.is_admin === 't' || c.is_admin === 1,
-    bounty: top1 * 30 + top2 * 20 + top3 * 10,
+    stars: top1 * 5 + top2 * 3 + top3 * 1,
     top1, top2, top3,
     rounds: Number(c.rounds) || 0,
     drinks: Number(c.drinks) || 0,
@@ -867,9 +867,9 @@ app.delete('/api/schedules/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Lỗi xoá lịch' }); }
 });
 
-// ── BOUNTY API (cho Discord bot tra cứu theo SĐT) ───────────────
+// ── SỐ SAO API (cho Discord bot tra cứu theo SĐT) ───────────────
 // Bot gọi: GET /api/bounty?sdt=0901234567  (kèm header x-api-key)
-// Bounty = top1*30 + top2*20 + top3*10
+// Số sao = top1*5 + top2*3 + top3*1
 const BOUNTY_API_KEY = process.env.BOUNTY_API_KEY || '';
 app.get('/api/bounty', async (req, res) => {
   // 1) Bảo mật: chỉ ai có đúng khóa bí mật (bot của bạn) mới gọi được
@@ -893,18 +893,18 @@ app.get('/api/bounty', async (req, res) => {
       return res.json({ found: false });
     }
 
-    // 4) Tính bounty từ top
+    // 4) Tính số sao từ top (top1×5 + top2×3 + top3×1)
     const top1 = Number(c.top1) || 0;
     const top2 = Number(c.top2) || 0;
     const top3 = Number(c.top3) || 0;
-    const bounty = top1 * 30 + top2 * 20 + top3 * 10;
+    const stars = top1 * 5 + top2 * 3 + top3 * 1;
 
     // 5) Trả kết quả cho bot
     return res.json({
       found: true,
       sdt: sdt,
       ten: c.name,
-      bounty: bounty,
+      stars: stars,
       top1: top1,
       top2: top2,
       top3: top3,

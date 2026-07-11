@@ -572,9 +572,9 @@ function giveTop(name,topNum){
     rounds:cr+rewards.rounds,
     drinks:cd+rewards.drinks
   };
-  const bounty = updated.top1*30 + updated.top2*20 + updated.top3*10;
+  const stars = updated.top1*5 + updated.top2*3 + updated.top3*1;
   // ── Hiển thị NGAY: out ghế + toast (không chờ server) ──
-  showToast(`${name}: Top ${topNum} — Tier: ${bounty} ✅`);
+  showToast(`${name}: Top ${topNum} — ⭐ ${stars} ✅`);
   if(outSeat){updateSeat(outSeat.tableId,outSeat.seatIndex,'');}
   Object.assign(c,updated); // cập nhật local
   // ── Đồng bộ server ở nền ──
