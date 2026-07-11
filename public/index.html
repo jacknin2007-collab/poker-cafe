@@ -1761,7 +1761,7 @@ function renderCustomerCard(c){
     </div>
     <div style="background:linear-gradient(135deg,#2a1a00,#1a1000);border:1px solid var(--gold-mid);border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
       <div style="display:flex;align-items:center;gap:10px;">
-        <img src="${getRankIconAndName(c.bounty||0).asset}" style="width:40px;height:40px;object-fit:contain;" alt="rank">
+        <img src="${getRankIconAndName((c.top1||0)*30+(c.top2||0)*20+(c.top3||0)*10).asset}" style="width:40px;height:40px;object-fit:contain;" alt="rank">
         <div>
           <div style="font-size:18px;font-weight:900;color:var(--gold);letter-spacing:0.05em;">⭐ SAO</div>
           <div style="font-size:10px;color:var(--text3);">🥇×5 + 🥈×3 + 🥉×1</div>
