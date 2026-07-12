@@ -1702,9 +1702,16 @@ function getRankIconAndName(stars){
     {name:'Thách Đấu',icon:'⭐',min:60,iconAsset:'thach-dau'}
   ];
   if(!cachedRankTiers.length) console.warn('⚠ cachedRankTiers empty, using default tiers');
-  const sorted=[...rankTiers].sort((a,b)=>b.min-a.min);
-  const matched=sorted.find(r=>stars>=(r.min||0))||rankTiers[0];
-  if(stars===5) console.log('🔍 getRankIconAndName(5):', matched);
+
+  // Tìm rank cao nhất mà stars đạt được
+  const sorted=[...rankTiers].sort((a,b)=>(a.min||0)-(b.min||0));
+  let matched = sorted[0];
+  for(let t of sorted){
+    if(stars>=(t.min||0)){
+      matched=t;
+    }
+  }
+
   const assetName = matched.iconAsset || rankAssetMap[matched.name] || 'sac';
   return {icon:'⭐',name:matched.name||'Hạng',asset:`/ranks/${assetName}.png`};
 }
