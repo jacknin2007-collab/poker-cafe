@@ -152,6 +152,12 @@ function pad2(n){n=''+n;return n.length<2?'0'+n:n;}
 function fmtN(n){n=Math.round(n||0);return (''+n).replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
 function fmtT(s){s=Math.max(0,Math.floor(s||0));return pad2(Math.floor(s/60))+':'+pad2(s%60);}
 function nextRealLevel(lvs,from){for(var i=from;i<lvs.length;i++){if(lvs[i]&&!lvs[i].isBreak)return lvs[i];}return null;}
+// LATE REG: hiển thị "Level X" (đăng ký trễ mở tới level nào)
+function fmtLateReg(v){
+  if(!v || v==='–') return '–';
+  var m=(''+v).match(/(\d+)/);
+  return m ? ('Level '+m[1]) : (''+v);
+}
 
 function render(st){
   const lvs=st.levels||[];
@@ -182,8 +188,7 @@ function render(st){
   } else {
     document.getElementById('latereg-box').style.display='block';
     document.getElementById('payout-box').style.display='none';
-    window._lateRegCustom=st.lateReg&&st.lateReg!=='–';
-    if(window._lateRegCustom) document.getElementById('s-latereg').textContent=st.lateReg;
+    document.getElementById('s-latereg').textContent=fmtLateReg(st.lateReg);
   }
 
   // Break overlay
@@ -239,15 +244,6 @@ function poll(){
   })['catch'](function(){});
 }
 poll();setInterval(poll,1000);
-
-// Cập nhật giờ hiện tại mỗi giây
-setInterval(function(){
-  var el=document.getElementById('s-latereg');
-  if(el&&(!window._lateRegCustom)){
-    var now=new Date();
-    el.textContent=pad2(now.getHours())+':'+pad2(now.getMinutes())+':'+pad2(now.getSeconds());
-  }
-},1000);
 </script>
 </body>
 </html>

@@ -166,7 +166,7 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;font-wei
       <div class="f-group"><label>Starting Stack</label><input id="f-sstack" type="number" value="50000"/></div>
       <div class="f-group"><label>Re-buy Stack</label><input id="f-rstack" type="number" value="50000"/></div>
     </div>
-    <div class="f-group"><label>Late Reg (ví dụ: Level 5 hoặc 02:30:00)</label><input id="f-latereg" placeholder="–"/></div>
+    <div class="f-group"><label>Late Reg mở tới Level (nhập số, vd: 6)</label><input id="f-latereg" type="number" placeholder="–"/></div>
     <div class="f-group"><label>Total Stack (tự tính hoặc nhập)</label><input id="f-tstack" type="number" value="0" placeholder="0 = tự tính"/></div>
     <div class="f-group"><label>Payout</label><input id="f-payout" type="number" value="0" placeholder="–" oninput="updatePayoutFromInput()"/></div>
     <div id="payout-preview-box" style="display:none;padding:8px;background:var(--surface2);border-radius:var(--radius);margin-bottom:8px;">
@@ -531,12 +531,6 @@ async function fetchTournamentStats(){
     const rstack=parseInt(document.getElementById('f-rstack').value)||50000;
     const tstack=(tournamentStats.buyIns||0)*sstack+(tournamentStats.reBuys||0)*rstack;
     document.getElementById('f-tstack').value=tstack;
-    // Update late reg with real time
-    const lr=document.getElementById('f-latereg');
-    if(lr&&!lr.value){
-      const now=new Date();
-      lr.value=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
-    }
   }catch(e){}
 }
 
@@ -594,14 +588,6 @@ async function poll(){
 poll();setInterval(poll,1000);
 // Không fetch tournament stats liên tục — lấy dữ liệu từ state object
 
-// Update late reg time every second
-setInterval(()=>{
-  const lr=document.getElementById('f-latereg');
-  if(lr&&!lr.value.includes('Level')){
-    const now=new Date();
-    lr.value=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
-  }
-},1000);
 
 // RESET DAY
 async function resetDay(){
