@@ -210,6 +210,8 @@ select option{background:var(--surface2);color:var(--text);}
 .drag-chip:hover{background:#282410;border-color:var(--gold);}
 .drag-chip.dragging{opacity:0.25;}
 .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0 3px;}
+.chip-x{margin-left:5px;color:var(--red);font-weight:900;cursor:pointer;padding:0 5px;border-radius:10px;font-size:12px;}
+.chip-x:hover{background:var(--red-bg);}
 .player-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface);border:1px solid var(--border2);border-radius:20px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;transition:all 0.15s;box-shadow:var(--shadow);}
 .player-chip:hover{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);}
 .player-chip .chip-table{font-size:10px;color:var(--text3);font-weight:500;}
@@ -834,7 +836,7 @@ function renderSeatDragList(t){
     ${t.seats.map((name,i)=> name
       ? `<div class="drag-chip" draggable="true"
            ondragstart="DG.start(event,'seat','${name.replace(/'/g,"\\'")}',${t.id},${i})"
-           ondragend="DG.end(event)">⠿ ${name}</div>`
+           ondragend="DG.end(event)">⠿ ${name}<span class="chip-x" onclick="removeFromTable(event,${t.id},${i})">✕</span></div>`
       : ''
     ).join('')}
   </div>
@@ -849,6 +851,25 @@ function renderSeatDragList(t){
       </div>`;
     }).join('')}
   </div>`;
+}
+
+// Xóa khách khỏi bàn (dùng cho cả bàn thường & tour)
+function removeFromTable(e, tid, si){
+  if(e){ e.stopPropagation(); e.preventDefault(); }
+  const t = tables.find(x=>Number(x.id)===Number(tid));
+  if(!t) return;
+  const name = t.seats[si];
+  if(!name) return;
+  showConfirm('Xóa khỏi bàn?', `Xác nhận xóa "${name}" khỏi ${t.name}?`, [
+    {label:'✕ Xóa', cls:'btn btn-red', cb:()=>{
+      t.seats[si] = '';
+      closeDialog();
+      renderTablesLeft();
+      saveTableState();
+      showToast(name + ' đã rời bàn');
+    }},
+    {label:'Huỷ', cls:'btn', cb:closeDialog},
+  ]);
 }
 
 // ── DRAG ENGINE ─────────────────────────────────────────────
