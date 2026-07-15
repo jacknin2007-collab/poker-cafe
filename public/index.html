@@ -600,6 +600,7 @@ async function saveTableState(){
     updatedAt:    Date.now()
   };
   window._mainLastUpdate=state.updatedAt;
+  window._localChangeAt=Date.now(); // đánh dấu vừa thao tác cục bộ -> poll không ghi đè ngược
   try{ sessionStorage.setItem('gcTableState', JSON.stringify(state)); }catch(e){}
   try{
     await fetch(API+'/table-state',{
@@ -2338,6 +2339,11 @@ loadAll();
 
 // Đồng bộ real-time từ dealer/floor mỗi 2 giây
 setInterval(async()=>{
+  // Vừa thao tác cục bộ (mở/đóng bàn, trao top, xóa khách...) trong 3s?
+  // -> BỎ QUA đồng bộ để không ghi đè ngược thao tác chưa kịp lưu lên server.
+  const recentLocal = Date.now() - (window._localChangeAt||0) < 3000;
+  if(recentLocal) return;
+
   // Sync customers (để nhận thay đổi từ báo cáo điện thoại)
   const custs=await apiGet('/customers');
   if(custs) customers=custs;
