@@ -154,6 +154,12 @@ input:focus{border-color:var(--purple);}input::placeholder{color:var(--text3);}
       <div class="tab-btn" id="tab-queue" onclick="switchTab('queue')">⏳ Hàng chờ</div>
     </div>
 
+    <!-- BANNER CHUYỂN CHỖ -->
+    <div id="move-banner" style="display:none;align-items:center;justify-content:space-between;gap:8px;background:var(--purple-bg);border:1px solid var(--purple-border);border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:13px;font-weight:700;color:var(--purple);">
+      <span>↔ Chuyển <b id="move-name"></b> — bấm ghế đích</span>
+      <button class="btn btn-sm btn-red" style="margin:0;" onclick="cancelMovePlayer()">Huỷ</button>
+    </div>
+
     <!-- KẾT QUẢ RANDOM -->
     <div id="result-area" style="display:none;"></div>
 
@@ -183,9 +189,10 @@ input:focus{border-color:var(--purple);}input::placeholder{color:var(--text3);}
     <div class="sheet-sub" id="remove-player-name"></div>
     <div style="color:var(--text3);font-size:13px;margin-bottom:14px;">Bạn chắc chắn muốn xóa người chơi này khỏi ghế?</div>
     <div class="btn-row">
+      <button class="btn btn-purple" style="flex:1;" onclick="startMovePlayer()">↔ Chuyển chỗ</button>
       <button class="btn btn-red" style="flex:1;" onclick="doRemovePlayer()">🗑️ Xóa</button>
-      <button class="btn" style="flex:1;" onclick="closeSheet('remove-player-overlay')">Huỷ</button>
     </div>
+    <button class="btn" style="margin-top:6px;width:100%;" onclick="closeSheet('remove-player-overlay')">Huỷ</button>
   </div>
 </div>
 
@@ -217,6 +224,7 @@ const API=`https://poker-cafe.onrender.com/api`;
 let floorName='', floorSessionId='', tableState=null, allCustomers=[];
 let activeTab='tables', pollTimer=null, heartbeatTimer=null;
 let pendingRemove={tableId:null,seatIndex:null,playerName:null};
+let moveMode=null; // {tableId, seatIndex, name} khi đang chuyển chỗ
 
 // Tour tables: id 4,5,6 = Tour 1,2,3
 const TOUR_IDS=[4,5,6];
@@ -357,6 +365,16 @@ function renderTables(){
       ${t.status!=='active'?'<div class="empty-msg">Bàn chưa mở</div>':`
         <div class="seats-grid">
           ${t.seats.map((name,si)=>{
+            // Đang ở chế độ chuyển chỗ
+            if(moveMode){
+              const isSrc = Number(moveMode.tableId)===Number(t.id) && moveMode.seatIndex===si;
+              if(isSrc){
+                return `<div class="seat occ" style="opacity:.45;border:2px solid var(--purple);"><div class="seat-num">G${si+1}</div><div class="seat-name">${name}</div><div style="font-size:10px;color:var(--purple);font-weight:700;">Đang chuyển</div></div>`;
+              }
+              const phone2=name?getCustomerPhone(name):'';
+              return `<div class="seat ${name?'occ':''}" style="border:2px dashed var(--purple);cursor:pointer;" onclick="doMoveTo(${t.id},${si})"><div class="seat-num">G${si+1}</div>${name?`<div class="seat-name">${name}</div>${phone2?`<div style="font-size:10px;color:var(--text2);">${phone2}</div>`:''}<div style="font-size:9px;color:var(--purple);font-weight:700;">Đổi chỗ</div>`:`<div class="seat-empty" style="color:var(--purple);font-weight:700;">↓ Vào đây</div>`}</div>`;
+            }
+            // Bình thường
             if(!name) return `<div class="seat"><div class="seat-num">G${si+1}</div><div class="seat-empty">Trống</div></div>`;
             const phone=getCustomerPhone(name);
             return `<div class="seat occ" onclick="confirmRemovePlayer(${t.id},${si},'${name.replace(/'/g,"\\'")}')"><div class="seat-num">G${si+1}</div><div class="seat-name">${name}</div>${phone?`<div style="font-size:10px;color:var(--text2);">${phone}</div>`:''}</div>`;
@@ -511,6 +529,47 @@ async function doRemovePlayer(){
   showToast(playerName+' đã xóa khỏi ghế','p');
   renderTables();
   pendingRemove={tableId:null,seatIndex:null,playerName:null};
+  api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(tableState)}).catch(()=>{});
+}
+
+// ── CHUYỂN CHỖ (MOVE) ─────────────────────────────────────────
+function startMovePlayer(){
+  const {tableId,seatIndex,playerName}=pendingRemove;
+  if(tableId===null||seatIndex===null||!playerName)return;
+  closeSheet('remove-player-overlay');
+  moveMode={tableId,seatIndex,name:playerName};
+  pendingRemove={tableId:null,seatIndex:null,playerName:null};
+  const b=document.getElementById('move-banner');
+  document.getElementById('move-name').textContent=playerName;
+  b.style.display='flex';
+  // Chuyển sang tab bàn nếu đang ở tab khác
+  if(activeTab!=='tables'){switchTab('tables');} else {renderTables();}
+}
+
+function cancelMovePlayer(){
+  moveMode=null;
+  document.getElementById('move-banner').style.display='none';
+  renderTables();
+}
+
+function doMoveTo(toTableId,toSeatIndex){
+  if(!moveMode||!tableState)return;
+  const from=moveMode;
+  // Không làm gì nếu chọn lại đúng ghế nguồn
+  if(Number(from.tableId)===Number(toTableId) && from.seatIndex===toSeatIndex){cancelMovePlayer();return;}
+  const allT=tableState.tablesTour||[];
+  const fromT=allT.find(t=>Number(t.id)===Number(from.tableId));
+  const toT=allT.find(t=>Number(t.id)===Number(toTableId));
+  if(!fromT||!toT)return;
+  const movingName=fromT.seats[from.seatIndex];
+  const occupant=toT.seats[toSeatIndex]||null; // đổi chỗ nếu ghế đích có người
+  toT.seats[toSeatIndex]=movingName;
+  fromT.seats[from.seatIndex]=occupant;
+  tableState.updatedAt=Date.now();
+  moveMode=null;
+  document.getElementById('move-banner').style.display='none';
+  renderTables();
+  showToast(movingName+' → '+toT.name+' G'+(toSeatIndex+1)+(occupant?(' (đổi với '+occupant+')'):''),'p');
   api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(tableState)}).catch(()=>{});
 }
 
