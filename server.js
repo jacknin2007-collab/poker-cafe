@@ -504,7 +504,7 @@ app.put('/api/customers/:phone', async (req, res) => {
 
   // Ghi lịch sử mỗi khi được trao top mới (cho app khách tra cứu)
   if (old) {
-    const units = { 1: 30, 2: 20, 3: 10 };
+    const units = { 1: 5, 2: 3, 3: 1 };
     const news = { 1: Number(top1) || 0, 2: Number(top2) || 0, 3: Number(top3) || 0 };
     const olds = { 1: Number(old.top1) || 0, 2: Number(old.top2) || 0, 3: Number(old.top3) || 0 };
     for (const rank of [1, 2, 3]) {
