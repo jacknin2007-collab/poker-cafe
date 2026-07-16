@@ -224,6 +224,16 @@ async function initSchema() {
   try { await run(`ALTER TABLE banner_images ADD COLUMN IF NOT EXISTS top6 TEXT DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS email TEXT NOT NULL DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS avatar TEXT NOT NULL DEFAULT ''`); } catch (e) {}
+
+  // Migration: Convert old match history points (30/20/10) to new stars (5/3/1)
+  try {
+    await run(`UPDATE match_history SET points = 5 WHERE points = 30`);
+    await run(`UPDATE match_history SET points = 3 WHERE points = 20`);
+    await run(`UPDATE match_history SET points = 1 WHERE points = 10`);
+    console.log('✓ Converted old match history points to new star system');
+  } catch (e) {
+    // Silently fail if table doesn't exist or already converted
+  }
 }
 
 module.exports = db;
