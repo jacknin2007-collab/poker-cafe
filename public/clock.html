@@ -145,6 +145,7 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
   </div>
 </div>
 
+<script src="/nosleep.js"></script>
 <script>
 var API='https://poker-cafe.onrender.com/api';
 var lastUpdate=0;
@@ -244,6 +245,35 @@ function poll(){
   })['catch'](function(){});
 }
 poll();setInterval(poll,1000);
+
+// ── GIỮ MÀN HÌNH LUÔN SÁNG (chống TV tự tắt sau ~10 phút) ──
+var _noSleep=null;
+try{ if(window.NoSleep) _noSleep=new NoSleep(); }catch(e){}
+var _wakeLock=null;
+function keepAwake(){
+  // 1) NoSleep: phát video muted lặp vô hạn -> TV tưởng đang xem phim, không tắt
+  if(_noSleep){ try{ var p=_noSleep.enable(); if(p&&p['catch'])p['catch'](function(){}); }catch(e){} }
+  // 2) Wake Lock API (trình duyệt/TV mới) — bổ sung
+  try{
+    if(navigator.wakeLock&&navigator.wakeLock.request){
+      navigator.wakeLock.request('screen').then(function(wl){
+        _wakeLock=wl;
+        if(wl.addEventListener)wl.addEventListener('release',function(){_wakeLock=null;});
+      })['catch'](function(){});
+    }
+  }catch(e){}
+}
+// Thử ngay khi mở (nhiều TV cho phép vì video đã tắt tiếng)
+keepAwake();
+// Kích hoạt lại mỗi khi bấm remote / chạm (đảm bảo được phép phát)
+var _wakeEvts=['keydown','click','mousedown','touchstart'];
+for(var _i=0;_i<_wakeEvts.length;_i++){ document.addEventListener(_wakeEvts[_i],keepAwake,false); }
+// Xin lại khi màn hình hiện lại
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible')keepAwake();
+},false);
+// Nhắc lại định kỳ cho chắc (30s/lần)
+setInterval(keepAwake,30000);
 </script>
 </body>
 </html>
