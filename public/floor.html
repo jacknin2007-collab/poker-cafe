@@ -427,14 +427,22 @@ async function doRandom(qi){
   if(!item)return;
 
   const tourTables=(tableState.tablesTour||[]).filter(t=>t.status==='active');
-  const freeSeats=[];
-  tourTables.forEach(t=>{
-    t.seats.forEach((s,si)=>{if(!s)freeSeats.push({table:t,si});});
-  });
-  if(!freeSeats.length){showToast('Không còn ghế trống!','e');return;}
+  // Chỉ xét các bàn còn ghế trống
+  const withFree=tourTables.filter(t=>t.seats.some(s=>!s));
+  if(!withFree.length){showToast('Không còn ghế trống!','e');return;}
 
-  // Random ghế
-  const pick=freeSeats[Math.floor(Math.random()*freeSeats.length)];
+  // ── CÂN BẰNG: luôn xếp khách vào bàn ÍT người nhất ──
+  // -> chênh lệch số người giữa các bàn luôn ≤ 1
+  const counts=withFree.map(t=>({t,n:t.seats.filter(s=>s).length}));
+  let minN=counts[0].n;
+  counts.forEach(c=>{if(c.n<minN)minN=c.n;});
+  const candidates=counts.filter(c=>c.n===minN).map(c=>c.t);
+  // Random giữa các bàn có cùng số người ít nhất
+  const table=candidates[Math.floor(Math.random()*candidates.length)];
+  // Random ghế trống trong bàn đã chọn
+  const freeIdx=[];
+  table.seats.forEach((s,si)=>{if(!s)freeIdx.push(si);});
+  const pick={table,si:freeIdx[Math.floor(Math.random()*freeIdx.length)]};
   const tLabel=TOUR_LABELS[pick.table.id]||pick.table.name;
   const seatNum=String(pick.si+1).padStart(2,'0');
   const code=`${tLabel}-${seatNum}`;
