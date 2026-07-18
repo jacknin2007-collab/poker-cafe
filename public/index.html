@@ -590,8 +590,8 @@ async function apiPut(path,body){
     return await r.json();
   }catch(e){console.error('[PUT CATCH]',path,e.message);showToast('Lỗi kết nối server','error');return null;}
 }
-async function saveTableState(){
-  const state={
+function buildTableState(){
+  return {
     tablesNormal: tablesNormal.map(t=>({id:t.id,name:t.name,status:t.status,seats:[...t.seats],started:t.started,type:t.type})),
     tablesTour:   tablesTour.map(t=>({id:t.id,name:t.name,status:t.status,seats:[...t.seats],started:t.started,type:t.type})),
     queue:        [...queue],
@@ -599,17 +599,46 @@ async function saveTableState(){
     activeTab:    activeTab,
     updatedAt:    Date.now()
   };
-  window._mainLastUpdate=state.updatedAt;
-  window._localChangeAt=Date.now(); // đánh dấu vừa thao tác cục bộ -> poll không ghi đè ngược
-  try{ sessionStorage.setItem('gcTableState', JSON.stringify(state)); }catch(e){}
-  try{
-    await fetch(API+'/table-state',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(state)
-    });
-  }catch(e){}
 }
+// ── LƯU TRẠNG THÁI: gộp + xếp hàng (mượt khi thao tác nhanh) ──
+// Gom nhiều thao tác nhanh thành ÍT request, không để 2 request chồng chéo
+// (tránh lạc thứ tự làm mất thao tác). Ảnh chụp state lấy ở lúc gửi -> luôn mới nhất.
+let _saveTimer=null,_saving=false,_pending=false;
+function saveTableState(){
+  window._localChangeAt=Date.now(); // poll không ghi đè ngược
+  _pending=true;
+  const snap=buildTableState();
+  window._mainLastUpdate=snap.updatedAt;
+  try{ sessionStorage.setItem('gcTableState', JSON.stringify(snap)); }catch(e){}
+  if(!_saving&&!_saveTimer)_saveTimer=setTimeout(flushTableState,250);
+  return Promise.resolve();
+}
+function flushTableState(){
+  _saveTimer=null;
+  if(_saving||!_pending)return;
+  _pending=false;_saving=true;
+  const state=buildTableState();
+  window._mainLastUpdate=state.updatedAt;
+  try{ sessionStorage.setItem('gcTableState', JSON.stringify(state)); }catch(e){}
+  fetch(API+'/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)})
+    .catch(function(){})
+    .then(function(){
+      _saving=false;window._localChangeAt=Date.now();
+      if(_pending&&!_saveTimer)_saveTimer=setTimeout(flushTableState,50);
+    });
+}
+// Đảm bảo không mất dữ liệu khi rời trang giữa lúc đang chờ gửi
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='hidden'&&(_pending||_saveTimer)){
+    if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}
+    try{
+      const state=buildTableState();
+      const blob=new Blob([JSON.stringify(state)],{type:'application/json'});
+      if(navigator.sendBeacon){navigator.sendBeacon(API+'/table-state',blob);_pending=false;}
+      else flushTableState();
+    }catch(e){}
+  }
+});
 
 async function loadAll(){
   const [custs,txs,stk,appContent]=await Promise.all([
@@ -2339,10 +2368,10 @@ loadAll();
 
 // Đồng bộ real-time từ dealer/floor mỗi 2 giây
 setInterval(async()=>{
-  // Vừa thao tác cục bộ (mở/đóng bàn, trao top, xóa khách...) trong 3s?
+  // Vừa thao tác cục bộ (mở/đóng bàn, trao top, xóa khách...) hoặc đang lưu?
   // -> BỎ QUA đồng bộ để không ghi đè ngược thao tác chưa kịp lưu lên server.
   const recentLocal = Date.now() - (window._localChangeAt||0) < 3000;
-  if(recentLocal) return;
+  if(recentLocal || _saving || _pending) return;
 
   // Sync customers (để nhận thay đổi từ báo cáo điện thoại)
   const custs=await apiGet('/customers');

@@ -361,6 +361,10 @@ async function loadState(){
   const state=await api('/table-state');
   if(!state){setConn('error','Mất kết nối');return;}
   setConn('ok',new Date().toLocaleTimeString('vi'));
+  // Đang thao tác/đang lưu cục bộ -> KHÔNG ghi đè (tránh giật, mất thao tác)
+  if(_saving||_pending||(Date.now()-(window._localChangeAt||0)<2500))return;
+  // Đang chuyển chỗ -> giữ nguyên
+  if(typeof moveMode!=='undefined'&&moveMode)return;
   if(state.updatedAt&&state.updatedAt===(window._dealerLastUpdate||0))return;
   window._dealerLastUpdate=state.updatedAt;
   tableState=state;renderTables();
@@ -411,10 +415,27 @@ function findMyTable(tableId){
   const allT=[...(tableState?.tablesNormal||[]),...(tableState?.tablesTour||[])];
   return allT.find(x=>Number(x.id)===Number(tableId));
 }
-async function saveTableStateToServer(){
+// ── LƯU TRẠNG THÁI: gộp + xếp hàng (mượt khi thao tác nhanh) ──
+let _saveTimer=null,_saving=false,_pending=false;
+function saveState(){
   if(!tableState)return;
   tableState.updatedAt=Date.now();
-  await api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(tableState)});
+  window._dealerLastUpdate=tableState.updatedAt; // poll coi state cục bộ là mới nhất
+  window._localChangeAt=Date.now();
+  _pending=true;
+  if(_saving||_saveTimer)return;
+  _saveTimer=setTimeout(flushSave,250);
+}
+function flushSave(){
+  _saveTimer=null;
+  if(_saving||!_pending)return;
+  _pending=false;_saving=true;
+  api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(tableState)})
+    .catch(function(){})
+    .then(function(){
+      _saving=false;window._localChangeAt=Date.now();
+      if(_pending&&!_saveTimer)_saveTimer=setTimeout(flushSave,50);
+    });
 }
 function openDealerTable(tableId){
   const t=findMyTable(tableId);
@@ -424,7 +445,7 @@ function openDealerTable(tableId){
   window._dealerLastUpdate=Date.now();
   renderTables();
   showToast(t.name+' đã mở!');
-  saveTableStateToServer().catch(()=>{});
+  saveState();
 }
 function closeDealerTable(tableId){
   const t=findMyTable(tableId);
@@ -436,7 +457,7 @@ function closeDealerTable(tableId){
   window._dealerLastUpdate=Date.now();
   renderTables();
   showToast(t.name+' đã đóng!');
-  saveTableStateToServer().catch(()=>{});
+  saveState();
 }
 
 function renderSeat(t,si,name){
@@ -589,14 +610,14 @@ function giveTop(name,topNum){
 }
 
 // ── UPDATE SEAT ────────────────────────────────────────────────
-async function updateSeat(tableId,seatIndex,playerName){
+function updateSeat(tableId,seatIndex,playerName){
   tableId=Number(tableId);
   const allT=[...(tableState?.tablesNormal||[]),...(tableState?.tablesTour||[])];
   const t=allT.find(x=>Number(x.id)===tableId);
   if(t)t.seats[seatIndex]=playerName||'';
   renderTables();
-  await api('/dealer/seat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tableId,seatIndex,playerName:playerName||''})});
-  await api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...tableState,updatedAt:Date.now()})});
+  // Cập nhật NGAY, lưu ở nền (gộp nhiều thao tác -> 1 request, không chồng chéo)
+  saveState();
 }
 
 initLogin();

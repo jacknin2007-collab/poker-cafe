@@ -252,6 +252,33 @@ async function api(path,opts={}){
   }catch(e){return null;}
 }
 
+// ── LƯU TRẠNG THÁI: gộp + xếp hàng (mượt khi thao tác nhanh) ──
+// Gọi saveState() sau mỗi thay đổi cục bộ. Nó:
+//  - đánh dấu updatedAt + chặn poll ghi đè (window._localChangeAt)
+//  - gom nhiều thao tác nhanh thành ÍT request (debounce 250ms)
+//  - không bao giờ để 2 request chạy chồng nhau (tránh lạc thứ tự)
+let _saveTimer=null,_saving=false,_pending=false;
+function saveState(){
+  tableState.updatedAt=Date.now();
+  window._floorLastUpdate=tableState.updatedAt; // poll coi state cục bộ là mới nhất
+  window._localChangeAt=Date.now();
+  _pending=true;
+  if(_saving||_saveTimer)return;
+  _saveTimer=setTimeout(flushSave,250);
+}
+function flushSave(){
+  _saveTimer=null;
+  if(_saving||!_pending)return;
+  _pending=false;_saving=true;
+  api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(tableState)})
+    .catch(function(){})
+    .then(function(){
+      _saving=false;
+      window._localChangeAt=Date.now();
+      if(_pending&&!_saveTimer)_saveTimer=setTimeout(flushSave,50);
+    });
+}
+
 function setConn(state,text){
   document.getElementById('conn-dot').className='dot '+(state==='ok'?'dot-g':state==='error'?'dot-r':'dot-a');
   document.getElementById('conn-text').textContent=text;
@@ -319,6 +346,10 @@ async function loadState(){
   const state=await api('/table-state');
   if(!state){setConn('error','Mất kết nối server');return;}
   setConn('ok',new Date().toLocaleTimeString('vi'));
+  // Đang thao tác/đang lưu cục bộ -> KHÔNG ghi đè (tránh giật, mất thao tác)
+  if(_saving||_pending||(Date.now()-(window._localChangeAt||0)<2500))return;
+  // Đang chuyển chỗ -> giữ nguyên, không render lại
+  if(moveMode)return;
   // Chỉ render khi có thay đổi
   if(state.updatedAt&&state.updatedAt===(window._floorLastUpdate||0))return;
   window._floorLastUpdate=state.updatedAt;
@@ -471,9 +502,8 @@ async function doRandom(qi){
   renderQueue();
   showToast(`${item.name} → ${code}`,'p');
 
-  // Lưu lên server ở nền
-  api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(tableState)}).catch(()=>{});
-  api('/dealer/seat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tableId:pick.table.id,seatIndex:pick.si,playerName:item.name})}).catch(()=>{});
+  // Lưu lên server ở nền (state đã gồm ghế -> không cần gọi /dealer/seat riêng)
+  saveState();
 }
 
 // ── QUEUE ACTIONS ──────────────────────────────────────────────
@@ -486,7 +516,7 @@ async function removeFromQueue(i){
   tableState.updatedAt=Date.now();
   showToast(name+' đã xóa khỏi hàng chờ');
   renderQueue();
-  api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(tableState)}).catch(()=>{});
+  saveState();
 }
 
 function suggestAQ(val){
@@ -513,7 +543,7 @@ async function confirmAddQueue(){
   document.getElementById('aq-sugg').innerHTML='';
   showToast(name+' đã vào hàng chờ tour','p');
   renderQueue();
-  api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(tableState)}).catch(()=>{});
+  saveState();
 }
 
 // ── REMOVE PLAYER FROM TABLE ──────────────────────────────────
@@ -537,7 +567,7 @@ async function doRemovePlayer(){
   showToast(playerName+' đã xóa khỏi ghế','p');
   renderTables();
   pendingRemove={tableId:null,seatIndex:null,playerName:null};
-  api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(tableState)}).catch(()=>{});
+  saveState();
 }
 
 // ── CHUYỂN CHỖ (MOVE) ─────────────────────────────────────────
@@ -578,7 +608,7 @@ function doMoveTo(toTableId,toSeatIndex){
   document.getElementById('move-banner').style.display='none';
   renderTables();
   showToast(movingName+' → '+toT.name+' G'+(toSeatIndex+1)+(occupant?(' (đổi với '+occupant+')'):''),'p');
-  api('/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(tableState)}).catch(()=>{});
+  saveState();
 }
 
 </script>
