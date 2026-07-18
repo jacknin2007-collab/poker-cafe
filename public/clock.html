@@ -23,20 +23,20 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
   flex-shrink:0;
 }
 .top-logo{width:44px;height:44px;object-fit:contain;margin-right:20px;}
-.top-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.3em;color:#fff;text-align:center;}
+.top-title{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.3em;color:#fff;text-align:center;}
 
 /* MAIN 3 COLS */
 .main{flex:1;display:flex;min-height:0;}
 
 /* SIDE PANELS */
-.side{width:230px;flex-shrink:0;padding:24px 22px;display:flex;flex-direction:column;gap:0;background:rgba(0,0,0,0.4);}
+.side{width:290px;flex-shrink:0;padding:24px 24px;display:flex;flex-direction:column;gap:0;background:rgba(0,0,0,0.4);}
 .side.left{border-right:2px solid rgba(255,255,255,0.08);}
 .side.right{border-left:2px solid rgba(255,255,255,0.08);}
 
-.stat{padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.07);}
+.stat{padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.07);}
 .stat:last-child{border:none;}
-.stat-lbl{font-size:14px;font-weight:700;letter-spacing:0.15em;color:rgba(255,255,255,0.55);text-transform:uppercase;}
-.stat-val{font-family:'Bebas Neue',sans-serif;font-size:46px;color:#fff;line-height:1.05;letter-spacing:0.03em;}
+.stat-lbl{font-size:18px;font-weight:700;letter-spacing:0.15em;color:rgba(255,255,255,0.6);text-transform:uppercase;}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:62px;color:#fff;line-height:1.05;letter-spacing:0.03em;}
 
 /* PAYOUT */
 .payout-box{display:none;margin-top:8px;}
@@ -52,17 +52,17 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
 /* BREAK */
 .break-overlay{display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);flex-direction:column;align-items:center;justify-content:center;z-index:20;}
 .break-overlay.show{display:flex;}
-.break-title{font-family:'Bebas Neue',sans-serif;font-size:100px;letter-spacing:0.3em;color:#fff;margin-bottom:0;}
-.break-clock{font-family:'Bebas Neue',sans-serif;font-size:150px;color:#fff;letter-spacing:6px;line-height:0.9;}
-.break-next{font-size:18px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.2em;margin-top:16px;text-transform:uppercase;}
+.break-title{font-family:'Bebas Neue',sans-serif;font-size:112px;letter-spacing:0.3em;color:#fff;margin-bottom:0;}
+.break-clock{font-family:'Bebas Neue',sans-serif;font-size:180px;color:#fff;letter-spacing:6px;line-height:0.9;}
+.break-next{font-size:22px;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:0.2em;margin-top:16px;text-transform:uppercase;}
 
 /* LEVEL */
-.level-lbl{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:0.4em;color:#fff;margin-bottom:0;}
+.level-lbl{font-family:'Bebas Neue',sans-serif;font-size:46px;letter-spacing:0.4em;color:#fff;margin-bottom:0;}
 
 /* CLOCK */
 .clock{
   font-family:'Bebas Neue',sans-serif;
-  font-size:200px;
+  font-size:230px;
   letter-spacing:6px;line-height:0.88;
   color:#fff;
   transition:color 0.4s;
@@ -70,17 +70,17 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
 .clock.warn{color:#ff8c00;}
 .clock.danger{color:#ff2020;animation:blink 0.8s ease-in-out infinite;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.5;}}
-.paused-lbl{position:absolute;font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:0.4em;color:rgba(255,255,255,0.2);display:none;}
+.paused-lbl{position:absolute;font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:0.4em;color:rgba(255,255,255,0.2);display:none;}
 .paused-lbl.show{display:block;}
 
 /* BLINDS */
 .blinds-section{margin-top:12px;text-align:left;}
 .bl-row{display:flex;align-items:center;margin-bottom:4px;}
 .bl-row>div{margin-right:24px;}
-.bl-label{font-family:'Bebas Neue',sans-serif;font-size:48px;color:#fff;letter-spacing:0.1em;width:160px;}
-.bl-value{font-family:'Bebas Neue',sans-serif;font-size:64px;color:#fff;letter-spacing:0.05em;}
-.bl-sep{font-family:'Bebas Neue',sans-serif;font-size:52px;color:rgba(255,255,255,0.25);padding:0 4px;}
-.next-row{font-family:'Bebas Neue',sans-serif;font-size:35px;font-weight:300;font-style:italic;color:#fff;letter-spacing:0.1em;margin-top:6px;}
+.bl-label{font-family:'Bebas Neue',sans-serif;font-size:60px;color:#fff;letter-spacing:0.1em;width:200px;}
+.bl-value{font-family:'Bebas Neue',sans-serif;font-size:84px;color:#fff;letter-spacing:0.05em;}
+.bl-sep{font-family:'Bebas Neue',sans-serif;font-size:68px;color:rgba(255,255,255,0.25);padding:0 4px;}
+.next-row{font-family:'Bebas Neue',sans-serif;font-size:46px;font-weight:300;font-style:italic;color:#fff;letter-spacing:0.1em;margin-top:8px;}
 .next-row span{font-style:normal;font-weight:400;color:#fff;}
 </style>
 </head>
@@ -139,7 +139,7 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
       <!-- Payout (chỉ hiện khi đóng buy) -->
       <div id="payout-box" style="display:none;">
         <div class="stat-lbl" style="margin-bottom:10px;">PAYOUT:</div>
-        <div id="payout-rows" style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff;line-height:1.4;letter-spacing:0.03em;"></div>
+        <div id="payout-rows" style="font-family:'Bebas Neue',sans-serif;font-size:40px;color:#fff;line-height:1.4;letter-spacing:0.03em;"></div>
       </div>
     </div>
   </div>
