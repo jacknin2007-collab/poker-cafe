@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: poker-cafe-api
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: ${DATABASE_URL}
+      - key: PORT
+        value: 10000
