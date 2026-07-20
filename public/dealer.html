@@ -151,6 +151,7 @@ input:focus{border-color:var(--gold);}input::placeholder{color:var(--text3);}
     <img src="/logo.png" alt="" onerror="this.style.display='none'"/>
     <div class="h-name">Golden Coffee</div>
     <div class="h-dealer" id="dealer-badge">Dealer</div>
+    <button class="btn btn-sm" style="margin-left:6px;" onclick="changeTable()">🔁 Đổi bàn</button>
     <button class="btn btn-sm" style="margin-left:6px;" onclick="doLogout()">Thoát</button>
   </div>
   <div class="body">
@@ -309,9 +310,24 @@ async function chooseDealer(n){
   document.getElementById('dealer-screen').style.display='none';
   document.getElementById('main-screen').style.display='block';
   document.getElementById('dealer-badge').textContent=staffName+' · Bàn '+n;
+  // Ép vẽ lại bàn mới (bỏ mốc dedup cũ) + xoá tạm bàn cũ trên màn
+  window._dealerLastUpdate=0;
+  document.getElementById('tables-area').innerHTML='<div style="text-align:center;padding:20px;"><div class="spinner"></div></div>';
 
+  clearInterval(pollTimer); // tránh chạy chồng nhiều poll khi đổi bàn
   await loadAll();
+  renderTables(); // vẽ ngay bàn vừa chọn
   pollTimer=setInterval(loadState,2000);
+}
+
+// Quay lại màn chọn bàn để đổi sang bàn khác (không cần đăng xuất)
+function changeTable(){
+  clearInterval(pollTimer);
+  moveMode=null;
+  closeSheet('seat-overlay');closeSheet('add-overlay');closeSheet('top-overlay');
+  document.getElementById('main-screen').style.display='none';
+  document.getElementById('dealer-screen').style.display='flex';
+  document.getElementById('dealer-screen-sub').textContent=staffName.toUpperCase()+' · CHỌN BÀN';
 }
 
 async function doLogout(){
