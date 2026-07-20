@@ -620,11 +620,22 @@ function flushTableState(){
   const state=buildTableState();
   window._mainLastUpdate=state.updatedAt;
   try{ sessionStorage.setItem('gcTableState', JSON.stringify(state)); }catch(e){}
-  fetch(API+'/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)})
-    .catch(function(){})
-    .then(function(){
+  // Có timeout để nếu server treo thì vẫn nhả ra và thử lại (không kẹt mãi)
+  var _ac=null,_to=null;
+  try{ _ac=new AbortController(); _to=setTimeout(function(){try{_ac.abort();}catch(e){}},8000); }catch(e){}
+  fetch(API+'/table-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state),signal:_ac?_ac.signal:undefined})
+    .then(function(r){
+      if(_to)clearTimeout(_to);
+      if(!r||!r.ok) throw new Error('save failed');
       _saving=false;window._localChangeAt=Date.now();
       if(_pending&&!_saveTimer)_saveTimer=setTimeout(flushTableState,50);
+    })
+    .catch(function(){
+      if(_to)clearTimeout(_to);
+      // Lưu THẤT BẠI (server chậm/502...) -> GIỮ thao tác, thử lại sau.
+      // _pending=true để poll KHÔNG ghi đè bằng dữ liệu cũ trên server.
+      _saving=false;_pending=true;window._localChangeAt=Date.now();
+      if(!_saveTimer)_saveTimer=setTimeout(flushTableState,1500);
     });
 }
 // Đảm bảo không mất dữ liệu khi rời trang giữa lúc đang chờ gửi
@@ -1863,8 +1874,13 @@ async function refreshCustomers(){
   if(custs)customers=custs;
 }
 
-// Auto-refresh data mỗi 3 giây để sync với app khác
-setInterval(refreshCustomers, 3000);
+// Auto-refresh khách mỗi 15 giây (danh sách kèm avatar -> nặng, không cần nhanh).
+// Nếu đang thao tác/chờ lưu thì bỏ qua lần đó cho đỡ giật.
+setInterval(function(){
+  if(_saving||_pending)return;
+  if(Date.now()-(window._localChangeAt||0)<3000)return;
+  refreshCustomers();
+}, 15000);
 
 let _noteIsdrink=false;
 let _drinkItems=[]; // [{name, qty}]
@@ -2366,19 +2382,15 @@ document.querySelectorAll('input').forEach(inp=>{
 
 loadAll();
 
-// Đồng bộ real-time từ dealer/floor mỗi 2 giây
+// Đồng bộ trạng thái bàn từ dealer/floor mỗi 2 giây (payload NHỎ -> nhẹ)
+// KHÔNG tải /customers ở đây nữa (kèm avatar, rất nặng) -> refreshCustomers lo.
 setInterval(async()=>{
-  // Vừa thao tác cục bộ (mở/đóng bàn, trao top, xóa khách...) hoặc đang lưu?
-  // -> BỎ QUA đồng bộ để không ghi đè ngược thao tác chưa kịp lưu lên server.
+  // Vừa thao tác cục bộ hoặc đang lưu/chờ lưu? -> BỎ QUA để không ghi đè ngược.
   const recentLocal = Date.now() - (window._localChangeAt||0) < 3000;
   if(recentLocal || _saving || _pending) return;
 
-  // Sync customers (để nhận thay đổi từ báo cáo điện thoại)
-  const custs=await apiGet('/customers');
-  if(custs) customers=custs;
-
-  // Sync table state từ dealer/floor
   const state=await apiGet('/table-state');
+  // _saving/_pending ở trên đã chặn khi còn thao tác chưa lưu xong -> an toàn.
   if(state&&state.updatedAt&&state.updatedAt!==(window._mainLastUpdate||0)){
     window._mainLastUpdate=state.updatedAt;
     if(state.tablesNormal) state.tablesNormal.forEach(t=>{
