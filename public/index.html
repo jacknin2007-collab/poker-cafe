@@ -2263,12 +2263,19 @@ function renderAllCustomerList(list){
   const el=document.getElementById('allcust-list');
   if(!list.length){el.innerHTML='<div class="empty-msg" style="padding:12px 0;">Không tìm thấy</div>';return;}
   const sorted=[...list].sort((a,b)=>(b.rounds||0)-(a.rounds||0));
+  const LIMIT=50; // chỉ dựng tối đa 50 dòng -> nhẹ (tránh dựng hàng trăm avatar base64)
+  const shown=sorted.slice(0,LIMIT);
+  // Tính sẵn 1 lần: ai đang trên bàn / trong hàng chờ (tránh quét lại cho từng khách)
+  const onSet={}, qSet={};
+  tables.forEach(t=>{ if(t.status==='active') t.seats.forEach(s=>{ if(s) onSet[s.trim().toLowerCase()]=1; }); });
+  [].concat(queue||[],queueTour||[]).forEach(q=>{ if(q&&q.name) qSet[q.name.trim().toLowerCase()]=1; });
   el.innerHTML=`
-    <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">${list.length} khách hàng</div>
-    ${sorted.map(c=>{
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">${list.length} khách hàng${list.length>LIMIT?' · hiện '+LIMIT+' đầu — gõ để tìm':''}</div>
+    ${shown.map(c=>{
       const last4=c.phone.slice(-4);
-      const onTable=isOnTable(c.name);
-      const inQ=isInQueue(c.name);
+      const k=c.name.trim().toLowerCase();
+      const onTable=onSet[k];
+      const inQ=qSet[k];
       const status=onTable?`<span class="badge b-green" style="font-size:10px;">Đang chơi</span>`:inQ?`<span class="badge b-amber" style="font-size:10px;">Hàng chờ</span>`:'';
       const hasAvatar=c.avatar&&typeof c.avatar==='string'&&c.avatar.trim().length>0&&c.avatar.startsWith('data:image');
       const avatarHtml=hasAvatar?`<img src="${c.avatar}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--gold-dim);flex-shrink:0;">`:

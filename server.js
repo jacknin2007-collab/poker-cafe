@@ -475,9 +475,12 @@ app.get('/api/display', (req, res) => {
 
 // CUSTOMERS
 app.get('/api/customers', async (req, res) => {
-  const rows = await db.prepare('SELECT * FROM customers').all();
-  // ?light=1 -> bỏ avatar (base64 nặng) cho các lần đồng bộ định kỳ -> nhẹ hơn nhiều
+  // ?light=1 -> KHÔNG đọc cột avatar (base64 rất nặng) cho các lần đồng bộ định kỳ
   const light = req.query.light === '1';
+  const cols = light
+    ? 'name, phone, top1, top2, top3, rounds, drinks, is_admin, email, created_at'
+    : '*';
+  const rows = await db.prepare('SELECT ' + cols + ' FROM customers').all();
   res.json(rows.map(c => shapeCustomer(c, light)));
 });
 
@@ -617,10 +620,7 @@ app.post('/api/customer/login', async (req, res) => {
   try {
     const c = await db.prepare('SELECT * FROM customers WHERE phone=? AND password=? LIMIT 1').get(phone, password);
     if (!c) return res.json({ ok: false, error: 'SĐT hoặc mật khẩu không đúng' });
-    const customer = shapeCustomer(c);
-    // Cộng stars từ top1/2/3 (old) + match_history (new)
-    customer.stars = customer.stars + (await calcStarsFromHistory(phone));
-    res.json({ ok: true, customer });
+    res.json({ ok: true, customer: shapeCustomer(c) });
   } catch (e) {
     res.json({ ok: false, error: 'Lỗi hệ thống' });
   }
@@ -631,23 +631,13 @@ app.get('/api/customer/:phone', async (req, res) => {
   const phone = String(req.params.phone || '').replace(/\D/g, '');
   const c = await db.prepare('SELECT * FROM customers WHERE phone=? LIMIT 1').get(phone);
   if (!c) return res.status(404).json({ error: 'Không tìm thấy khách' });
-  const customer = shapeCustomer(c);
-  // Cộng stars từ top1/2/3 (old) + match_history (new)
-  customer.stars = customer.stars + (await calcStarsFromHistory(phone));
-  res.json(customer);
+  res.json(shapeCustomer(c));
 });
 
 // Danh sách khách cho app admin (kèm mật khẩu để admin quản lý): GET /api/customers/app-list
 app.get('/api/customers/app-list', async (req, res) => {
   const rows = await db.prepare('SELECT * FROM customers ORDER BY name').all();
-  const result = [];
-  for (const r of rows) {
-    const customer = { ...shapeCustomer(r), password: r.password };
-    // Cộng stars từ top1/2/3 (old) + match_history (new)
-    customer.stars = customer.stars + (await calcStarsFromHistory(r.phone));
-    result.push(customer);
-  }
-  res.json(result);
+  res.json(rows.map(r => ({ ...shapeCustomer(r), password: r.password })));
 });
 
 // Khách tự đổi mật khẩu: POST /api/customer/change-password { phone, oldPassword, newPassword }
