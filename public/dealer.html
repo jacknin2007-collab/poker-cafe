@@ -217,7 +217,7 @@ window.addEventListener('load',()=>{
 // Auto-detect API URL — cùng WiFi dùng IP máy chủ
 const API=`https://poker-cafe.onrender.com/api`;
 
-let staffName='', dealerName='', dealerSessionId='', myTables=[], tableState=null, allCustomers=[];
+let staffName='', dealerName='', dealerSessionId='', myTableId=null, tableState=null, allCustomers=[];
 let moveMode=null, addTarget=null, topTarget=null;
 let activeTableTab='normal'; // 'normal' | 'tour'
 let pollTimer=null;
@@ -305,6 +305,7 @@ async function doLogin(){
 // Chọn dealer bàn nào (1/2/3) -> vào bàn thường tương ứng
 async function chooseDealer(n){
   dealerName='Dealer '+n;
+  myTableId=n; // chọn bàn nào -> chỉ hiện đúng bàn thường số đó
   document.getElementById('dealer-screen').style.display='none';
   document.getElementById('main-screen').style.display='block';
   document.getElementById('dealer-badge').textContent=staffName+' · Bàn '+n;
@@ -326,7 +327,7 @@ async function doLogout(){
   staffName='';
   dealerName='';
   dealerSessionId='';
-  myTables=[];
+  myTableId=null;
   tableState=null;
   moveMode=null;
   activeSeat=null;
@@ -350,8 +351,6 @@ async function doLogout(){
 }
 
 async function loadAll(){
-  const info=await api('/dealers/'+encodeURIComponent(dealerName)+'/tables');
-  if(info)myTables=info.tables;
   const custs=await api('/customers?light=1');
   if(custs)allCustomers=custs;
   await loadState();
@@ -394,7 +393,8 @@ function switchTableTab(tab){
 
 function getMyTablesForTab(){
   const allT=[...(tableState?.tablesNormal||[])];
-  return allT.filter(t=>myTables.includes(t.id));
+  // Chỉ hiện ĐÚNG bàn thường mà dealer đã chọn (số bàn = số dealer)
+  return allT.filter(t=>Number(t.id)===Number(myTableId));
 }
 
 function renderTables(){
