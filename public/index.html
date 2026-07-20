@@ -2069,39 +2069,41 @@ function confirmAddToQueue(name, phone){
   ]);
 }
 
-async function addToQueueConfirmed(name, phone){
+function addToQueueConfirmed(name, phone){
   // Chặn thêm lần nữa (phòng trường hợp gọi trực tiếp)
   if(isOnTable(name)){
     const tn=getTableOf(name);
     showToast(`${name} đang chơi tại ${tn||'bàn'} — không thêm vào hàng chờ!`,'error');
     return;
   }
-  if(!getActiveQueue().find(q=>q.name===name)){
-    getActiveQueue().push({name:name,table:'Hàng chờ',time:nowTime()});
-    renderQueue();
-    saveTableState();
-    showToast('Đã thêm '+name+' vào hàng chờ!');
-
-    // Auto-track tournament buy-in/re-buy
-    if(activeTab==='tour'&&phone){
-      try{
-        // Check if customer already has a tournament_buyin entry for today
-        const today=new Date().toISOString().split('T')[0];
-        const existing=await fetch(API+`/tournament-buyin-check?phone=${encodeURIComponent(phone)}&date=${today}`).then(r=>r.json());
-        const isRebuy=!!existing?.count; // If they already have an entry, it's a re-buy
-
-        // Record the buy-in or re-buy
-        await fetch(API+'/tournament/buyin',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({customerPhone:phone,customerName:name,isRebuy})
-        });
-      }catch(e){console.log('Tournament tracking error:',e);}
-    }
-  } else {
+  if(getActiveQueue().find(q=>q.name===name)){
     showToast(name+' đã có trong hàng chờ!','error');
+    clearSearch();
+    return;
   }
+  // ── Cập nhật NGAY, không chờ mạng ──
+  getActiveQueue().push({name:name,table:'Hàng chờ',time:nowTime()});
+  renderQueue();
+  saveTableState();
+  showToast('Đã thêm '+name+' vào hàng chờ!');
   clearSearch();
+  // ── Ghi nhận buy-in tour chạy Ở NỀN (không chặn giao diện) ──
+  if(activeTab==='tour'&&phone) trackTournamentBuyin(name, phone);
+}
+
+function trackTournamentBuyin(name, phone){
+  const today=new Date().toISOString().split('T')[0];
+  fetch(API+`/tournament-buyin-check?phone=${encodeURIComponent(phone)}&date=${today}`)
+    .then(r=>r.json())
+    .then(existing=>{
+      const isRebuy=!!(existing&&existing.count);
+      return fetch(API+'/tournament/buyin',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({customerPhone:phone,customerName:name,isRebuy})
+      });
+    })
+    .catch(function(){});
 }
 
 async function showCustHistory(phone){
