@@ -845,7 +845,7 @@ function renderTablesLeft(){
       <div class="table-top">
         <div>
           <div class="table-name">${t.name}</div>
-          <div class="table-info">${t.status==='active'?'Bắt đầu: '+t.started+' · '+t.seats.filter(s=>s).length+'/9 người':'Bàn trống'}</div>
+          <div class="table-info">${t.status==='active'?'Bắt đầu: '+(t.started||'--')+' · '+t.seats.filter(s=>s).length+'/9 người':'Bàn trống'}</div>
         </div>
         <span class="badge ${t.status==='active'?'b-green':'b-gray'}">${t.status==='active'?'Đang chơi':'Trống'}</span>
       </div>
@@ -2393,16 +2393,18 @@ setInterval(async()=>{
   if(recentLocal || _saving || _pending) return;
 
   const state=await apiGet('/table-state');
-  // _saving/_pending ở trên đã chặn khi còn thao tác chưa lưu xong -> an toàn.
+  // KIỂM TRA LẠI sau khi mạng trả về: nếu vừa thao tác cục bộ TRONG LÚC chờ mạng
+  // (vd bấm đóng bàn), thì state nhận được là bản CŨ -> BỎ, không ghi đè ngược.
+  if(_saving||_pending||(Date.now()-(window._localChangeAt||0)<3000))return;
   if(state&&state.updatedAt&&state.updatedAt!==(window._mainLastUpdate||0)){
     window._mainLastUpdate=state.updatedAt;
     if(state.tablesNormal) state.tablesNormal.forEach(t=>{
       const found=tablesNormal.find(x=>x.id===t.id);
-      if(found){found.seats=t.seats;found.status=t.status;}
+      if(found){found.seats=t.seats;found.status=t.status;found.started=t.started;}
     });
     if(state.tablesTour) state.tablesTour.forEach(t=>{
       const found=tablesTour.find(x=>x.id===t.id);
-      if(found){found.seats=t.seats;found.status=t.status;}
+      if(found){found.seats=t.seats;found.status=t.status;found.started=t.started;}
     });
     if(state.queue) queue=state.queue;
     if(state.queueTour) queueTour=state.queueTour;
