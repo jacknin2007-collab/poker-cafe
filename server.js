@@ -25,6 +25,168 @@ let activeSessions = {}; // { staffName: [{ sessionId, app, loginTime }, ...] }
 // Health check nhẹ (dùng cho keep-alive giữ server thức)
 app.get('/healthz', (req, res) => res.json({ ok: true, t: Date.now() }));
 
+// ── ADMIN: Migrate/reprocess dữ liệu lịch sử ──────────────────────────
+app.post('/api/admin/migrate-rankings', async (req, res) => {
+  try {
+    console.log('🔄 Starting rankings migration...');
+
+    // Xóa rankings cũ
+    await db.prepare('DELETE FROM rankings').run();
+
+    // Lấy tất cả customers
+    const customers = await db.prepare('SELECT DISTINCT phone FROM customers').all();
+
+    for (const cust of customers) {
+      const phone = cust.phone;
+
+      // Lấy match history của customer
+      const matches = await db.prepare(
+        'SELECT top_rank, points, created_at FROM match_history WHERE phone=? AND match_type=? ORDER BY created_at'
+      ).all(phone, 'gain');
+
+      if (matches.length === 0) continue;
+
+      // Tính season + monthly rankings
+      const seasons = {};
+      const months = {};
+
+      for (const m of matches) {
+        const date = new Date(m.created_at);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const season = month <= 6 ? 1 : 2;
+        const seasonKey = `${year}S${season}`;
+        const monthKey = `${year}${String(month).padStart(2, '0')}`;
+
+        if (!seasons[seasonKey]) seasons[seasonKey] = { top1: 0, top2: 0, top3: 0, stars: 0 };
+        if (!months[monthKey]) months[monthKey] = { top1: 0, top2: 0, top3: 0, stars: 0 };
+
+        if (m.top_rank === 1) {
+          seasons[seasonKey].top1++;
+          months[monthKey].top1++;
+        } else if (m.top_rank === 2) {
+          seasons[seasonKey].top2++;
+          months[monthKey].top2++;
+        } else if (m.top_rank === 3) {
+          seasons[seasonKey].top3++;
+          months[monthKey].top3++;
+        }
+        seasons[seasonKey].stars += m.points;
+        months[monthKey].stars += m.points;
+      }
+
+      // Insert season rankings
+      for (const [seasonKey, stats] of Object.entries(seasons)) {
+        try {
+          await db.prepare(
+            `INSERT INTO rankings (phone, period_type, period_value, stars, top1_count, top2_count, top3_count)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`
+          ).run(phone, 'season', seasonKey, stats.stars, stats.top1, stats.top2, stats.top3);
+        } catch (e) {
+          // Ignore duplicate key error
+        }
+      }
+
+      // Insert monthly rankings
+      for (const [monthKey, stats] of Object.entries(months)) {
+        try {
+          await db.prepare(
+            `INSERT INTO rankings (phone, period_type, period_value, stars, top1_count, top2_count, top3_count)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`
+          ).run(phone, 'monthly', monthKey, stats.stars, stats.top1, stats.top2, stats.top3);
+        } catch (e) {
+          // Ignore duplicate key error
+        }
+      }
+    }
+
+    // Update rank positions
+    const seasons = await db.prepare('SELECT DISTINCT period_value FROM rankings WHERE period_type=?').all('season');
+    for (const s of seasons) {
+      const ranked = await db.prepare(
+        'SELECT id FROM rankings WHERE period_type=? AND period_value=? ORDER BY stars DESC'
+      ).all('season', s.period_value);
+      for (let i = 0; i < ranked.length; i++) {
+        await db.prepare('UPDATE rankings SET rank_position=? WHERE id=?').run(i + 1, ranked[i].id);
+      }
+    }
+
+    const months = await db.prepare('SELECT DISTINCT period_value FROM rankings WHERE period_type=?').all('monthly');
+    for (const m of months) {
+      const ranked = await db.prepare(
+        'SELECT id FROM rankings WHERE period_type=? AND period_value=? ORDER BY stars DESC'
+      ).all('monthly', m.period_value);
+      for (let i = 0; i < ranked.length; i++) {
+        await db.prepare('UPDATE rankings SET rank_position=? WHERE id=?').run(i + 1, ranked[i].id);
+      }
+    }
+
+    console.log('✓ Completed rankings migration');
+    res.json({ ok: true, message: 'Rankings migrated successfully' });
+  } catch (e) {
+    console.error('Migration error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/recalc-performance', async (req, res) => {
+  try {
+    console.log('🔄 Recalculating performance stats...');
+
+    const customers = await db.prepare('SELECT DISTINCT phone FROM customers').all();
+
+    for (const cust of customers) {
+      const phone = cust.phone;
+      const stats = await db.prepare(
+        `SELECT
+          COUNT(*) as total,
+          SUM(CASE WHEN top_rank=1 THEN 1 ELSE 0 END) as top1,
+          SUM(CASE WHEN top_rank=2 THEN 1 ELSE 0 END) as top2,
+          SUM(CASE WHEN top_rank=3 THEN 1 ELSE 0 END) as top3
+        FROM match_history WHERE phone=? AND match_type=?`
+      ).get(phone, 'gain');
+
+      const total = stats?.total || 0;
+      const top1 = stats?.top1 || 0;
+      const top2 = stats?.top2 || 0;
+      const top3 = stats?.top3 || 0;
+      const itm = total > 0 ? ((top1 + top2 + top3) / total * 100).toFixed(2) : 0;
+      const winRate = total > 0 ? (top1 / total * 100).toFixed(2) : 0;
+
+      const tourStats = await db.prepare(
+        `SELECT
+          SUM(CASE WHEN is_rebuy=0 THEN 1 ELSE 0 END) as tour_count,
+          SUM(CASE WHEN is_rebuy=1 THEN 1 ELSE 0 END) as rebuy_count
+        FROM tournament_buyin WHERE customer_phone=?`
+      ).get(phone);
+
+      const tournamentCount = tourStats?.tour_count || 0;
+      const rebuyCount = tourStats?.rebuy_count || 0;
+      const buyinCount = tournamentCount + rebuyCount;
+      const buyTourRatio = tournamentCount > 0 ? (buyinCount / tournamentCount).toFixed(2) : 0;
+
+      try {
+        await db.prepare(
+          `INSERT INTO performance_stats (phone, total_matches, top1_count, top2_count, top3_count, itm_percentage, win_rate, tournament_count, buyin_count, buy_tour_ratio)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).run(phone, total, top1, top2, top3, itm, winRate, tournamentCount, buyinCount, buyTourRatio);
+      } catch (e) {
+        // Try update instead
+        await db.prepare(
+          `UPDATE performance_stats SET total_matches=?, top1_count=?, top2_count=?, top3_count=?, itm_percentage=?, win_rate=?, tournament_count=?, buyin_count=?, buy_tour_ratio=?, last_updated=CURRENT_TIMESTAMP
+           WHERE phone=?`
+        ).run(total, top1, top2, top3, itm, winRate, tournamentCount, buyinCount, buyTourRatio, phone);
+      }
+    }
+
+    console.log('✓ Completed performance stats recalculation');
+    res.json({ ok: true, message: 'Performance stats recalculated' });
+  } catch (e) {
+    console.error('Performance calculation error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Trang dealer
 app.get('/dealer', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dealer.html'));
@@ -503,23 +665,123 @@ app.post('/api/customers', async (req, res) => {
   }
 });
 
+// Helper: Cập nhật performance_stats và rankings khi có top mới
+async function updatePerformanceAndRankings(phone) {
+  try {
+    // Tính toán performance stats từ match_history
+    const stats = await db.prepare(
+      `SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN top_rank=1 THEN 1 ELSE 0 END) as top1,
+        SUM(CASE WHEN top_rank=2 THEN 1 ELSE 0 END) as top2,
+        SUM(CASE WHEN top_rank=3 THEN 1 ELSE 0 END) as top3
+      FROM match_history WHERE phone=? AND match_type='gain'`
+    ).get(phone);
+
+    const total = stats?.total || 0;
+    const top1 = stats?.top1 || 0;
+    const top2 = stats?.top2 || 0;
+    const top3 = stats?.top3 || 0;
+    const itm = total > 0 ? ((top1 + top2 + top3) / total * 100).toFixed(2) : 0;
+    const winRate = total > 0 ? (top1 / total * 100).toFixed(2) : 0;
+
+    // Tính tournament vs buyin count từ tournament_buyin table
+    const tourStats = await db.prepare(
+      `SELECT
+        SUM(CASE WHEN is_rebuy=0 THEN 1 ELSE 0 END) as tour_count,
+        SUM(CASE WHEN is_rebuy=1 THEN 1 ELSE 0 END) as rebuy_count
+      FROM tournament_buyin WHERE customer_phone=?`
+    ).get(phone);
+
+    const tournamentCount = tourStats?.tour_count || 0;
+    const rebuyCount = tourStats?.rebuy_count || 0;
+    const buyinCount = tournamentCount + rebuyCount; // Tổng buyin (tour + rebuy)
+    const buyTourRatio = tournamentCount > 0 ? (buyinCount / tournamentCount).toFixed(2) : 0;
+
+    // Cập nhật hoặc tạo performance_stats
+    await db.prepare(
+      `INSERT INTO performance_stats (phone, total_matches, top1_count, top2_count, top3_count, itm_percentage, win_rate, tournament_count, buyin_count, buy_tour_ratio)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(phone) DO UPDATE SET
+       total_matches=?, top1_count=?, top2_count=?, top3_count=?, itm_percentage=?, win_rate=?, tournament_count=?, buyin_count=?, buy_tour_ratio=?, last_updated=CURRENT_TIMESTAMP`
+    ).run(phone, total, top1, top2, top3, itm, winRate, tournamentCount, buyinCount, buyTourRatio,
+          total, top1, top2, top3, itm, winRate, tournamentCount, buyinCount, buyTourRatio);
+
+    // Tính toán và cập nhật rankings (season + monthly)
+    const matches = await db.prepare(
+      'SELECT top_rank, points, created_at FROM match_history WHERE phone=? AND match_type=? ORDER BY created_at'
+    ).all(phone, 'gain');
+
+    const seasons = {};
+    const months = {};
+
+    for (const m of matches) {
+      const date = new Date(m.created_at);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const season = month <= 6 ? 1 : 2;
+      const seasonKey = `${year}S${season}`;
+      const monthKey = `${year}${String(month).padStart(2, '0')}`;
+
+      if (!seasons[seasonKey]) seasons[seasonKey] = { top1: 0, top2: 0, top3: 0, stars: 0 };
+      if (!months[monthKey]) months[monthKey] = { top1: 0, top2: 0, top3: 0, stars: 0 };
+
+      if (m.top_rank === 1) {
+        seasons[seasonKey].top1++;
+        months[monthKey].top1++;
+      } else if (m.top_rank === 2) {
+        seasons[seasonKey].top2++;
+        months[monthKey].top2++;
+      } else if (m.top_rank === 3) {
+        seasons[seasonKey].top3++;
+        months[monthKey].top3++;
+      }
+      seasons[seasonKey].stars += m.points;
+      months[monthKey].stars += m.points;
+    }
+
+    // Upsert season rankings
+    for (const [seasonKey, stats] of Object.entries(seasons)) {
+      await db.prepare(
+        `INSERT INTO rankings (phone, period_type, period_value, stars, top1_count, top2_count, top3_count)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(phone, period_type, period_value) DO UPDATE SET
+         stars=?, top1_count=?, top2_count=?, top3_count=?, updated_at=CURRENT_TIMESTAMP`
+      ).run(phone, 'season', seasonKey, stats.stars, stats.top1, stats.top2, stats.top3,
+            stats.stars, stats.top1, stats.top2, stats.top3);
+    }
+
+    // Upsert monthly rankings
+    for (const [monthKey, stats] of Object.entries(months)) {
+      await db.prepare(
+        `INSERT INTO rankings (phone, period_type, period_value, stars, top1_count, top2_count, top3_count)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(phone, period_type, period_value) DO UPDATE SET
+         stars=?, top1_count=?, top2_count=?, top3_count=?, updated_at=CURRENT_TIMESTAMP`
+      ).run(phone, 'monthly', monthKey, stats.stars, stats.top1, stats.top2, stats.top3,
+            stats.stars, stats.top1, stats.top2, stats.top3);
+    }
+  } catch (e) {
+    console.error('[UPDATE_PERF] Error updating performance stats:', e.message);
+  }
+}
+
 app.put('/api/customers/:phone', async (req, res) => {
   const { top1, top2, top3, rounds, drinks } = req.body;
   const old = await db.prepare('SELECT top1,top2,top3,rounds,drinks FROM customers WHERE phone=?').get(req.params.phone);
 
-  // Ghi lịch sử mỗi khi được trao top mới hoặc bị trừ (cho app khách tra cứu)
+  // Ghi lịch sử mỗi khi được trao top mới (cho app khách tra cứu)
   if (old) {
     const units = { 1: 5, 2: 3, 3: 1 };
     const news = { 1: Number(top1) || 0, 2: Number(top2) || 0, 3: Number(top3) || 0 };
     const olds = { 1: Number(old.top1) || 0, 2: Number(old.top2) || 0, 3: Number(old.top3) || 0 };
     for (const rank of [1, 2, 3]) {
       const delta = news[rank] - olds[rank];
-      const matchType = delta > 0 ? 'gain' : (delta < 0 ? 'lose' : null);
       const count = Math.abs(delta);
       for (let k = 0; k < count && k < 50; k++) {
         try {
-          await db.prepare('INSERT INTO match_history (phone, top_rank, points, match_type) VALUES (?, ?, ?, ?)')
-            .run(req.params.phone, rank, units[rank], matchType);
+          await db.prepare('INSERT INTO match_history (phone, top_rank, points) VALUES (?, ?, ?)')
+            .run(req.params.phone, rank, units[rank]);
         } catch (e) {}
       }
     }
@@ -540,6 +802,12 @@ app.put('/api/customers/:phone', async (req, res) => {
     await db.prepare('UPDATE customers SET top1=?,top2=?,top3=?,rounds=?,drinks=? WHERE phone=?')
       .run(top1, top2, top3, rounds, drinks, req.params.phone);
   }
+
+  // Cập nhật performance stats + rankings nếu có top mới
+  if (activityIncreased) {
+    await updatePerformanceAndRankings(req.params.phone);
+  }
+
   res.json({ ok: true });
 });
 
@@ -867,6 +1135,175 @@ app.get('/api/customer/:phone/history', async (req, res) => {
     ).all(phone);
     res.json(rows);
   } catch (e) { res.json([]); }
+});
+
+// ── RANKINGS: Season + Monthly ──────────────────────────────────────
+app.get('/api/rankings/season', async (req, res) => {
+  const year = req.query.year || new Date().getFullYear();
+  const season = req.query.season || (new Date().getMonth() < 6 ? 1 : 2);
+  const periodValue = `${year}S${season}`;
+  try {
+    const rows = await db.prepare(
+      `SELECT rank_position, phone, stars, top1_count, top2_count, top3_count
+       FROM rankings WHERE period_type='season' AND period_value=?
+       ORDER BY rank_position`
+    ).all(periodValue);
+    // Lấy thông tin customer từ rankings
+    const data = await Promise.all(rows.map(async (r) => {
+      const cust = await db.prepare('SELECT name, avatar FROM customers WHERE phone=?').get(r.phone);
+      return { ...r, name: cust?.name || '', avatar: cust?.avatar || '' };
+    }));
+    res.json(data);
+  } catch (e) {
+    console.error('Season ranking error:', e.message);
+    res.json([]);
+  }
+});
+
+app.get('/api/rankings/monthly', async (req, res) => {
+  const year = req.query.year || new Date().getFullYear();
+  const month = req.query.month || (new Date().getMonth() + 1);
+  const periodValue = `${year}${String(month).padStart(2, '0')}`;
+  try {
+    const rows = await db.prepare(
+      `SELECT rank_position, phone, stars, top1_count, top2_count, top3_count
+       FROM rankings WHERE period_type='monthly' AND period_value=?
+       ORDER BY rank_position`
+    ).all(periodValue);
+    const data = await Promise.all(rows.map(async (r) => {
+      const cust = await db.prepare('SELECT name, avatar FROM customers WHERE phone=?').get(r.phone);
+      return { ...r, name: cust?.name || '', avatar: cust?.avatar || '' };
+    }));
+    res.json(data);
+  } catch (e) {
+    console.error('Monthly ranking error:', e.message);
+    res.json([]);
+  }
+});
+
+// ── PLAYER STATS: Performance metrics ────────────────────────────────
+app.get('/api/customer/:phone/stats', async (req, res) => {
+  const phone = String(req.params.phone || '').replace(/\D/g, '');
+  try {
+    const stats = await db.prepare(
+      `SELECT phone, total_matches, top1_count, top2_count, top3_count,
+              itm_percentage, win_rate, tournament_count, buyin_count, buy_tour_ratio
+       FROM performance_stats WHERE phone=?`
+    ).get(phone);
+    res.json(stats || {
+      phone, total_matches: 0, top1_count: 0, top2_count: 0, top3_count: 0,
+      itm_percentage: 0, win_rate: 0, tournament_count: 0, buyin_count: 0, buy_tour_ratio: 0
+    });
+  } catch (e) {
+    console.error('Stats error:', e.message);
+    res.json({});
+  }
+});
+
+// ── TOURNAMENTS: Lưu kết quả tournament ──────────────────────────────
+app.get('/api/tournaments', async (req, res) => {
+  try {
+    const rows = await db.prepare(
+      'SELECT id, date, name, prize_pool, total_players FROM tournaments ORDER BY date DESC LIMIT 30'
+    ).all();
+    res.json(rows);
+  } catch (e) { res.json([]); }
+});
+
+app.post('/api/tournaments', async (req, res) => {
+  const { date, name, prize_pool, total_players, buy_in } = req.body || {};
+  if (!date || !name) {
+    return res.status(400).json({ error: 'Cần date và name' });
+  }
+  try {
+    const r = await db.prepare(
+      `INSERT INTO tournaments (date, name, prize_pool, total_players, buy_in)
+       VALUES (?, ?, ?, ?, ?) RETURNING id`
+    ).run(date, name, prize_pool || 0, total_players || 0, buy_in || 0);
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch (e) {
+    console.error('Tournament create error:', e.message);
+    res.status(500).json({ error: 'Lỗi tạo tournament' });
+  }
+});
+
+// ── TOURNAMENT RESULTS: Top 6 của tournament ─────────────────────────
+app.get('/api/tournament/:id/results', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ error: 'Invalid tournament ID' });
+  try {
+    const rows = await db.prepare(
+      `SELECT rank_position, phone, customer_name, prize_won
+       FROM tournament_results WHERE tournament_id=? ORDER BY rank_position`
+    ).all(id);
+    res.json(rows);
+  } catch (e) { res.json([]); }
+});
+
+app.put('/api/tournament/:id/results', async (req, res) => {
+  const id = Number(req.params.id);
+  const { results } = req.body || {}; // [{ phone, customer_name, rank_position, prize_won }, ...]
+  if (!id || !Array.isArray(results)) {
+    return res.status(400).json({ error: 'Cần tournament ID và results array' });
+  }
+  try {
+    // Xóa results cũ
+    await db.prepare('DELETE FROM tournament_results WHERE tournament_id=?').run(id);
+    // Insert results mới
+    for (const r of results) {
+      await db.prepare(
+        `INSERT INTO tournament_results (tournament_id, phone, customer_name, rank_position, prize_won)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run(id, r.phone, r.customer_name, r.rank_position, r.prize_won || 0);
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Tournament results error:', e.message);
+    res.status(500).json({ error: 'Lỗi lưu kết quả' });
+  }
+});
+
+// ── REWARDS: Free Drinks, Free Rounds ────────────────────────────────
+app.get('/api/customer/:phone/rewards', async (req, res) => {
+  const phone = String(req.params.phone || '').replace(/\D/g, '');
+  try {
+    const rows = await db.prepare(
+      'SELECT id, type, quantity, used_quantity, note, created_at FROM rewards WHERE phone=? ORDER BY created_at DESC'
+    ).all(phone);
+    res.json(rows);
+  } catch (e) { res.json([]); }
+});
+
+app.post('/api/rewards/:phone', async (req, res) => {
+  const phone = String(req.params.phone || '').replace(/\D/g, '');
+  const { type, quantity, note } = req.body || {};
+  if (!type || !quantity) {
+    return res.status(400).json({ error: 'Cần type (drink/round) và quantity' });
+  }
+  try {
+    const r = await db.prepare(
+      'INSERT INTO rewards (phone, type, quantity, note) VALUES (?, ?, ?, ?) RETURNING id'
+    ).run(phone, type, quantity, note || '');
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch (e) {
+    console.error('Reward create error:', e.message);
+    res.status(500).json({ error: 'Lỗi thêm reward' });
+  }
+});
+
+app.put('/api/rewards/:id/use', async (req, res) => {
+  const id = Number(req.params.id);
+  const { quantity } = req.body || {};
+  if (!id || !quantity) return res.status(400).json({ error: 'Invalid input' });
+  try {
+    await db.prepare(
+      'UPDATE rewards SET used_quantity=used_quantity+?, used_at=CURRENT_TIMESTAMP WHERE id=?'
+    ).run(quantity, id);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Reward use error:', e.message);
+    res.status(500).json({ error: 'Lỗi cập nhật reward' });
+  }
 });
 
 // ── LỊCH THI ĐẤU (admin đăng, khách xem) ────────────────────────

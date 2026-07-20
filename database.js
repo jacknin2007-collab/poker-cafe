@@ -207,6 +207,72 @@ async function initSchema() {
     UNIQUE(notification_id, phone)
   )`);
 
+  // Rankings: Season (S1: 1/1-6/30, S2: 7/1-12/31) và Monthly (1-12)
+  await run(`CREATE TABLE IF NOT EXISTS rankings (
+    id SERIAL PRIMARY KEY,
+    phone TEXT NOT NULL,
+    period_type TEXT NOT NULL,
+    period_value TEXT NOT NULL,
+    rank_position INTEGER,
+    stars INTEGER DEFAULT 0,
+    top1_count INTEGER DEFAULT 0,
+    top2_count INTEGER DEFAULT 0,
+    top3_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(phone, period_type, period_value)
+  )`);
+
+  // Performance stats: ITM%, win rate, buy/tour ratio (cache để query nhanh)
+  await run(`CREATE TABLE IF NOT EXISTS performance_stats (
+    phone TEXT PRIMARY KEY,
+    total_matches INTEGER DEFAULT 0,
+    top1_count INTEGER DEFAULT 0,
+    top2_count INTEGER DEFAULT 0,
+    top3_count INTEGER DEFAULT 0,
+    itm_percentage NUMERIC(5,2) DEFAULT 0,
+    win_rate NUMERIC(5,2) DEFAULT 0,
+    tournament_count INTEGER DEFAULT 0,
+    buyin_count INTEGER DEFAULT 0,
+    buy_tour_ratio NUMERIC(5,2) DEFAULT 0,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // Tournaments: Lưu chi tiết mỗi tournament
+  await run(`CREATE TABLE IF NOT EXISTS tournaments (
+    id SERIAL PRIMARY KEY,
+    date TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT 'Tournament',
+    prize_pool INTEGER DEFAULT 0,
+    total_players INTEGER DEFAULT 0,
+    buy_in INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // Tournament results: Top 6 kết quả của mỗi tournament
+  await run(`CREATE TABLE IF NOT EXISTS tournament_results (
+    id SERIAL PRIMARY KEY,
+    tournament_id INTEGER NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+    phone TEXT NOT NULL,
+    customer_name TEXT DEFAULT '',
+    rank_position INTEGER NOT NULL,
+    prize_won INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(tournament_id, phone)
+  )`);
+
+  // Rewards: Free Drinks, Free Rounds (admin nhập thủ công)
+  await run(`CREATE TABLE IF NOT EXISTS rewards (
+    id SERIAL PRIMARY KEY,
+    phone TEXT NOT NULL,
+    type TEXT NOT NULL,
+    quantity INTEGER DEFAULT 1,
+    note TEXT DEFAULT '',
+    used_quantity INTEGER DEFAULT 0,
+    used_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   // Idempotent migrations for older databases
   try { await run(`ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS password TEXT NOT NULL DEFAULT '123456'`); } catch (e) {}
   try { await run(`ALTER TABLE stock ADD COLUMN IF NOT EXISTS cost INTEGER DEFAULT 1`); } catch (e) {}
@@ -234,6 +300,15 @@ async function initSchema() {
   } catch (e) {
     // Silently fail if table doesn't exist or already converted
   }
+
+  // Add match_type column to track gain/lose
+  try {
+    await run(`ALTER TABLE match_history ADD COLUMN IF NOT EXISTS match_type TEXT DEFAULT 'gain'`);
+    console.log('✓ Added match_type column to match_history');
+  } catch (e) {
+    // Column already exists
+  }
+
 }
 
 module.exports = db;
