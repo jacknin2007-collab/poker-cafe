@@ -476,7 +476,9 @@ app.get('/api/display', (req, res) => {
 // CUSTOMERS
 app.get('/api/customers', async (req, res) => {
   const rows = await db.prepare('SELECT * FROM customers').all();
-  res.json(rows.map(shapeCustomer));
+  // ?light=1 -> bỏ avatar (base64 nặng) cho các lần đồng bộ định kỳ -> nhẹ hơn nhiều
+  const light = req.query.light === '1';
+  res.json(rows.map(c => shapeCustomer(c, light)));
 });
 
 app.post('/api/customers', async (req, res) => {
@@ -502,17 +504,19 @@ app.put('/api/customers/:phone', async (req, res) => {
   const { top1, top2, top3, rounds, drinks } = req.body;
   const old = await db.prepare('SELECT top1,top2,top3,rounds,drinks FROM customers WHERE phone=?').get(req.params.phone);
 
-  // Ghi lịch sử mỗi khi được trao top mới (cho app khách tra cứu)
+  // Ghi lịch sử mỗi khi được trao top mới hoặc bị trừ (cho app khách tra cứu)
   if (old) {
     const units = { 1: 5, 2: 3, 3: 1 };
     const news = { 1: Number(top1) || 0, 2: Number(top2) || 0, 3: Number(top3) || 0 };
     const olds = { 1: Number(old.top1) || 0, 2: Number(old.top2) || 0, 3: Number(old.top3) || 0 };
     for (const rank of [1, 2, 3]) {
       const delta = news[rank] - olds[rank];
-      for (let k = 0; k < delta && k < 50; k++) {
+      const matchType = delta > 0 ? 'gain' : (delta < 0 ? 'lose' : null);
+      const count = Math.abs(delta);
+      for (let k = 0; k < count && k < 50; k++) {
         try {
-          await db.prepare('INSERT INTO match_history (phone, top_rank, points) VALUES (?, ?, ?)')
-            .run(req.params.phone, rank, units[rank]);
+          await db.prepare('INSERT INTO match_history (phone, top_rank, points, match_type) VALUES (?, ?, ?, ?)')
+            .run(req.params.phone, rank, units[rank], matchType);
         } catch (e) {}
       }
     }
@@ -563,12 +567,33 @@ app.post('/api/customers/cleanup', async (req, res) => {
 });
 
 // ── APP KHÁCH HÀNG: đăng nhập + quản lý tài khoản ────────────────
+// Tính stars từ match_history (gain - lose)
+async function calcStarsFromHistory(phone) {
+  try {
+    const result = await db.prepare(`
+      SELECT
+        COALESCE(
+          SUM(CASE WHEN match_type='gain' AND top_rank=1 THEN 5
+                   WHEN match_type='gain' AND top_rank=2 THEN 3
+                   WHEN match_type='gain' AND top_rank=3 THEN 1
+                   ELSE 0 END), 0)
+        -
+        COALESCE(SUM(CASE WHEN match_type='lose' THEN points ELSE 0 END), 0)
+        as stars
+      FROM match_history WHERE phone=?
+    `).get(phone);
+    return Math.max(0, Number(result?.stars) || 0);
+  } catch (e) {
+    return 0;
+  }
+}
+
 // Chuẩn hoá dữ liệu khách trả về cho app (tính stars, ẩn mật khẩu)
-function shapeCustomer(c) {
+function shapeCustomer(c, light) {
   const top1 = Number(c.top1) || 0;
   const top2 = Number(c.top2) || 0;
   const top3 = Number(c.top3) || 0;
-  return {
+  const out = {
     name: c.name,
     phone: c.phone,
     is_admin: c.is_admin === true || c.is_admin === 't' || c.is_admin === 1,
@@ -577,9 +602,11 @@ function shapeCustomer(c) {
     rounds: Number(c.rounds) || 0,
     drinks: Number(c.drinks) || 0,
     email: c.email || '',
-    avatar: c.avatar || '',
     created_at: c.created_at ? new Date(c.created_at).toISOString() : null,
   };
+  // Chỉ kèm avatar khi KHÔNG phải bản nhẹ (avatar base64 rất nặng)
+  if (!light) out.avatar = c.avatar || '';
+  return out;
 }
 
 // Đăng nhập khách: POST /api/customer/login { phone, password }
@@ -590,7 +617,10 @@ app.post('/api/customer/login', async (req, res) => {
   try {
     const c = await db.prepare('SELECT * FROM customers WHERE phone=? AND password=? LIMIT 1').get(phone, password);
     if (!c) return res.json({ ok: false, error: 'SĐT hoặc mật khẩu không đúng' });
-    res.json({ ok: true, customer: shapeCustomer(c) });
+    const customer = shapeCustomer(c);
+    // Cộng stars từ top1/2/3 (old) + match_history (new)
+    customer.stars = customer.stars + (await calcStarsFromHistory(phone));
+    res.json({ ok: true, customer });
   } catch (e) {
     res.json({ ok: false, error: 'Lỗi hệ thống' });
   }
@@ -601,13 +631,23 @@ app.get('/api/customer/:phone', async (req, res) => {
   const phone = String(req.params.phone || '').replace(/\D/g, '');
   const c = await db.prepare('SELECT * FROM customers WHERE phone=? LIMIT 1').get(phone);
   if (!c) return res.status(404).json({ error: 'Không tìm thấy khách' });
-  res.json(shapeCustomer(c));
+  const customer = shapeCustomer(c);
+  // Cộng stars từ top1/2/3 (old) + match_history (new)
+  customer.stars = customer.stars + (await calcStarsFromHistory(phone));
+  res.json(customer);
 });
 
 // Danh sách khách cho app admin (kèm mật khẩu để admin quản lý): GET /api/customers/app-list
 app.get('/api/customers/app-list', async (req, res) => {
   const rows = await db.prepare('SELECT * FROM customers ORDER BY name').all();
-  res.json(rows.map(r => ({ ...shapeCustomer(r), password: r.password })));
+  const result = [];
+  for (const r of rows) {
+    const customer = { ...shapeCustomer(r), password: r.password };
+    // Cộng stars từ top1/2/3 (old) + match_history (new)
+    customer.stars = customer.stars + (await calcStarsFromHistory(r.phone));
+    result.push(customer);
+  }
+  res.json(result);
 });
 
 // Khách tự đổi mật khẩu: POST /api/customer/change-password { phone, oldPassword, newPassword }
@@ -833,7 +873,7 @@ app.get('/api/customer/:phone/history', async (req, res) => {
   const phone = String(req.params.phone || '').replace(/\D/g, '');
   try {
     const rows = await db.prepare(
-      'SELECT id, top_rank, points, created_at FROM match_history WHERE phone=? ORDER BY id DESC LIMIT 200'
+      'SELECT id, top_rank, points, created_at, match_type FROM match_history WHERE phone=? ORDER BY id DESC LIMIT 200'
     ).all(phone);
     res.json(rows);
   } catch (e) { res.json([]); }

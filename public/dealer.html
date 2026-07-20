@@ -352,7 +352,7 @@ async function doLogout(){
 async function loadAll(){
   const info=await api('/dealers/'+encodeURIComponent(dealerName)+'/tables');
   if(info)myTables=info.tables;
-  const custs=await api('/customers');
+  const custs=await api('/customers?light=1');
   if(custs)allCustomers=custs;
   await loadState();
 }
@@ -372,7 +372,7 @@ async function loadState(){
 
 // ── SYNC DATA BETWEEN APPS ────────────────────────────────────────
 async function refreshAllCustomers(){
-  const custs=await api('/customers');
+  const custs=await api('/customers?light=1');
   if(custs)allCustomers=custs;
 }
 

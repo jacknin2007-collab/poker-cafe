@@ -337,7 +337,7 @@ async function doLogout(){
 }
 
 async function loadAll(){
-  const custs=await api('/customers');
+  const custs=await api('/customers?light=1');
   if(custs)allCustomers=custs;
   await loadState();
 }
@@ -355,7 +355,7 @@ async function loadState(){
   window._floorLastUpdate=state.updatedAt;
   tableState=state;
   // Làm mới danh sách khách để hiện đúng 4 số cuối SĐT
-  const custs=await api('/customers');
+  const custs=await api('/customers?light=1');
   if(custs)allCustomers=custs;
   renderTables();
   renderQueues();

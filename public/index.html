@@ -658,21 +658,11 @@ async function loadAll(){
     apiGet('/stock'),
     apiGet('/app-content')
   ]);
-  if(custs){
-    console.log('Fetched customers:', custs.length);
-    const phuong = custs.find(c => c.name === 'Phương');
-    if(phuong) console.log('Phương avatar length:', phuong.avatar.length);
-    customers=custs;
-  }
+  if(custs){ customers=custs; }
   if(txs)transactions=txs;
   if(stk)stock=stk;
   if(appContent&&appContent.rank_tiers){
-    try{
-      cachedRankTiers=JSON.parse(appContent.rank_tiers);
-      console.log('✓ Loaded rank_tiers:', cachedRankTiers.length, 'tiers');
-    }catch(e){console.error('Failed to parse rank_tiers',e);}
-  } else {
-    console.log('⚠ No rank_tiers in appContent');
+    try{ cachedRankTiers=JSON.parse(appContent.rank_tiers); }catch(e){}
   }
 
   // Xóa sessionStorage để khôi phục trạng thái sạch mỗi lần load trang
@@ -1464,7 +1454,6 @@ async function payCash(){
 
   // Dùng activeTab để xác định bàn thường hay tour — đơn giản và chính xác nhất
   const isTour = activeTab==='tour';
-  console.log('[CASH] isTour='+isTour+' activeTab='+activeTab);
 
   showConfirm(
     '💵 Xác nhận tiền mặt',
@@ -1870,8 +1859,14 @@ async function addCustomer(){
 
 // ── SYNC DATA BETWEEN APPS ────────────────────────────────────────
 async function refreshCustomers(){
-  const custs=await apiGet('/customers');
-  if(custs)customers=custs;
+  // Bản NHẸ (không avatar) cho đồng bộ định kỳ -> nhanh, đỡ giật.
+  const custs=await apiGet('/customers?light=1');
+  if(!custs)return;
+  // Giữ lại avatar đã tải ở lần load đầu (bản nhẹ không có avatar)
+  const av={};
+  for(let i=0;i<customers.length;i++){ if(customers[i].avatar) av[customers[i].phone]=customers[i].avatar; }
+  for(let i=0;i<custs.length;i++){ if(!custs[i].avatar&&av[custs[i].phone]) custs[i].avatar=av[custs[i].phone]; }
+  customers=custs;
 }
 
 // Auto-refresh khách mỗi 15 giây (danh sách kèm avatar -> nặng, không cần nhanh).
@@ -2276,7 +2271,6 @@ function renderAllCustomerList(list){
       const inQ=isInQueue(c.name);
       const status=onTable?`<span class="badge b-green" style="font-size:10px;">Đang chơi</span>`:inQ?`<span class="badge b-amber" style="font-size:10px;">Hàng chờ</span>`:'';
       const hasAvatar=c.avatar&&typeof c.avatar==='string'&&c.avatar.trim().length>0&&c.avatar.startsWith('data:image');
-      if(c.name==='Phương') console.log('Phương avatar:', c.avatar ? c.avatar.substring(0,50) : 'EMPTY', 'hasAvatar:', hasAvatar);
       const avatarHtml=hasAvatar?`<img src="${c.avatar}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--gold-dim);flex-shrink:0;">`:
         `<div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-mid));flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#000;font-size:16px;">${c.name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2)}</div>`;
       return `<div style="border-bottom:1px solid var(--border);">
