@@ -958,7 +958,11 @@ app.get('/api/app-content', async (req, res) => {
   try {
     const rows = await db.prepare('SELECT key, value FROM app_content').all();
     const obj = {};
-    for (const r of rows) obj[r.key] = r.value;
+    for (const r of rows) {
+      // clock_bg là ảnh nền TV base64 (~460KB) -> KHÔNG trả ở đây, có endpoint riêng /api/clock-bg
+      if (r.key === 'clock_bg') continue;
+      obj[r.key] = r.value;
+    }
     res.json(obj);
   } catch (e) {
     res.json({});
