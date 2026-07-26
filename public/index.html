@@ -2083,6 +2083,11 @@ function confirmAddToQueue(name, phone){
     showToast(`${name} đang chơi tại ${tn||'bàn'} — không thêm vào hàng chờ!`,'error');
     return;
   }
+  // Khách đã có trong hàng chờ thì KHÔNG cho thêm nữa
+  if(isInQueue(name)){
+    showToast(`${name} đã có trong hàng chờ rồi!`,'error');
+    return;
+  }
   showConfirm('Thêm vào hàng chờ?',`Xác nhận thêm ${name} vào hàng chờ?`,[
     {label:'✓ Có',cls:'btn btn-gold',cb:()=>{closeDialog();addToQueueConfirmed(name,phone);}},
     {label:'✕ Không',cls:'btn',cb:()=>{closeDialog();}}
@@ -2131,6 +2136,11 @@ function confirmAddToQueuePlusDrink(name, phone){
   if(isOnTable(name)){
     const tn=getTableOf(name);
     showToast(`${name} đang chơi tại ${tn||'bàn'} — không thêm vào hàng chờ!`,'error');
+    return;
+  }
+  // Khách đã có trong hàng chờ thì KHÔNG cho thêm nữa
+  if(isInQueue(name)){
+    showToast(`${name} đã có trong hàng chờ rồi!`,'error');
     return;
   }
   showConfirm('Hàng chờ + 1 Nước?',`Thêm ${name} vào hàng chờ và tặng thêm 1 nước?`,[
