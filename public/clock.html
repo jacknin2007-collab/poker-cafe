@@ -139,7 +139,7 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
       <!-- Payout (chỉ hiện khi đóng buy) -->
       <div id="payout-box" style="display:none;">
         <div class="stat-lbl" style="margin-bottom:10px;">PAYOUT:</div>
-        <div id="payout-rows" style="font-family:'Bebas Neue',sans-serif;font-size:40px;color:#fff;line-height:1.4;letter-spacing:0.03em;"></div>
+        <div id="payout-rows" style="font-family:'Bebas Neue',sans-serif;color:#fff;line-height:1.1;letter-spacing:0.03em;"></div>
       </div>
     </div>
   </div>
@@ -185,7 +185,15 @@ function render(st){
   if(st.showPayout&&st.payout&&st.payout.length){
     document.getElementById('latereg-box').style.display='none';
     document.getElementById('payout-box').style.display='block';
-    document.getElementById('payout-rows').innerHTML=st.payout.join(' - ');
+    // Hiện payout dạng 3 cột (3 trên - 3 dưới) thay vì 1 hàng dài
+    var _ph='';
+    for(var _pi=0;_pi<st.payout.length;_pi++){
+      _ph+='<div style="display:inline-block;width:33%;text-align:center;vertical-align:top;margin-bottom:8px;">'
+         +'<span style="display:block;font-size:16px;color:rgba(255,255,255,0.45);">'+(_pi+1)+'</span>'
+         +'<span style="display:block;font-size:34px;">'+st.payout[_pi]+'</span>'
+         +'</div>';
+    }
+    document.getElementById('payout-rows').innerHTML=_ph;
   } else {
     document.getElementById('latereg-box').style.display='block';
     document.getElementById('payout-box').style.display='none';
