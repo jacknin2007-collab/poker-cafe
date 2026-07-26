@@ -38,6 +38,23 @@
   --shadow:0 2px 8px rgba(0,0,0,0.4);
   --shadow-md:0 4px 20px rgba(0,0,0,0.5);
 }
+/* CHẾ ĐỘ BÀN TOUR: đổi tông vàng -> tím (giống app floor) */
+body.tour-mode{
+  --bg:#150a1f;
+  --bg2:#1c0f28;
+  --surface:#241338;
+  --surface2:#2d1846;
+  --border:#3d2060;
+  --border2:#4e2c78;
+  --gold:#c080ff;
+  --gold-dim:#2a1642;
+  --gold-mid:#a866e6;
+  --gold-light:#d9b3ff;
+  --text:#f6ecff;
+  --text2:#c3acdc;
+  --text3:#8570a5;
+}
+body{transition:background-color .25s ease;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;font-size:15px;line-height:1.5;}
 ::-webkit-scrollbar{width:5px;}
@@ -529,6 +546,7 @@ function switchTab(tab){
   activeTab=tab;
   document.getElementById('tab-normal').classList.toggle('active',tab==='normal');
   document.getElementById('tab-tour').classList.toggle('active',tab==='tour');
+  document.body.classList.toggle('tour-mode',tab==='tour'); // nền tím cho bàn tour
   renderTablesLeft();
   renderQueue();
 }
@@ -704,6 +722,7 @@ async function loadAll(){
   activeTab = 'normal';
   document.getElementById('tab-normal').classList.add('active');
   document.getElementById('tab-tour').classList.remove('active');
+  document.body.classList.remove('tour-mode');
 
   renderTablesLeft();renderQueue();renderStock();
 }
