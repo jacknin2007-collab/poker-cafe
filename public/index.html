@@ -1851,6 +1851,7 @@ function renderCustomerCard(c){
       <button class="cust-btn cb-amber" onclick="redeemDrink('${c.phone}')">Đổi Nước</button>
     </div>
     <button class="cust-btn cb-green" style="width:100%;" onclick="confirmAddToQueue('${c.name}','${c.phone}')">➕ Thêm vào hàng chờ</button>
+    <button class="cust-btn" style="width:100%;margin-top:8px;background:var(--purple-bg);color:var(--purple);border:2px solid var(--purple);font-weight:800;" onclick="confirmAddToQueuePlusDrink('${c.name}','${c.phone}')">➕ Hàng chờ + 1 Nước 🥤</button>
   </div>`;
 }
 
@@ -2123,6 +2124,48 @@ function trackTournamentBuyin(name, phone){
       });
     })
     .catch(function(){});
+}
+
+// ── HÀNG CHỜ + 1 NƯỚC ──────────────────────────────────────────
+function confirmAddToQueuePlusDrink(name, phone){
+  if(isOnTable(name)){
+    const tn=getTableOf(name);
+    showToast(`${name} đang chơi tại ${tn||'bàn'} — không thêm vào hàng chờ!`,'error');
+    return;
+  }
+  showConfirm('Hàng chờ + 1 Nước?',`Thêm ${name} vào hàng chờ và tặng thêm 1 nước?`,[
+    {label:'✓ Có',cls:'btn btn-gold',cb:()=>{closeDialog();addToQueuePlusDrinkConfirmed(name,phone);}},
+    {label:'✕ Không',cls:'btn',cb:()=>{closeDialog();}}
+  ]);
+}
+
+function addToQueuePlusDrinkConfirmed(name, phone){
+  if(isOnTable(name)){
+    const tn=getTableOf(name);
+    showToast(`${name} đang chơi tại ${tn||'bàn'} — không thêm vào hàng chờ!`,'error');
+    return;
+  }
+  // ── +1 Nước cho khách (cập nhật ngay, lưu ở nền) ──
+  const customer=customers.find(x=>x.phone===phone)||customers.find(x=>x.name===name);
+  if(customer){
+    customer.drinks=((customer.drinks??0)||0)+1;
+    apiPut('/customers/'+customer.phone,{
+      top1:customer.top1||0,top2:customer.top2||0,top3:customer.top3||0,
+      rounds:customer.rounds||0,drinks:customer.drinks
+    }).then(r=>{ if(!r) showToast('Lỗi lưu nước — kiểm tra mạng','error'); return refreshCustomers(); }).catch(()=>{});
+  }
+  // ── Thêm vào hàng chờ (nếu chưa có) ──
+  if(getActiveQueue().find(q=>q.name===name)){
+    showToast(name+' đã có trong hàng chờ — đã +1 nước 🥤','error');
+    clearSearch();
+    return;
+  }
+  getActiveQueue().push({name:name,table:'Hàng chờ',time:nowTime()});
+  renderQueue();
+  saveTableState();
+  showToast('Đã thêm '+name+' vào hàng chờ + 1 nước! 🥤');
+  clearSearch();
+  if(activeTab==='tour'&&phone) trackTournamentBuyin(name, phone);
 }
 
 async function showCustHistory(phone){
