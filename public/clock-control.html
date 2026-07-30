@@ -155,12 +155,16 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;font-wei
     <div class="card-title">Thông tin giải đấu</div>
     <div class="f-group"><label>Tên giải đấu</label><input id="f-name" value="GOLDEN COFFEE TOURNAMENT"/></div>
     <div class="grid2">
-      <div class="f-group"><label>Players còn lại (trên bàn)</label><input id="f-players" type="number" value="0" readonly style="background:var(--surface2);color:var(--gold);"/></div>
-      <div class="f-group"><label>Tổng players (Buy-in + Re-buy)</label><input id="f-total" type="number" value="0" readonly style="background:var(--surface2);color:var(--gold);"/></div>
+      <div class="f-group"><label>Players còn lại (trên bàn)</label><input id="f-players" type="number" value="0" oninput="onStatEdit()" style="color:var(--gold);font-weight:700;"/></div>
+      <div class="f-group"><label>Tổng players (Buy-in + Re-buy)</label><input id="f-total" type="number" value="0" oninput="onStatEdit()" style="color:var(--gold);font-weight:700;"/></div>
     </div>
     <div class="grid2">
-      <div class="f-group"><label>Buy In (từ hàng chờ)</label><input id="f-buyin" type="number" value="0" readonly style="background:var(--surface2);color:var(--blue);"/></div>
-      <div class="f-group"><label>Re-buy (từ hàng chờ)</label><input id="f-rebuy" type="number" value="0" readonly style="background:var(--surface2);color:var(--blue);"/></div>
+      <div class="f-group"><label>Buy In</label><input id="f-buyin" type="number" value="0" oninput="onStatEdit()" style="color:var(--blue);font-weight:700;"/></div>
+      <div class="f-group"><label>Re-buy</label><input id="f-rebuy" type="number" value="0" oninput="onStatEdit()" style="color:var(--blue);font-weight:700;"/></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+      <span id="stats-mode" style="font-size:11px;color:var(--text3);flex:1;">🔄 Tự động đếm từ hàng chờ</span>
+      <button class="btn btn-sm" style="margin:0;padding:4px 10px;font-size:11px;" onclick="resumeAutoStats()">↺ Đếm lại tự động</button>
     </div>
     <div class="grid2">
       <div class="f-group"><label>Starting Stack</label><input id="f-sstack" type="number" value="50000"/></div>
@@ -514,9 +518,36 @@ function renderCtrl(){
 // ── TOURNAMENT BUY-IN TRACKING (from queueTour) ────────────────
 let tournamentStats = {buyIns:0,reBuys:0,playersOnTables:0};
 let statsLocked = false; // Lock stats update khi reset
+let manualStats = false; // true = user tự chỉnh player/buyin/rebuy (không auto ghi đè)
+
+// Khi user gõ vào 1 trong 4 ô -> chuyển sang chế độ chỉnh tay
+function onStatEdit(){
+  manualStats = true;
+  updateStatsModeUI();
+  recomputeTStack();
+}
+// Quay lại đếm tự động từ hàng chờ
+function resumeAutoStats(){
+  manualStats = false;
+  updateStatsModeUI();
+  fetchTournamentStats();
+}
+function updateStatsModeUI(){
+  const el=document.getElementById('stats-mode');
+  if(el) el.textContent = manualStats
+    ? '✏️ Đang chỉnh tay — bấm "Lưu thông tin" để cập nhật màn hình'
+    : '🔄 Tự động đếm từ hàng chờ';
+}
+function recomputeTStack(){
+  const sstack=parseInt(document.getElementById('f-sstack').value)||50000;
+  const rstack=parseInt(document.getElementById('f-rstack').value)||50000;
+  const buyin=parseInt(document.getElementById('f-buyin').value)||0;
+  const rebuy=parseInt(document.getElementById('f-rebuy').value)||0;
+  document.getElementById('f-tstack').value=buyin*sstack+rebuy*rstack;
+}
 
 async function fetchTournamentStats(){
-  if(statsLocked) return; // Không update stats khi lock
+  if(statsLocked || manualStats) return; // Không auto khi đang lock hoặc chỉnh tay
 
   try{
     const r=await fetch(API+'/tournament/stats');
@@ -537,15 +568,16 @@ async function fetchTournamentStats(){
 function populateForm(){
   if(!state)return;
 
-  // ── Số liệu trực tiếp (auto) — cập nhật mỗi lần poll ──
-  document.getElementById('f-buyin').value=state.buyIn||0;
-  document.getElementById('f-rebuy').value=state.rebuy||0;
-  document.getElementById('f-players').value=state.players||0;
-  document.getElementById('f-total').value=state.totalPlayers||0;
-  const sstack=parseInt(document.getElementById('f-sstack').value)||50000;
-  const rstack=parseInt(document.getElementById('f-rstack').value)||50000;
-  const tstack=(state.buyIn||0)*sstack+(state.rebuy||0)*rstack;
-  document.getElementById('f-tstack').value=tstack;
+  // ── Số liệu player/buyin/rebuy: chỉ auto ghi đè khi KHÔNG chỉnh tay ──
+  if(!manualStats){
+    document.getElementById('f-buyin').value=state.buyIn||0;
+    document.getElementById('f-rebuy').value=state.rebuy||0;
+    document.getElementById('f-players').value=state.players||0;
+    document.getElementById('f-total').value=state.totalPlayers||0;
+    const sstack=parseInt(document.getElementById('f-sstack').value)||50000;
+    const rstack=parseInt(document.getElementById('f-rstack').value)||50000;
+    document.getElementById('f-tstack').value=(state.buyIn||0)*sstack+(state.rebuy||0)*rstack;
+  }
 
   // f-prize / f-payout: chỉ đồng bộ khi user KHÔNG đang gõ (tránh reset lúc chỉnh)
   if(document.activeElement.id!=='f-prize' && document.getElementById('f-prize')){
@@ -603,6 +635,7 @@ async function resetDay(){
     if(r.ok){
       state=await r.json();
       console.log('✅ New state after reset:', state);
+      manualStats=false; updateStatsModeUI(); // giải mới -> quay lại đếm tự động
       renderCtrl();
       populateForm();
       alert('✅ Đã reset giải đấu thành công! Tất cả dữ liệu quay về 0.');
