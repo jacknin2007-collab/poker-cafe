@@ -240,6 +240,8 @@ function poll(){
   fetch(API+'/clock').then(function(r){return r.json();}).then(function(st){
     if(st.updatedAt===lastUpdate) return;
     lastUpdate=st.updatedAt;
+    // Đang chỉnh tay -> dùng số từ /clock, KHÔNG lấy đè từ hàng chờ
+    if(st.manualStats){ render(st); return; }
     fetch(API+'/tournament/stats').then(function(r){return r.json();}).then(function(stats){
       st.players=stats.playersOnTables||0;
       st.totalPlayers=stats.totalPlayers||0;
