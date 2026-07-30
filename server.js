@@ -317,6 +317,8 @@ function tickClock(){
 async function syncClockFromData(){
   // Nếu tournament data đã lock (vừa reset), không update gì cả
   if(tournamentDataLocked) return;
+  // Người dùng đang chỉnh tay players/buyin/rebuy -> KHÔNG auto ghi đè
+  if(clockState.manualStats) return;
 
   try{
     const today=new Date().toISOString().slice(0,10);
@@ -492,6 +494,7 @@ app.post('/api/clock/reset', async (req, res) => {
   clockState.payout = null;
   clockState.showPayout = false;
   clockState.lateReg = '–';
+  clockState.manualStats = false; // giải mới -> quay lại đếm tự động
   clockState.updatedAt = Date.now();
 
   // Xóa hàng chờ khách (queueTour)

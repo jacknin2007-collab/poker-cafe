@@ -318,8 +318,10 @@ async function saveInfo(){
     totalPlayers:parseInt(document.getElementById('f-total').value)||0,
     buyIn:buyin, rebuy,
     startingStack:sstack, rebuyStack:rstack,
+    totalStack:parseInt(document.getElementById('f-tstack').value)||0,
     lateReg:document.getElementById('f-latereg').value||'–',
     prizePool:payout*1000000,
+    manualStats:manualStats, // báo server: đang chỉnh tay thì đừng auto ghi đè
   };
   const r=await fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   state=await r.json();renderCtrl();
@@ -527,9 +529,14 @@ function onStatEdit(){
   recomputeTStack();
 }
 // Quay lại đếm tự động từ hàng chờ
-function resumeAutoStats(){
+async function resumeAutoStats(){
   manualStats = false;
   updateStatsModeUI();
+  // Báo server tắt chế độ chỉnh tay -> auto đếm lại
+  try{
+    await fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'update',manualStats:false})});
+  }catch(e){}
   fetchTournamentStats();
 }
 function updateStatsModeUI(){
