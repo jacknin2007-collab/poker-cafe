@@ -1962,6 +1962,7 @@ function handleDrinkSearch(val){
 function selectDrinkItem(name){
   document.getElementById('drink-search').value=name;
   document.getElementById('drink-suggestions').style.display='none';
+  addDrinkItem(); // chọn nước là thêm luôn, không cần bấm Enter
 }
 
 function addDrinkItem(){
