@@ -1910,6 +1910,15 @@ app.post('/api/print', (req, res) => {
 scheduleNextReset();
 
 // Static files - after all API routes to prevent shadowing
+// Không cache trang HTML -> trình duyệt/TV luôn lấy bản mới nhất sau mỗi lần deploy
+app.use((req, res, next) => {
+  if (req.path === '/' || req.path.endsWith('.html')) {
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  }
+  next();
+});
 app.use(express.static('public'));
 
 const PORT = process.env.PORT || 3000;
