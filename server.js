@@ -885,16 +885,26 @@ function shapeCustomer(c, light) {
   return out;
 }
 
-// Trừ sao của khách (tăng star_penalty) — POST /api/customers/:phone/subtract-stars { amount }
+// Trừ sao của khách (tăng star_penalty) — POST /api/customers/:phone/subtract-stars { amount, reason }
 app.post('/api/customers/:phone/subtract-stars', async (req, res) => {
   const amount = Math.max(0, Math.floor(Number(req.body.amount) || 0));
-  const c = await db.prepare('SELECT top1,top2,top3,star_penalty FROM customers WHERE phone=?').get(req.params.phone);
+  const reason = (req.body.reason || '').toString().trim().slice(0, 200);
+  const c = await db.prepare('SELECT name,top1,top2,top3,star_penalty FROM customers WHERE phone=?').get(req.params.phone);
   if (!c) return res.status(404).json({ ok: false, error: 'Không tìm thấy khách' });
   const raw = (Number(c.top1) || 0) * 5 + (Number(c.top2) || 0) * 3 + (Number(c.top3) || 0) * 1;
-  let penalty = (Number(c.star_penalty) || 0) + amount;
+  const oldPenalty = Number(c.star_penalty) || 0;
+  let penalty = oldPenalty + amount;
   if (penalty > raw) penalty = raw; // không trừ quá số sao đang có
   if (penalty < 0) penalty = 0;
+  const applied = penalty - oldPenalty; // số sao thực sự trừ lần này
   await db.prepare('UPDATE customers SET star_penalty=? WHERE phone=?').run(penalty, req.params.phone);
+  // Tự động ghi log để tra lịch sử
+  if (applied > 0) {
+    try {
+      await db.prepare('INSERT INTO transactions (payer, phone, amount, table_name, note) VALUES (?,?,?,?,?)')
+        .run(c.name, req.params.phone, 0, '', `Trừ ${applied} sao${reason ? ': ' + reason : ''}`);
+    } catch (e) {}
+  }
   const updated = await db.prepare('SELECT * FROM customers WHERE phone=?').get(req.params.phone);
   res.json({ ok: true, customer: shapeCustomer(updated) });
 });

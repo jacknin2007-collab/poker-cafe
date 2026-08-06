@@ -2211,40 +2211,55 @@ async function showRedeemHistory(phone){
   document.getElementById('hist-body').innerHTML='<div class="loading"><div class="spinner"></div>Đang tải...</div>';
   document.getElementById('history-dialog').classList.add('show');
   const all=await apiGet('/transactions');
-  let hist=(all||[]).filter(t=>t.phone===phone &&
-    ((t.note||'').indexOf('Đổi round')===0 || (t.note||'').indexOf('Đổi nước')===0));
+  let hist=(all||[]).filter(t=>t.phone===phone && (
+    (t.note||'').indexOf('Đổi round')===0 ||
+    (t.note||'').indexOf('Đổi nước')===0 ||
+    (t.note||'').indexOf('Trừ ')===0));
   // Mới nhất lên trên
   hist.sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
   document.getElementById('hist-body').innerHTML=hist.length
     ? hist.map(tx=>{
-        const isRound=(tx.note||'').indexOf('Đổi round')===0;
-        const icon=isRound?'🎮':'🥤';
-        return `<div class="tx-row"><span class="tx-time">${(tx.created_at||'').slice(0,16)}</span><span class="tx-amt" style="color:${isRound?'var(--blue)':'var(--purple)'};max-width:60%;text-align:right;white-space:normal;">${icon} ${tx.note||''}</span></div>`;
+        const note=tx.note||'';
+        let icon='🥤', color='var(--purple)';
+        if(note.indexOf('Đổi round')===0){icon='🎮';color='var(--blue)';}
+        else if(note.indexOf('Trừ ')===0){icon='➖⭐';color='var(--red)';}
+        return `<div class="tx-row"><span class="tx-time">${(tx.created_at||'').slice(0,16)}</span><span class="tx-amt" style="color:${color};max-width:62%;text-align:right;white-space:normal;">${icon} ${note}</span></div>`;
       }).join('')
-    : '<div class="empty-msg">Chưa có lịch sử đổi round/nước</div>';
+    : '<div class="empty-msg">Chưa có lịch sử</div>';
 }
 
-// Trừ sao của khách
+// Trừ sao của khách — nhập LÍ DO rồi nhập SỐ SAO
 function subtractStars(phone){
   const c=customers.find(x=>x.phone===phone);if(!c)return;
-  showInputDialog('− Trừ sao', `Trừ bao nhiêu sao của <b>${c.name}</b>?<br><span style="color:var(--text3);font-size:12px;">Đang có ${c.stars||0} ⭐</span>`, (val)=>{
+  const inp='width:100%;height:38px;padding:0 10px;font-size:14px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);color:var(--text);font-family:inherit;outline:none;';
+  document.getElementById('dlg-title').textContent='− Trừ sao';
+  document.getElementById('dlg-body').innerHTML=
+    `Trừ sao của <b>${c.name}</b> <span style="color:var(--text3);">— đang có ${c.stars||0} ⭐</span>`
+    +`<input id="dlg-reason" placeholder="Lí do trừ sao..." style="margin-top:10px;${inp}"/>`
+    +`<input id="dlg-amount" type="number" min="1" placeholder="Trừ bao nhiêu sao?" style="margin-top:8px;${inp}"/>`;
+  const bEl=document.getElementById('dlg-btns');bEl.innerHTML='';
+  const ok=document.createElement('button');ok.className='btn btn-red';ok.textContent='− Trừ sao';
+  ok.addEventListener('click',()=>{
+    const reason=(document.getElementById('dlg-reason')?.value||'').trim();
+    const n=parseInt(document.getElementById('dlg-amount')?.value)||0;
     closeDialog();
-    const n=parseInt(val)||0;
-    if(n<=0) return;
+    if(n<=0){showToast('Nhập số sao cần trừ!','error');return;}
     const cur=c.stars||0;
     const applied=Math.min(n,cur); // không trừ quá số sao đang có
     // Cập nhật NGAY
     c.stars=Math.max(0,cur-applied);
     c.star_penalty=(c.star_penalty||0)+applied;
-    showToast('Đã trừ '+applied+' sao của '+c.name);
+    showToast('Đã trừ '+applied+' sao của '+c.name+(reason?(' — '+reason):''));
     doSearch();
-    // Lưu server
-    fetch(API+'/customers/'+phone+'/subtract-stars',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:n})})
+    // Lưu server (kèm lí do, tự ghi log để tra lịch sử)
+    fetch(API+'/customers/'+phone+'/subtract-stars',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:n,reason:reason})})
       .then(r=>r.json()).then(res=>{ if(res&&res.customer){ Object.assign(c,res.customer); doSearch(); } })
       .catch(()=>showToast('Lỗi lưu — kiểm tra mạng','error'));
   });
-  // Ô nhập dạng số cho rõ
-  setTimeout(()=>{const i=document.getElementById('dlg-input');if(i){i.type='number';i.min='1';i.placeholder='Số sao cần trừ...';i.value='';}},50);
+  const ca=document.createElement('button');ca.className='btn';ca.textContent='Huỷ';ca.addEventListener('click',closeDialog);
+  bEl.appendChild(ok);bEl.appendChild(ca);
+  document.getElementById('confirm-dialog').classList.add('show');
+  setTimeout(()=>{const i=document.getElementById('dlg-reason');if(i)i.focus();},60);
 }
 
 async function addStock(){
