@@ -290,6 +290,7 @@ async function initSchema() {
   try { await run(`ALTER TABLE banner_images ADD COLUMN IF NOT EXISTS top6 TEXT DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS email TEXT NOT NULL DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS avatar TEXT NOT NULL DEFAULT ''`); } catch (e) {}
+  try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS star_penalty INTEGER DEFAULT 0`); } catch (e) {}
 
   // Migration: Convert old match history points (30/20/10) to new stars (5/3/1)
   try {

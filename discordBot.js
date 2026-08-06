@@ -53,13 +53,14 @@ function mauTop(sdt, top, ten) {
 // ── TRA CỨU BOUNTY TỪ DATABASE ──────────────────────────────
 async function traBounty(sdt) {
   const c = await db.prepare(
-    'SELECT name, top1, top2, top3 FROM customers WHERE phone = ? LIMIT 1'
+    'SELECT name, top1, top2, top3, star_penalty FROM customers WHERE phone = ? LIMIT 1'
   ).get(sdt);
   if (!c) return null;
   const top1 = Number(c.top1) || 0;
   const top2 = Number(c.top2) || 0;
   const top3 = Number(c.top3) || 0;
-  return { ten: c.name, stars: top1 * 5 + top2 * 3 + top3 * 1 };
+  const penalty = Number(c.star_penalty) || 0;
+  return { ten: c.name, stars: Math.max(0, top1 * 5 + top2 * 3 + top3 * 1 - penalty) };
 }
 
 // ── HÀM TẠO 1 BOT ───────────────────────────────────────────

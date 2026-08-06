@@ -643,7 +643,7 @@ app.get('/api/customers', async (req, res) => {
   // ?light=1 -> KHÔNG đọc cột avatar (base64 rất nặng) cho các lần đồng bộ định kỳ
   const light = req.query.light === '1';
   const cols = light
-    ? 'name, phone, top1, top2, top3, rounds, drinks, is_admin, email, created_at'
+    ? 'name, phone, top1, top2, top3, rounds, drinks, is_admin, email, created_at, star_penalty'
     : '*';
   const rows = await db.prepare('SELECT ' + cols + ' FROM customers').all();
   res.json(rows.map(c => shapeCustomer(c, light)));
@@ -867,11 +867,13 @@ function shapeCustomer(c, light) {
   const top1 = Number(c.top1) || 0;
   const top2 = Number(c.top2) || 0;
   const top3 = Number(c.top3) || 0;
+  const penalty = Number(c.star_penalty) || 0;
   const out = {
     name: c.name,
     phone: c.phone,
     is_admin: c.is_admin === true || c.is_admin === 't' || c.is_admin === 1,
-    stars: top1 * 5 + top2 * 3 + top3 * 1,
+    stars: Math.max(0, top1 * 5 + top2 * 3 + top3 * 1 - penalty),
+    star_penalty: penalty,
     top1, top2, top3,
     rounds: Number(c.rounds) || 0,
     drinks: Number(c.drinks) || 0,
@@ -882,6 +884,20 @@ function shapeCustomer(c, light) {
   if (!light) out.avatar = c.avatar || '';
   return out;
 }
+
+// Trừ sao của khách (tăng star_penalty) — POST /api/customers/:phone/subtract-stars { amount }
+app.post('/api/customers/:phone/subtract-stars', async (req, res) => {
+  const amount = Math.max(0, Math.floor(Number(req.body.amount) || 0));
+  const c = await db.prepare('SELECT top1,top2,top3,star_penalty FROM customers WHERE phone=?').get(req.params.phone);
+  if (!c) return res.status(404).json({ ok: false, error: 'Không tìm thấy khách' });
+  const raw = (Number(c.top1) || 0) * 5 + (Number(c.top2) || 0) * 3 + (Number(c.top3) || 0) * 1;
+  let penalty = (Number(c.star_penalty) || 0) + amount;
+  if (penalty > raw) penalty = raw; // không trừ quá số sao đang có
+  if (penalty < 0) penalty = 0;
+  await db.prepare('UPDATE customers SET star_penalty=? WHERE phone=?').run(penalty, req.params.phone);
+  const updated = await db.prepare('SELECT * FROM customers WHERE phone=?').get(req.params.phone);
+  res.json({ ok: true, customer: shapeCustomer(updated) });
+});
 
 // Đăng nhập khách: POST /api/customer/login { phone, password }
 app.post('/api/customer/login', async (req, res) => {

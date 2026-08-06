@@ -1851,10 +1851,13 @@ function renderCustomerCard(c){
         <img src="${getRankIconAndName(c.stars||0).asset}" style="width:40px;height:40px;object-fit:contain;" alt="rank">
         <div>
           <div style="font-size:18px;font-weight:900;color:var(--gold);letter-spacing:0.05em;">⭐ SAO</div>
-          <div style="font-size:10px;color:var(--text3);">🥇×5 + 🥈×3 + 🥉×1</div>
+          <div style="font-size:10px;color:var(--text3);">🥇×5 + 🥈×3 + 🥉×1${(c.star_penalty||0)>0?` · <span style="color:var(--red);">−${c.star_penalty} phạt</span>`:''}</div>
         </div>
       </div>
-      <div style="font-size:36px;font-weight:900;color:var(--gold);text-shadow:0 0 12px rgba(240,192,64,0.4);">${(c.top1||0)*5+(c.top2||0)*3+(c.top3||0)*1} ⭐</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+        <div style="font-size:36px;font-weight:900;color:var(--gold);text-shadow:0 0 12px rgba(240,192,64,0.4);line-height:1;">${c.stars||0} ⭐</div>
+        <button class="btn btn-sm" style="margin:0;padding:3px 12px;font-size:12px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);white-space:nowrap;" onclick="subtractStars('${c.phone}')">− Trừ sao</button>
+      </div>
     </div>
     <div class="cust-btns">
       <button class="cust-btn ${blockRound?'cb-disabled':'cb-blue'}" onclick="${blockRound?'':'redeemRound(\''+c.phone+'\')'}">Đổi Round</button>
@@ -2219,6 +2222,29 @@ async function showRedeemHistory(phone){
         return `<div class="tx-row"><span class="tx-time">${(tx.created_at||'').slice(0,16)}</span><span class="tx-amt" style="color:${isRound?'var(--blue)':'var(--purple)'};max-width:60%;text-align:right;white-space:normal;">${icon} ${tx.note||''}</span></div>`;
       }).join('')
     : '<div class="empty-msg">Chưa có lịch sử đổi round/nước</div>';
+}
+
+// Trừ sao của khách
+function subtractStars(phone){
+  const c=customers.find(x=>x.phone===phone);if(!c)return;
+  showInputDialog('− Trừ sao', `Trừ bao nhiêu sao của <b>${c.name}</b>?<br><span style="color:var(--text3);font-size:12px;">Đang có ${c.stars||0} ⭐</span>`, (val)=>{
+    closeDialog();
+    const n=parseInt(val)||0;
+    if(n<=0) return;
+    const cur=c.stars||0;
+    const applied=Math.min(n,cur); // không trừ quá số sao đang có
+    // Cập nhật NGAY
+    c.stars=Math.max(0,cur-applied);
+    c.star_penalty=(c.star_penalty||0)+applied;
+    showToast('Đã trừ '+applied+' sao của '+c.name);
+    doSearch();
+    // Lưu server
+    fetch(API+'/customers/'+phone+'/subtract-stars',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:n})})
+      .then(r=>r.json()).then(res=>{ if(res&&res.customer){ Object.assign(c,res.customer); doSearch(); } })
+      .catch(()=>showToast('Lỗi lưu — kiểm tra mạng','error'));
+  });
+  // Ô nhập dạng số cho rõ
+  setTimeout(()=>{const i=document.getElementById('dlg-input');if(i){i.type='number';i.min='1';i.placeholder='Số sao cần trừ...';i.value='';}},50);
 }
 
 async function addStock(){
