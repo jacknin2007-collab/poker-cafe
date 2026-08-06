@@ -1833,7 +1833,10 @@ function renderCustomerCard(c){
         <div class="cust-name" style="margin-bottom:2px;">${c.name} <span style="font-size:13px;color:var(--text3);">(${last4})</span></div>
         <div style="font-size:13px;color:var(--text3);">${c.phone}</div>
       </div>
-      <button class="btn btn-gold btn-sm" style="flex-shrink:0;white-space:nowrap;" onclick="copyCustName('${c.phone}')">📋 Sao chép</button>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+        <button class="btn btn-gold btn-sm" style="white-space:nowrap;" onclick="copyCustName('${c.phone}')">📋 Sao chép</button>
+        <button class="btn btn-sm" style="white-space:nowrap;" onclick="showRedeemHistory('${c.phone}')">📜 Lịch sử</button>
+      </div>
     </div>
     ${statusMsg?`<div class="warn-box">${statusMsg}</div>`:''}
     <div class="stat-grid">
@@ -2196,6 +2199,26 @@ async function showCustHistory(phone){
   document.getElementById('hist-body').innerHTML=hist.length
     ?hist.map(tx=>`<div class="tx-row"><span class="tx-time">${(tx.created_at||'').slice(0,16)} · ${tx.note||''}</span><span class="tx-amt">${(tx.amount||0)>0?fmtAmt(tx.amount)+' ₫':'–'}</span></div>`).join('')
     :'<div class="empty-msg">Chưa có lịch sử</div>';
+}
+
+// Lịch sử ĐỔI ROUND & ĐỔI NƯỚC của khách
+async function showRedeemHistory(phone){
+  const c=customers.find(x=>x.phone===phone);if(!c)return;
+  document.getElementById('hist-title').textContent='📜 Lịch sử đổi — '+c.name;
+  document.getElementById('hist-body').innerHTML='<div class="loading"><div class="spinner"></div>Đang tải...</div>';
+  document.getElementById('history-dialog').classList.add('show');
+  const all=await apiGet('/transactions');
+  let hist=(all||[]).filter(t=>t.phone===phone &&
+    ((t.note||'').indexOf('Đổi round')===0 || (t.note||'').indexOf('Đổi nước')===0));
+  // Mới nhất lên trên
+  hist.sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+  document.getElementById('hist-body').innerHTML=hist.length
+    ? hist.map(tx=>{
+        const isRound=(tx.note||'').indexOf('Đổi round')===0;
+        const icon=isRound?'🎮':'🥤';
+        return `<div class="tx-row"><span class="tx-time">${(tx.created_at||'').slice(0,16)}</span><span class="tx-amt" style="color:${isRound?'var(--blue)':'var(--purple)'};max-width:60%;text-align:right;white-space:normal;">${icon} ${tx.note||''}</span></div>`;
+      }).join('')
+    : '<div class="empty-msg">Chưa có lịch sử đổi round/nước</div>';
 }
 
 async function addStock(){
