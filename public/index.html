@@ -1851,7 +1851,7 @@ function renderCustomerCard(c){
         <img src="${getRankIconAndName(c.stars||0).asset}" style="width:40px;height:40px;object-fit:contain;" alt="rank">
         <div>
           <div style="font-size:18px;font-weight:900;color:var(--gold);letter-spacing:0.05em;">⭐ SAO</div>
-          <div style="font-size:10px;color:var(--text3);">🥇×5 + 🥈×3 + 🥉×1${(c.star_penalty||0)>0?` · <span style="color:var(--red);">−${c.star_penalty} phạt</span>`:''}</div>
+          <div style="font-size:10px;color:var(--text3);">🥇×5 + 🥈×3 + 🥉×1</div>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
@@ -2213,19 +2213,17 @@ async function showRedeemHistory(phone){
   const all=await apiGet('/transactions');
   let hist=(all||[]).filter(t=>t.phone===phone && (
     (t.note||'').indexOf('Đổi round')===0 ||
-    (t.note||'').indexOf('Đổi nước')===0 ||
-    (t.note||'').indexOf('Trừ ')===0));
+    (t.note||'').indexOf('Đổi nước')===0));
   // Mới nhất lên trên
   hist.sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
   document.getElementById('hist-body').innerHTML=hist.length
     ? hist.map(tx=>{
         const note=tx.note||'';
-        let icon='🥤', color='var(--purple)';
-        if(note.indexOf('Đổi round')===0){icon='🎮';color='var(--blue)';}
-        else if(note.indexOf('Trừ ')===0){icon='➖⭐';color='var(--red)';}
+        const isRound=note.indexOf('Đổi round')===0;
+        const icon=isRound?'🎮':'🥤', color=isRound?'var(--blue)':'var(--purple)';
         return `<div class="tx-row"><span class="tx-time">${(tx.created_at||'').slice(0,16)}</span><span class="tx-amt" style="color:${color};max-width:62%;text-align:right;white-space:normal;">${icon} ${note}</span></div>`;
       }).join('')
-    : '<div class="empty-msg">Chưa có lịch sử</div>';
+    : '<div class="empty-msg">Chưa có lịch sử đổi round/nước</div>';
 }
 
 // Trừ sao của khách — nhập LÍ DO rồi nhập SỐ SAO
