@@ -1856,7 +1856,10 @@ function renderCustomerCard(c){
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
         <div style="font-size:36px;font-weight:900;color:var(--gold);text-shadow:0 0 12px rgba(240,192,64,0.4);line-height:1;">${c.stars||0} ⭐</div>
-        <button class="btn btn-sm" style="margin:0;padding:3px 12px;font-size:12px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);white-space:nowrap;" onclick="subtractStars('${c.phone}')">− Trừ sao</button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-sm" style="margin:0;padding:3px 12px;font-size:12px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);white-space:nowrap;" onclick="addStars('${c.phone}')">+ Cộng</button>
+          <button class="btn btn-sm" style="margin:0;padding:3px 12px;font-size:12px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);white-space:nowrap;" onclick="subtractStars('${c.phone}')">− Trừ</button>
+        </div>
       </div>
     </div>
     <div class="cust-btns">
@@ -2261,6 +2264,38 @@ function subtractStars(phone){
     doSearch();
     // Lưu server (kèm lí do, tự ghi log để tra lịch sử)
     fetch(API+'/customers/'+phone+'/subtract-stars',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:n,reason:reason})})
+      .then(r=>r.json()).then(res=>{ if(res&&res.customer){ Object.assign(c,res.customer); doSearch(); } })
+      .catch(()=>showToast('Lỗi lưu — kiểm tra mạng','error'));
+  });
+  const ca=document.createElement('button');ca.className='btn';ca.textContent='Huỷ';ca.addEventListener('click',closeDialog);
+  bEl.appendChild(ok);bEl.appendChild(ca);
+  document.getElementById('confirm-dialog').classList.add('show');
+  setTimeout(()=>{const i=document.getElementById('dlg-reason');if(i)i.focus();},60);
+}
+
+// Cộng sao cho khách — nhập LÍ DO rồi nhập SỐ SAO (giống trừ, nhưng cộng)
+function addStars(phone){
+  const c=customers.find(x=>x.phone===phone);if(!c)return;
+  const inp='width:100%;height:38px;padding:0 10px;font-size:14px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);color:var(--text);font-family:inherit;outline:none;';
+  document.getElementById('dlg-title').textContent='+ Cộng sao';
+  document.getElementById('dlg-body').innerHTML=
+    `Cộng sao cho <b>${c.name}</b> <span style="color:var(--text3);">— đang có ${c.stars||0} ⭐</span>`
+    +`<input id="dlg-reason" placeholder="Lí do cộng sao..." style="margin-top:10px;${inp}"/>`
+    +`<input id="dlg-amount" type="number" min="1" placeholder="Cộng bao nhiêu sao?" style="margin-top:8px;${inp}"/>`;
+  const bEl=document.getElementById('dlg-btns');bEl.innerHTML='';
+  const ok=document.createElement('button');ok.className='btn btn-gold';ok.textContent='+ Cộng sao';
+  ok.addEventListener('click',()=>{
+    const reason=(document.getElementById('dlg-reason')?.value||'').trim();
+    const n=parseInt(document.getElementById('dlg-amount')?.value)||0;
+    closeDialog();
+    if(n<=0){showToast('Nhập số sao cần cộng!','error');return;}
+    // Cập nhật NGAY
+    c.stars=(c.stars||0)+n;
+    c.star_penalty=(c.star_penalty||0)-n;
+    showToast('Đã cộng '+n+' sao cho '+c.name+(reason?(' — '+reason):''));
+    doSearch();
+    // Lưu server (kèm lí do, tự ghi log)
+    fetch(API+'/customers/'+phone+'/add-stars',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:n,reason:reason})})
       .then(r=>r.json()).then(res=>{ if(res&&res.customer){ Object.assign(c,res.customer); doSearch(); } })
       .catch(()=>showToast('Lỗi lưu — kiểm tra mạng','error'));
   });

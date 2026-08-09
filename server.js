@@ -909,6 +909,24 @@ app.post('/api/customers/:phone/subtract-stars', async (req, res) => {
   res.json({ ok: true, customer: shapeCustomer(updated) });
 });
 
+// Cộng sao cho khách (giảm star_penalty, có thể âm = thưởng) — POST /api/customers/:phone/add-stars { amount, reason }
+app.post('/api/customers/:phone/add-stars', async (req, res) => {
+  const amount = Math.max(0, Math.floor(Number(req.body.amount) || 0));
+  const reason = (req.body.reason || '').toString().trim().slice(0, 200);
+  const c = await db.prepare('SELECT name,star_penalty FROM customers WHERE phone=?').get(req.params.phone);
+  if (!c) return res.status(404).json({ ok: false, error: 'Không tìm thấy khách' });
+  const penalty = (Number(c.star_penalty) || 0) - amount; // giảm penalty = cộng sao
+  await db.prepare('UPDATE customers SET star_penalty=? WHERE phone=?').run(penalty, req.params.phone);
+  if (amount > 0) {
+    try {
+      await db.prepare('INSERT INTO transactions (payer, phone, amount, table_name, note) VALUES (?,?,?,?,?)')
+        .run(c.name, req.params.phone, 0, '', `Cộng ${amount} sao${reason ? ': ' + reason : ''}`);
+    } catch (e) {}
+  }
+  const updated = await db.prepare('SELECT * FROM customers WHERE phone=?').get(req.params.phone);
+  res.json({ ok: true, customer: shapeCustomer(updated) });
+});
+
 // Đăng nhập khách: POST /api/customer/login { phone, password }
 app.post('/api/customer/login', async (req, res) => {
   const phone = String(req.body.phone || '').replace(/\D/g, '');
