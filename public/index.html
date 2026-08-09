@@ -2192,6 +2192,16 @@ function addToQueuePlusDrinkConfirmed(name, phone){
   if(activeTab==='tour'&&phone) trackTournamentBuyin(name, phone);
 }
 
+// created_at lưu giờ UTC (server) -> đổi sang giờ VN (UTC+7) để hiển thị
+function fmtHistTime(s){
+  if(!s) return '';
+  const d=new Date(String(s).replace(' ','T')+'Z');
+  if(isNaN(d.getTime())) return String(s).slice(0,16);
+  const vn=new Date(d.getTime()+7*3600*1000);
+  const p=n=>(n<10?'0':'')+n;
+  return p(vn.getUTCDate())+'/'+p(vn.getUTCMonth()+1)+'/'+vn.getUTCFullYear()+' '+p(vn.getUTCHours())+':'+p(vn.getUTCMinutes());
+}
+
 async function showCustHistory(phone){
   const c=customers.find(x=>x.phone===phone);if(!c)return;
   document.getElementById('hist-title').textContent='Lịch sử — '+c.name;
@@ -2200,7 +2210,7 @@ async function showCustHistory(phone){
   const all=await apiGet('/transactions');
   const hist=all?all.filter(t=>t.phone===phone):[];
   document.getElementById('hist-body').innerHTML=hist.length
-    ?hist.map(tx=>`<div class="tx-row"><span class="tx-time">${(tx.created_at||'').slice(0,16)} · ${tx.note||''}</span><span class="tx-amt">${(tx.amount||0)>0?fmtAmt(tx.amount)+' ₫':'–'}</span></div>`).join('')
+    ?hist.map(tx=>`<div class="tx-row"><span class="tx-time">${fmtHistTime(tx.created_at)} · ${tx.note||''}</span><span class="tx-amt">${(tx.amount||0)>0?fmtAmt(tx.amount)+' ₫':'–'}</span></div>`).join('')
     :'<div class="empty-msg">Chưa có lịch sử</div>';
 }
 
@@ -2221,7 +2231,7 @@ async function showRedeemHistory(phone){
         const note=tx.note||'';
         const isRound=note.indexOf('Đổi round')===0;
         const icon=isRound?'🎮':'🥤', color=isRound?'var(--blue)':'var(--purple)';
-        return `<div class="tx-row"><span class="tx-time">${(tx.created_at||'').slice(0,16)}</span><span class="tx-amt" style="color:${color};max-width:62%;text-align:right;white-space:normal;">${icon} ${note}</span></div>`;
+        return `<div class="tx-row"><span class="tx-time">${fmtHistTime(tx.created_at)}</span><span class="tx-amt" style="color:${color};max-width:62%;text-align:right;white-space:normal;">${icon} ${note}</span></div>`;
       }).join('')
     : '<div class="empty-msg">Chưa có lịch sử đổi round/nước</div>';
 }
@@ -2336,7 +2346,7 @@ function renderMonthReport(show){
       <div style="font-size:22px;font-weight:900;color:var(--gold);">${fmtAmt(total)} ₫</div>
       <div style="font-size:12px;color:var(--text3);">${filtered.length} giao dịch</div>
     </div>
-    ${filtered.length?filtered.map(tx=>`<div class="tx-row"><span class="tx-time">${(tx.created_at||'').slice(0,16)} · ${tx.payer||''}</span><span class="tx-amt">${fmtAmt(tx.amount||0)} ₫</span></div>`).join(''):'<div class="empty-msg" style="margin-top:8px;">Không có giao dịch</div>'}`;
+    ${filtered.length?filtered.map(tx=>`<div class="tx-row"><span class="tx-time">${fmtHistTime(tx.created_at)} · ${tx.payer||''}</span><span class="tx-amt">${fmtAmt(tx.amount||0)} ₫</span></div>`).join(''):'<div class="empty-msg" style="margin-top:8px;">Không có giao dịch</div>'}`;
 }
 async function renderStockConsumed(){
   try{
