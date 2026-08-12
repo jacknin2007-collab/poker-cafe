@@ -113,6 +113,13 @@ async function initSchema() {
     cost INTEGER DEFAULT 1
   )`);
 
+  // Menu đổi round: mỗi mục có số round tiêu hao (cấu hình trong app Báo cáo)
+  await run(`CREATE TABLE IF NOT EXISTS round_menu (
+    id SERIAL PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    cost INTEGER DEFAULT 1
+  )`);
+
   await run(`CREATE TABLE IF NOT EXISTS tour_buyin (
     id SERIAL PRIMARY KEY,
     phone TEXT NOT NULL,

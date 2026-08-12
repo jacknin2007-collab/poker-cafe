@@ -132,6 +132,15 @@ input:focus,select:focus{border-color:var(--gold);}input::placeholder{color:var(
       <div id="stock-consumed"><div class="empty-msg">Chưa có</div></div>
     </div>
     <div class="card">
+      <div class="card-title">🎮 Menu Đổi Round</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input id="rm-name" placeholder="Tên mục (vd: Chế độ thường)" autocomplete="off" style="margin:0;flex:1;"/>
+        <input id="rm-cost" type="number" min="1" value="1" title="Số round tiêu hao" style="margin:0;width:70px;text-align:center;"/>
+        <button class="btn btn-gold btn-sm" onclick="addRoundItem()" style="flex-shrink:0;margin:0;">➕ Thêm</button>
+      </div>
+      <div id="rm-list"><div class="empty-msg">Chưa có mục nào</div></div>
+    </div>
+    <div class="card">
       <div class="card-title">Chỉnh sửa khách hàng</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
         <input id="cust-search" placeholder="Nhập ID hoặc tên..." autocomplete="off" style="margin:0;flex:1;"/>
@@ -236,6 +245,40 @@ async function apiGet(path,opts){
 async function apiPut(path,body){
   try{const r=await fetch(API+path,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:timeoutSignal(8000)});return await r.json();}
   catch(e){showToast('Lỗi lưu','error');return null;}
+}
+
+// ── MENU ĐỔI ROUND ──────────────────────────────────────────
+async function loadRoundMenu(){
+  const menu=(await apiGet('/round-menu'))||[];
+  const el=document.getElementById('rm-list');
+  if(!el)return;
+  el.innerHTML=menu.length? menu.map(m=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">
+      <span style="font-weight:700;">${m.name}</span>
+      <span style="display:flex;align-items:center;gap:10px;">
+        <span style="color:var(--blue);font-weight:700;">${m.cost} 🎮</span>
+        <button class="btn btn-sm" style="margin:0;padding:3px 10px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);" onclick="delRoundItem('${(m.name||'').replace(/'/g,"\\'")}')">✕</button>
+      </span>
+    </div>`).join('') : '<div class="empty-msg">Chưa có mục nào</div>';
+}
+async function addRoundItem(){
+  const name=document.getElementById('rm-name').value.trim();
+  const cost=parseInt(document.getElementById('rm-cost').value)||1;
+  if(!name){showToast('Nhập tên mục!','error');return;}
+  try{
+    await fetch(API+'/round-menu',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,cost})});
+    document.getElementById('rm-name').value='';
+    document.getElementById('rm-cost').value='1';
+    showToast('Đã thêm mục đổi round');
+    loadRoundMenu();
+  }catch(e){showToast('Lỗi lưu','error');}
+}
+async function delRoundItem(name){
+  if(!confirm('Xóa mục "'+name+'"?'))return;
+  try{
+    await fetch(API+'/round-menu/'+encodeURIComponent(name),{method:'DELETE'});
+    loadRoundMenu();
+  }catch(e){showToast('Lỗi xóa','error');}
 }
 
 function setConnStatus(state,text){
@@ -392,7 +435,7 @@ async function loadAll(){
     await fetch(API+'/customers/cleanup',{method:'POST'});
   } catch(e) {}
 
-  renderMetrics();renderStockConsumed();
+  renderMetrics();renderStockConsumed();loadRoundMenu();
 }
 
 function searchCustomers(){

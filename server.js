@@ -1461,6 +1461,23 @@ app.get('/api/stock', async (req, res) => {
   res.json(await db.prepare('SELECT * FROM stock').all());
 });
 
+// ── MENU ĐỔI ROUND (cấu hình trong app Báo cáo) ──────────────
+app.get('/api/round-menu', async (req, res) => {
+  res.json(await db.prepare('SELECT * FROM round_menu ORDER BY id').all());
+});
+app.post('/api/round-menu', async (req, res) => {
+  const name = (req.body.name || '').toString().trim();
+  const cost = Math.max(1, parseInt(req.body.cost) || 1);
+  if (!name) return res.status(400).json({ error: 'Thiếu tên mục' });
+  await db.prepare(`INSERT INTO round_menu (name,cost) VALUES (?,?)
+    ON CONFLICT(name) DO UPDATE SET cost=excluded.cost`).run(name, cost);
+  res.json({ ok: true });
+});
+app.delete('/api/round-menu/:name', async (req, res) => {
+  await db.prepare('DELETE FROM round_menu WHERE name=?').run(decodeURIComponent(req.params.name));
+  res.json({ ok: true });
+});
+
 app.post('/api/stock', async (req, res) => {
   const { name, qty, price, cost } = req.body;
   await db.prepare(`INSERT INTO stock (name,qty,price,cost) VALUES (?,?,?,?)
