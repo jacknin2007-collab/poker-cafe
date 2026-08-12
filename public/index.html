@@ -2028,30 +2028,61 @@ function selectDrinkSuggestion(name){
   document.getElementById('note-suggestions').style.display='none';
 }
 
+let _roundMenu=[], _roundSelPhone=null, _roundSel=null;
 async function redeemRound(phone){
   const c=customers.find(x=>x.phone===phone);if(!c)return;
   if(isOnTable(c.name)){showToast('Khách đang trên bàn!','error');return;}
   if((c.rounds||0)<=0){showToast('Không đủ round!','error');return;}
-  const menu=(await apiGet('/round-menu'))||[];
+  _roundMenu=(await apiGet('/round-menu'))||[];
+  _roundSelPhone=phone; _roundSel=null;
   document.getElementById('dlg-title').textContent='Đổi Round — đang có '+(c.rounds||0)+'🎮';
-  let body;
-  if(menu.length){
-    body='<div style="max-height:280px;overflow-y:auto;">'+menu.map(m=>{
-      const cost=m.cost||1, ok=(c.rounds||0)>=cost;
-      const nm=(m.name||'').replace(/'/g,"\\'");
-      return `<div onclick="${ok?`doRedeemRound('${phone}','${nm}',${cost})`:''}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;margin-bottom:6px;border-radius:8px;background:var(--surface2);border:1px solid var(--border2);${ok?'cursor:pointer;':'opacity:0.4;'}">
-        <span style="font-weight:700;">${m.name}</span>
-        <span style="color:var(--blue);font-weight:800;white-space:nowrap;">${cost} 🎮</span>
-      </div>`;
-    }).join('')+'</div>';
-  } else {
-    body='<div class="empty-msg">Chưa có mục đổi round nào.<br>Thêm trong app <b>Báo cáo</b> → "🎮 Menu Đổi Round".</div>';
+  if(!_roundMenu.length){
+    document.getElementById('dlg-body').innerHTML='<div class="empty-msg">Chưa có mục đổi round nào.<br>Thêm trong app <b>Báo cáo</b> → "🎮 Menu Đổi Round".</div>';
+    const bEl0=document.getElementById('dlg-btns');bEl0.innerHTML='';
+    const c0=document.createElement('button');c0.className='btn';c0.textContent='Đóng';c0.addEventListener('click',closeDialog);
+    bEl0.appendChild(c0);
+    document.getElementById('confirm-dialog').classList.add('show');
+    return;
   }
-  document.getElementById('dlg-body').innerHTML=body;
+  const inp='width:100%;height:38px;padding:0 10px;font-size:14px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);color:var(--text);font-family:inherit;outline:none;';
+  document.getElementById('dlg-body').innerHTML=
+    `<input id="rr-search" placeholder="Nhập tên vé free để tìm..." autocomplete="off" oninput="handleRoundSearch(this.value)" style="${inp}"/>`
+    +`<div id="rr-sug" style="display:none;margin-top:6px;max-height:200px;overflow-y:auto;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;"></div>`
+    +`<div id="rr-selected" style="margin-top:10px;font-size:13px;color:var(--text3);">Gõ để tìm rồi chọn 1 mục</div>`;
   const bEl=document.getElementById('dlg-btns');bEl.innerHTML='';
-  const ca=document.createElement('button');ca.className='btn';ca.textContent='Đóng';ca.addEventListener('click',closeDialog);
-  bEl.appendChild(ca);
+  const ok=document.createElement('button');ok.className='btn btn-gold';ok.textContent='✓ Xác nhận';
+  ok.addEventListener('click',()=>{
+    if(!_roundSel){showToast('Chưa chọn mục đổi round!','error');return;}
+    const cc=customers.find(x=>x.phone===_roundSelPhone);
+    if(cc&&(cc.rounds||0)<_roundSel.cost){showToast('Không đủ round!','error');return;}
+    closeDialog();
+    doRedeemRound(_roundSelPhone,_roundSel.name,_roundSel.cost);
+  });
+  const ca=document.createElement('button');ca.className='btn';ca.textContent='Huỷ';ca.addEventListener('click',closeDialog);
+  bEl.appendChild(ok);bEl.appendChild(ca);
   document.getElementById('confirm-dialog').classList.add('show');
+  setTimeout(()=>{const i=document.getElementById('rr-search');if(i)i.focus();},80);
+}
+
+function handleRoundSearch(val){
+  const sug=document.getElementById('rr-sug');
+  const v=(val||'').trim().toLowerCase();
+  if(!v){sug.style.display='none';sug.innerHTML='';return;}
+  const matches=_roundMenu.filter(m=>(m.name||'').toLowerCase().includes(v));
+  sug.style.display='block';
+  if(!matches.length){sug.innerHTML='<div style="padding:10px;color:var(--text3);font-size:13px;">Không tìm thấy</div>';return;}
+  sug.innerHTML=matches.map(m=>{
+    const nm=(m.name||'').replace(/'/g,"\\'");
+    return `<div onclick="selectRoundItem('${nm}',${m.cost||1})" style="padding:11px 12px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;"><span style="font-weight:700;">${m.name}</span><span style="color:var(--blue);font-weight:700;white-space:nowrap;">${m.cost||1} 🎮</span></div>`;
+  }).join('');
+}
+
+function selectRoundItem(name,cost){
+  _roundSel={name:name,cost:cost};
+  const s=document.getElementById('rr-search'); if(s) s.value=name;
+  const sug=document.getElementById('rr-sug'); if(sug) sug.style.display='none';
+  const sel=document.getElementById('rr-selected');
+  if(sel) sel.innerHTML=`Đã chọn: <b style="color:var(--gold);">${name}</b> — <span style="color:var(--blue);font-weight:700;">${cost} 🎮</span>`;
 }
 
 function doRedeemRound(phone,itemName,cost){
