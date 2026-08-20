@@ -2102,6 +2102,8 @@ function doRedeemRound(phone,itemName,cost){
   apiPut('/customers/'+phone,{top1:c1,top2:c2,top3:c3,rounds:cr,drinks:cd})
     .then(()=>apiPost('/transactions',{payer:c.name,phone,amount:0,table_name:'',note:'Đổi round: '+itemName+' (-'+cost+'🎮)'}))
     .catch(()=>showToast('Lỗi lưu — kiểm tra mạng','error'));
+  // Vào hàng chờ TOUR -> tính 1 lần buy-in/re-buy cho app clock-control
+  if(activeTab==='tour'&&phone) trackTournamentBuyin(c.name, phone);
 }
 
 async function redeemDrink(phone){
