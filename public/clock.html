@@ -185,14 +185,12 @@ function render(st){
   if(st.showPayout&&st.payout&&st.payout.length){
     document.getElementById('latereg-box').style.display='none';
     document.getElementById('payout-box').style.display='block';
-    // Hiện payout dọc: "TOP n:" và số tiền NẰM CẠNH nhau, mỗi top 1 màu riêng
-    var _payColors=['#f0c040','#dcdcdc','#e08040','#60a8ff','#c080ff','#22c97a'];
+    // Hiện payout dọc: "TOP n:" và số tiền NẰM CẠNH nhau, chữ trắng to
     var _ph='';
     for(var _pi=0;_pi<st.payout.length;_pi++){
-      var _col=_payColors[_pi]||'#ffffff';
-      _ph+='<div style="padding:3px 0;white-space:nowrap;">'
-         +'<span style="font-size:28px;font-weight:700;color:'+_col+';letter-spacing:0.04em;">TOP '+(_pi+1)+': </span>'
-         +'<span style="font-size:38px;font-weight:700;color:'+_col+';">'+st.payout[_pi]+'</span>'
+      _ph+='<div style="padding:4px 0;white-space:nowrap;color:#fff;">'
+         +'<span style="font-size:36px;font-weight:700;letter-spacing:0.04em;">TOP '+(_pi+1)+': </span>'
+         +'<span style="font-size:46px;font-weight:700;">'+st.payout[_pi]+'</span>'
          +'</div>';
     }
     document.getElementById('payout-rows').innerHTML=_ph;
