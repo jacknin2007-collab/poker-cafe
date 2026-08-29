@@ -193,6 +193,11 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;font-wei
       <span></span><span>SB</span><span>BB</span><span>Ante</span><span>Phút</span><span>Loại</span><span></span>
     </div>
     <div id="levels-list"></div>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:10px;">
+      <span style="font-size:12px;color:var(--text3);white-space:nowrap;">⏱️ Phút:</span>
+      <input id="all-dur" type="number" min="1" value="20" style="margin:0;width:64px;text-align:center;"/>
+      <button class="btn btn-sm" style="margin:0;flex:1;" onclick="applyDurationAll()">Áp dụng cho toàn bộ level</button>
+    </div>
     <button class="btn btn-green btn-full" style="margin-top:8px;" onclick="saveLevels()">💾 Lưu blind levels</button>
   </div>
 </div>
@@ -432,6 +437,30 @@ function moveLevel(i,dir){
   renderLevels();
 }
 
+// Nhập SB -> tự đặt BB = SB×2
+function setLevelSB(i,val){
+  if(!state||!state.levels[i])return;
+  const sb=parseInt(val)||0;
+  state.levels[i].sb=sb;
+  state.levels[i].bb=sb*2;
+  renderLevels();
+}
+// Nhập BB -> tự đặt Ante = BB
+function setLevelBB(i,val){
+  if(!state||!state.levels[i])return;
+  const bb=parseInt(val)||0;
+  state.levels[i].bb=bb;
+  state.levels[i].ante=bb;
+  renderLevels();
+}
+// Áp dụng số phút cho toàn bộ level chơi (không đụng break)
+function applyDurationAll(){
+  if(!state)return;
+  const d=parseInt(document.getElementById('all-dur').value)||20;
+  state.levels.forEach(l=>{ if(!l.isBreak) l.duration=d; });
+  renderLevels();
+}
+
 function renderLevels(){
   if(!state)return;
   let realN=0;
@@ -448,8 +477,8 @@ function renderLevels(){
     </div>`;
     return `<div class="${cls}">
       <div class="level-num" style="color:${isActive?'var(--gold)':'var(--text3)'};">${realN}</div>
-      <input type="number" value="${lv.sb}" onchange="state.levels[${i}].sb=parseInt(this.value)||0" style="text-align:center;"/>
-      <input type="number" value="${lv.bb}" onchange="state.levels[${i}].bb=parseInt(this.value)||0" style="text-align:center;"/>
+      <input type="number" value="${lv.sb}" onchange="setLevelSB(${i},this.value)" style="text-align:center;"/>
+      <input type="number" value="${lv.bb}" onchange="setLevelBB(${i},this.value)" style="text-align:center;"/>
       <input type="number" value="${lv.ante||0}" onchange="state.levels[${i}].ante=parseInt(this.value)||0" style="text-align:center;"/>
       <input type="number" value="${lv.duration||20}" onchange="state.levels[${i}].duration=parseInt(this.value)||20" style="text-align:center;"/>
       <div style="display:flex;gap:2px;">
