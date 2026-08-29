@@ -1287,6 +1287,12 @@ function openTable(id){
   saveTableState();
 }
 function closeTable(id){
+  const tb=tables.find(x=>x.id===id);
+  // Còn khách trên bàn -> KHÔNG cho đóng
+  if(tb && tb.seats.some(s=>s)){
+    showToast('Bàn còn khách — cho khách rời bàn trước khi đóng!','error');
+    return;
+  }
   showConfirm('Đóng bàn?','Xác nhận đóng '+tables.find(x=>x.id===id).name+'?',[
     {label:'Đóng bàn',cls:'btn btn-red',cb:()=>{
       const t=tables.find(x=>x.id===id);t.status='idle';t.seats=Array(9).fill('');t.started=null;

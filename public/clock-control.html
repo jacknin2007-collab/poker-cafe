@@ -193,10 +193,12 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;font-wei
       <span></span><span>SB</span><span>BB</span><span>Ante</span><span>Phút</span><span>Loại</span><span></span>
     </div>
     <div id="levels-list"></div>
-    <div style="display:flex;gap:6px;align-items:center;margin-top:10px;">
+    <div style="display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap;">
       <span style="font-size:12px;color:var(--text3);white-space:nowrap;">⏱️ Phút:</span>
-      <input id="all-dur" type="number" min="1" value="20" style="margin:0;width:64px;text-align:center;"/>
-      <button class="btn btn-sm" style="margin:0;flex:1;" onclick="applyDurationAll()">Áp dụng cho toàn bộ level</button>
+      <input id="all-dur" type="number" min="1" value="20" style="margin:0;width:58px;text-align:center;"/>
+      <span style="font-size:12px;color:var(--text3);white-space:nowrap;">từ Level:</span>
+      <input id="all-dur-from" type="number" min="1" value="1" style="margin:0;width:52px;text-align:center;"/>
+      <button class="btn btn-sm" style="margin:0;flex:1;" onclick="applyDurationFrom()">Áp dụng từ level đó trở đi</button>
     </div>
     <button class="btn btn-green btn-full" style="margin-top:8px;" onclick="saveLevels()">💾 Lưu blind levels</button>
   </div>
@@ -437,12 +439,13 @@ function moveLevel(i,dir){
   renderLevels();
 }
 
-// Nhập SB -> tự đặt BB = SB×2
+// Nhập SB -> tự đặt BB = SB×2 và Ante = BB
 function setLevelSB(i,val){
   if(!state||!state.levels[i])return;
   const sb=parseInt(val)||0;
   state.levels[i].sb=sb;
   state.levels[i].bb=sb*2;
+  state.levels[i].ante=sb*2;
   renderLevels();
 }
 // Nhập BB -> tự đặt Ante = BB
@@ -453,11 +456,13 @@ function setLevelBB(i,val){
   state.levels[i].ante=bb;
   renderLevels();
 }
-// Áp dụng số phút cho toàn bộ level chơi (không đụng break)
-function applyDurationAll(){
+// Áp dụng số phút cho các level chơi TỪ level X trở đi (không đụng break)
+function applyDurationFrom(){
   if(!state)return;
+  const from=parseInt(document.getElementById('all-dur-from').value)||1;
   const d=parseInt(document.getElementById('all-dur').value)||20;
-  state.levels.forEach(l=>{ if(!l.isBreak) l.duration=d; });
+  let n=0;
+  state.levels.forEach(l=>{ if(l.isBreak)return; n++; if(n>=from) l.duration=d; });
   renderLevels();
 }
 
