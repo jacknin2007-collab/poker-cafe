@@ -408,12 +408,7 @@ select option{background:var(--surface2);color:var(--text);}
   <div class="dialog" style="max-height:85vh;overflow-y:auto;">
     <div class="dlg-title" id="note-dlg-title"></div>
     <div class="dlg-body" id="note-dlg-body"></div>
-    <!-- Chế độ ghi chú thường -->
-    <div id="note-input-wrap">
-      <input id="note-input-text" type="text" placeholder="Nhập ghi chú..." style="margin-bottom:4px;" oninput="handleNoteInput(this.value)"/>
-      <div id="note-suggestions" style="display:none;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;"></div>
-    </div>
-    <!-- Chế độ đổi nước (nhiều loại + số lượng) -->
+    <!-- Chọn nước (nhiều loại + số lượng) -->
     <div id="drink-input-wrap" style="display:none;">
       <div id="drink-list" style="margin-bottom:8px;"></div>
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
@@ -1913,47 +1908,28 @@ setInterval(function(){
   refreshCustomers();
 }, 15000);
 
-let _noteIsdrink=false;
 let _drinkItems=[]; // [{name, qty}]
 
-function showNoteDialog(title,body,isDrink,cb){
-  _noteIsdrink=isDrink;
+// Dialog chọn nước (đổi nước)
+function showNoteDialog(title,body,cb){
   _drinkItems=[];
   document.getElementById('note-dlg-title').textContent=title;
   document.getElementById('note-dlg-body').textContent=body;
-
-  if(isDrink){
-    document.getElementById('note-input-wrap').style.display='none';
-    document.getElementById('drink-input-wrap').style.display='block';
-    document.getElementById('drink-search').value='';
-    document.getElementById('drink-qty').value='1';
-    document.getElementById('drink-suggestions').style.display='none';
-    document.getElementById('drink-list').innerHTML='<div class="empty-msg">Chưa chọn nước nào</div>';
-  } else {
-    document.getElementById('note-input-wrap').style.display='block';
-    document.getElementById('drink-input-wrap').style.display='none';
-    const inp=document.getElementById('note-input-text');
-    inp.value='';
-    document.getElementById('note-suggestions').style.display='none';
-    document.getElementById('note-suggestions').innerHTML='';
-    setTimeout(()=>inp.focus(),100);
-  }
+  document.getElementById('drink-input-wrap').style.display='block';
+  document.getElementById('drink-search').value='';
+  document.getElementById('drink-qty').value='1';
+  document.getElementById('drink-suggestions').style.display='none';
+  document.getElementById('drink-list').innerHTML='<div class="empty-msg">Chưa chọn nước nào</div>';
 
   const btn=document.getElementById('note-confirm-btn');
   const nb=btn.cloneNode(true);btn.parentNode.replaceChild(nb,btn);
   nb.addEventListener('click',()=>{
-    if(isDrink){
-      if(!_drinkItems.length){showToast('Chọn ít nhất 1 loại nước!','error');return;}
-      document.getElementById('note-dialog').classList.remove('show');
-      cb(_drinkItems);
-    } else {
-      const note=document.getElementById('note-input-text').value.trim();
-      document.getElementById('note-dialog').classList.remove('show');
-      cb(note);
-    }
+    if(!_drinkItems.length){showToast('Chọn ít nhất 1 loại nước!','error');return;}
+    document.getElementById('note-dialog').classList.remove('show');
+    cb(_drinkItems);
   });
   document.getElementById('note-dialog').classList.add('show');
-  if(isDrink) setTimeout(()=>document.getElementById('drink-search').focus(),100);
+  setTimeout(()=>document.getElementById('drink-search').focus(),100);
 }
 
 function handleDrinkSearch(val){
@@ -2009,23 +1985,6 @@ function renderDrinkList(){
       <button onclick="removeDrinkItem(${i})" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);border-radius:4px;padding:2px 7px;cursor:pointer;font-size:12px;font-family:inherit;">✕</button>
     </div>`;
   }).join('');
-}
-
-function handleNoteInput(val){
-  const sug=document.getElementById('note-suggestions');
-  if(!_noteIsdrink||!val.trim()){sug.style.display='none';sug.innerHTML='';return;}
-  const matches=stock.filter(s=>s.qty>0&&s.name.toLowerCase().startsWith(val.toLowerCase()));
-  if(!matches.length){sug.style.display='none';sug.innerHTML='';return;}
-  sug.style.display='block';
-  sug.innerHTML=matches.map(s=>`
-    <div class="suggest-item" onclick="selectDrinkSuggestion('${s.name.replace(/'/g,"\\'")}')">
-      📦 ${s.name} <span>${s.qty} còn lại</span>
-    </div>`).join('');
-}
-
-function selectDrinkSuggestion(name){
-  document.getElementById('note-input-text').value=name;
-  document.getElementById('note-suggestions').style.display='none';
 }
 
 let _roundMenu=[], _roundSelPhone=null, _roundSel=null;
@@ -2114,7 +2073,7 @@ function doRedeemRound(phone,itemName,cost,dest){
 async function redeemDrink(phone){
   const c=customers.find(x=>x.phone===phone);
   if(!c||(c.drinks||0)<=0){showToast('Không đủ nước!','error');return;}
-  showNoteDialog('Đổi Nước','Chọn nước muốn đổi (Enter để thêm dòng):',true,async(items)=>{
+  showNoteDialog('Đổi Nước','Chọn nước muốn đổi (Enter để thêm dòng):',async(items)=>{
     // items = [{name, qty}]
     // Tính tổng tiêu hao
     let totalCost=0;
@@ -2264,18 +2223,6 @@ function fmtHistTime(s){
   const vn=new Date(d.getTime()+7*3600*1000);
   const p=n=>(n<10?'0':'')+n;
   return p(vn.getUTCDate())+'/'+p(vn.getUTCMonth()+1)+'/'+vn.getUTCFullYear()+' '+p(vn.getUTCHours())+':'+p(vn.getUTCMinutes());
-}
-
-async function showCustHistory(phone){
-  const c=customers.find(x=>x.phone===phone);if(!c)return;
-  document.getElementById('hist-title').textContent='Lịch sử — '+c.name;
-  document.getElementById('hist-body').innerHTML='<div class="loading"><div class="spinner"></div>Đang tải...</div>';
-  document.getElementById('history-dialog').classList.add('show');
-  const all=await apiGet('/transactions');
-  const hist=all?all.filter(t=>t.phone===phone):[];
-  document.getElementById('hist-body').innerHTML=hist.length
-    ?hist.map(tx=>`<div class="tx-row"><span class="tx-time">${fmtHistTime(tx.created_at)} · ${tx.note||''}</span><span class="tx-amt">${(tx.amount||0)>0?fmtAmt(tx.amount)+' ₫':'–'}</span></div>`).join('')
-    :'<div class="empty-msg">Chưa có lịch sử</div>';
 }
 
 // Lịch sử ĐỔI ROUND & ĐỔI NƯỚC của khách
