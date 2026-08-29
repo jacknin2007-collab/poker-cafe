@@ -2050,16 +2050,17 @@ async function redeemRound(phone){
     +`<div id="rr-sug" style="display:none;margin-top:6px;max-height:200px;overflow-y:auto;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;"></div>`
     +`<div id="rr-selected" style="margin-top:10px;font-size:13px;color:var(--text3);">Gõ để tìm rồi chọn 1 mục</div>`;
   const bEl=document.getElementById('dlg-btns');bEl.innerHTML='';
-  const ok=document.createElement('button');ok.className='btn btn-gold';ok.textContent='✓ Xác nhận';
-  ok.addEventListener('click',()=>{
+  const pick=(dest)=>{
     if(!_roundSel){showToast('Chưa chọn mục đổi round!','error');return;}
     const cc=customers.find(x=>x.phone===_roundSelPhone);
     if(cc&&(cc.rounds||0)<_roundSel.cost){showToast('Không đủ round!','error');return;}
     closeDialog();
-    doRedeemRound(_roundSelPhone,_roundSel.name,_roundSel.cost);
-  });
+    doRedeemRound(_roundSelPhone,_roundSel.name,_roundSel.cost,dest);
+  };
+  const bN=document.createElement('button');bN.className='btn';bN.textContent='🎮 Bàn thường';bN.addEventListener('click',()=>pick('normal'));
+  const bT=document.createElement('button');bT.className='btn btn-gold';bT.textContent='🏆 Hàng chờ Tour';bT.addEventListener('click',()=>pick('tour'));
   const ca=document.createElement('button');ca.className='btn';ca.textContent='Huỷ';ca.addEventListener('click',closeDialog);
-  bEl.appendChild(ok);bEl.appendChild(ca);
+  bEl.appendChild(bN);bEl.appendChild(bT);bEl.appendChild(ca);
   document.getElementById('confirm-dialog').classList.add('show');
   setTimeout(()=>{const i=document.getElementById('rr-search');if(i)i.focus();},80);
 }
@@ -2085,28 +2086,29 @@ function selectRoundItem(name,cost){
   if(sel) sel.innerHTML=`Đã chọn: <b style="color:var(--gold);">${name}</b> — <span style="color:var(--blue);font-weight:700;">${cost} 🎮</span>`;
 }
 
-function doRedeemRound(phone,itemName,cost){
+function doRedeemRound(phone,itemName,cost,dest){
   const c=customers.find(x=>x.phone===phone);if(!c)return;
   closeDialog();
   cost=cost||1;
+  const toTour=(dest==='tour');
   if((c.rounds||0)<cost){showToast('Không đủ round!','error');return;}
   c.rounds=(c.rounds||0)-cost;
   const c1=(c.top1??0)||0, c2=(c.top2??0)||0, c3=(c.top3??0)||0;
   const cr=(c.rounds??0)||0, cd=(c.drinks??0)||0;
-  // Free round = vé vào giải -> LUÔN vào hàng chờ TOUR (không phụ thuộc tab)
-  if(!queueTour.find(q=>q.name===c.name)){
-    queueTour.push({name:c.name,table:'Hàng chờ',time:nowTime()});
-  }
-  // chuyển sang tab Tour để thấy khách trong hàng chờ tour
-  if(activeTab!=='tour'){ switchTab('tour'); } else { renderQueue(); }
-  saveTableState(); // LƯU hàng chờ tour lên server -> floor/clock mới thấy
-  showToast('Đã đổi round: '+itemName+' (-'+cost+'🎮) — '+c.name+' vào hàng chờ TOUR!');
+  // Đưa vào đúng hàng chờ theo lựa chọn (tour hoặc thường)
+  const q = toTour ? queueTour : queue;
+  if(!q.find(x=>x.name===c.name)) q.push({name:c.name,table:'Hàng chờ',time:nowTime()});
+  // Chuyển sang tab tương ứng để thấy khách
+  const wantTab = toTour ? 'tour' : 'normal';
+  if(activeTab!==wantTab){ switchTab(wantTab); } else { renderQueue(); }
+  saveTableState();
+  showToast('Đã đổi round: '+itemName+' — '+c.name+' vào hàng chờ '+(toTour?'TOUR':'thường')+'!');
   clearSearch();
   apiPut('/customers/'+phone,{top1:c1,top2:c2,top3:c3,rounds:cr,drinks:cd})
-    .then(()=>apiPost('/transactions',{payer:c.name,phone,amount:0,table_name:'',note:'Đổi round: '+itemName+' (-'+cost+'🎮)'}))
+    .then(()=>apiPost('/transactions',{payer:c.name,phone,amount:0,table_name:'',note:'Đổi round: '+itemName+' (-'+cost+'🎮)'+(toTour?' [Tour]':'')}))
     .catch(()=>showToast('Lỗi lưu — kiểm tra mạng','error'));
-  // LUÔN tính 1 lần buy-in/re-buy cho app clock-control
-  if(phone) trackTournamentBuyin(c.name, phone);
+  // Chỉ tính buy-in/re-buy khi vào hàng chờ TOUR
+  if(toTour && phone) trackTournamentBuyin(c.name, phone);
 }
 
 async function redeemDrink(phone){
