@@ -2093,18 +2093,20 @@ function doRedeemRound(phone,itemName,cost){
   c.rounds=(c.rounds||0)-cost;
   const c1=(c.top1??0)||0, c2=(c.top2??0)||0, c3=(c.top3??0)||0;
   const cr=(c.rounds??0)||0, cd=(c.drinks??0)||0;
-  if(!getActiveQueue().find(q=>q.name===c.name)){
-    getActiveQueue().push({name:c.name,table:'Hàng chờ',time:nowTime()});
-    renderQueue();
-    saveTableState(); // LƯU hàng chờ lên server -> floor/clock mới thấy
+  // Free round = vé vào giải -> LUÔN vào hàng chờ TOUR (không phụ thuộc tab)
+  if(!queueTour.find(q=>q.name===c.name)){
+    queueTour.push({name:c.name,table:'Hàng chờ',time:nowTime()});
   }
-  showToast('Đã đổi round: '+itemName+' (-'+cost+'🎮) — '+c.name+' vào hàng chờ!');
+  // chuyển sang tab Tour để thấy khách trong hàng chờ tour
+  if(activeTab!=='tour'){ switchTab('tour'); } else { renderQueue(); }
+  saveTableState(); // LƯU hàng chờ tour lên server -> floor/clock mới thấy
+  showToast('Đã đổi round: '+itemName+' (-'+cost+'🎮) — '+c.name+' vào hàng chờ TOUR!');
   clearSearch();
   apiPut('/customers/'+phone,{top1:c1,top2:c2,top3:c3,rounds:cr,drinks:cd})
     .then(()=>apiPost('/transactions',{payer:c.name,phone,amount:0,table_name:'',note:'Đổi round: '+itemName+' (-'+cost+'🎮)'}))
     .catch(()=>showToast('Lỗi lưu — kiểm tra mạng','error'));
-  // Vào hàng chờ TOUR -> tính 1 lần buy-in/re-buy cho app clock-control
-  if(activeTab==='tour'&&phone) trackTournamentBuyin(c.name, phone);
+  // LUÔN tính 1 lần buy-in/re-buy cho app clock-control
+  if(phone) trackTournamentBuyin(c.name, phone);
 }
 
 async function redeemDrink(phone){
