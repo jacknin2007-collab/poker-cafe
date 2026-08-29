@@ -65,7 +65,11 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;font-wei
 .level-row.break-row{background:rgba(96,168,255,0.06);border:1px solid rgba(96,168,255,0.15);}
 .level-num{text-align:center;font-size:11px;color:var(--text3);font-weight:700;}
 .level-row input{margin:0;padding:5px 6px;font-size:12px;text-align:center;}
-.break-label{grid-column:2/6;font-size:12px;font-weight:700;color:var(--blue);text-align:center;letter-spacing:0.1em;}
+.break-label{grid-column:2/5;font-size:12px;font-weight:700;color:var(--blue);text-align:center;letter-spacing:0.1em;}
+.lv-grip{cursor:grab;text-align:center;color:var(--text2);font-size:17px;line-height:1;user-select:none;touch-action:none;padding:4px 2px;}
+.lv-grip:active{cursor:grabbing;}
+.level-row.lv-dragging{opacity:0.45;}
+.level-row.lv-over{border-top:2px solid var(--gold);}
 /* TABS */
 .tabs{display:flex;gap:4px;margin-bottom:12px;}
 .tab{padding:7px 14px;font-size:12px;font-weight:700;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2);cursor:pointer;color:var(--text3);}
@@ -190,7 +194,7 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;font-wei
       <button class="btn btn-sm btn-blue" style="float:right;" onclick="addBreak()">☕ Break</button>
     </div>
     <div class="levels-header">
-      <span></span><span>SB</span><span>BB</span><span>Ante</span><span>Phút</span><span>Loại</span><span></span>
+      <span></span><span>SB</span><span>BB</span><span>Ante</span><span>Phút</span><span>⇅ Kéo</span><span></span>
     </div>
     <div id="levels-list"></div>
     <div style="display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap;">
@@ -431,14 +435,6 @@ function removeLevel(i){
   state.levels.splice(i,1);renderLevels();
 }
 
-function moveLevel(i,dir){
-  if(!state)return;
-  const j=i+dir;
-  if(j<0||j>=state.levels.length)return;
-  [state.levels[i],state.levels[j]]=[state.levels[j],state.levels[i]];
-  renderLevels();
-}
-
 // Nhập SB -> tự đặt BB = SB×2 và Ante = BB
 function setLevelSB(i,val){
   if(!state||!state.levels[i])return;
@@ -466,6 +462,45 @@ function applyDurationFrom(){
   renderLevels();
 }
 
+// ── KÉO THẢ ĐỔI VỊ TRÍ LEVEL/BREAK (chạy cả chuột lẫn cảm ứng) ──
+var _lvDrag=null;
+function lvGripDown(e,i){
+  e.preventDefault();
+  const row=e.target.closest('.level-row');
+  _lvDrag={from:i,row:row};
+  if(row) row.classList.add('lv-dragging');
+  document.addEventListener('pointermove',lvGripMove);
+  document.addEventListener('pointerup',lvGripUp);
+}
+function _rowUnder(x,y){
+  const el=document.elementFromPoint(x,y);
+  return (el&&el.closest)?el.closest('.level-row'):null;
+}
+function lvGripMove(e){
+  if(!_lvDrag)return;
+  e.preventDefault();
+  document.querySelectorAll('.level-row').forEach(r=>r.classList.remove('lv-over'));
+  const over=_rowUnder(e.clientX,e.clientY);
+  if(over&&over!==_lvDrag.row) over.classList.add('lv-over');
+}
+function lvGripUp(e){
+  document.removeEventListener('pointermove',lvGripMove);
+  document.removeEventListener('pointerup',lvGripUp);
+  const drag=_lvDrag; _lvDrag=null;
+  document.querySelectorAll('.level-row').forEach(r=>{r.classList.remove('lv-over');r.classList.remove('lv-dragging');});
+  if(!drag||!state)return;
+  const over=_rowUnder(e.clientX,e.clientY);
+  if(!over)return;
+  const to=parseInt(over.getAttribute('data-idx'));
+  const from=drag.from;
+  if(isNaN(to)||to===from)return;
+  const arr=state.levels;
+  const item=arr.splice(from,1)[0];
+  const insertAt=from<to?to-1:to;
+  arr.splice(insertAt,0,item);
+  renderLevels();
+}
+
 function renderLevels(){
   if(!state)return;
   let realN=0;
@@ -473,23 +508,20 @@ function renderLevels(){
     if(!lv.isBreak)realN++;
     const isActive=i===state.levelIndex;
     const cls='level-row'+(isActive?' active':'')+(lv.isBreak?' break-row':'');
-    if(lv.isBreak) return `<div class="${cls}">
+    if(lv.isBreak) return `<div class="${cls}" data-idx="${i}">
       <div class="level-num">☕</div>
       <div class="break-label">BREAK</div>
       <input type="number" value="${lv.duration||15}" style="text-align:center;" onchange="state.levels[${i}].duration=parseInt(this.value)||15" placeholder="min"/>
-      <span style="font-size:11px;color:var(--text3);text-align:center;">min</span>
+      <div class="lv-grip" onpointerdown="lvGripDown(event,${i})" title="Kéo để đổi vị trí">⠿</div>
       <button class="btn btn-red btn-sm" onclick="removeLevel(${i})">✕</button>
     </div>`;
-    return `<div class="${cls}">
+    return `<div class="${cls}" data-idx="${i}">
       <div class="level-num" style="color:${isActive?'var(--gold)':'var(--text3)'};">${realN}</div>
       <input type="number" value="${lv.sb}" onchange="setLevelSB(${i},this.value)" style="text-align:center;"/>
       <input type="number" value="${lv.bb}" onchange="setLevelBB(${i},this.value)" style="text-align:center;"/>
       <input type="number" value="${lv.ante||0}" onchange="state.levels[${i}].ante=parseInt(this.value)||0" style="text-align:center;"/>
       <input type="number" value="${lv.duration||20}" onchange="state.levels[${i}].duration=parseInt(this.value)||20" style="text-align:center;"/>
-      <div style="display:flex;gap:2px;">
-        <button class="btn btn-sm" style="padding:4px 5px;" onclick="moveLevel(${i},-1)">↑</button>
-        <button class="btn btn-sm" style="padding:4px 5px;" onclick="moveLevel(${i},1)">↓</button>
-      </div>
+      <div class="lv-grip" onpointerdown="lvGripDown(event,${i})" title="Kéo để đổi vị trí">⠿</div>
       <button class="btn btn-red btn-sm" onclick="removeLevel(${i})">✕</button>
     </div>`;
   }).join('');
