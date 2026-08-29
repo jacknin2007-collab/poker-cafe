@@ -2096,6 +2096,7 @@ function doRedeemRound(phone,itemName,cost){
   if(!getActiveQueue().find(q=>q.name===c.name)){
     getActiveQueue().push({name:c.name,table:'Hàng chờ',time:nowTime()});
     renderQueue();
+    saveTableState(); // LƯU hàng chờ lên server -> floor/clock mới thấy
   }
   showToast('Đã đổi round: '+itemName+' (-'+cost+'🎮) — '+c.name+' vào hàng chờ!');
   clearSearch();
