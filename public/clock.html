@@ -23,7 +23,7 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
   flex-shrink:0;
 }
 .top-logo{width:44px;height:44px;object-fit:contain;margin-right:20px;}
-.top-title{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.3em;color:#fff;text-align:center;}
+.top-title{font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:0.28em;color:#fff;text-align:center;line-height:1.05;}
 
 /* MAIN 3 COLS */
 .main{flex:1;display:flex;min-height:0;}
@@ -123,7 +123,7 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
           <div class="bl-label">ANTE</div>
           <div class="bl-value" id="c-ante">200</div>
         </div>
-        <div class="next-row">NEXT BLINDS: <span id="c-next">–</span></div>
+        <div class="next-row">NEXT: <span id="c-next">–</span></div>
       </div>
     </div>
 
@@ -185,12 +185,12 @@ function render(st){
   if(st.showPayout&&st.payout&&st.payout.length){
     document.getElementById('latereg-box').style.display='none';
     document.getElementById('payout-box').style.display='block';
-    // Hiện payout dạng 3 cột (3 trên - 3 dưới) thay vì 1 hàng dài
+    // Hiện payout theo HÀNG DỌC: TOP 1: ... -> TOP 6: ...
     var _ph='';
     for(var _pi=0;_pi<st.payout.length;_pi++){
-      _ph+='<div style="display:inline-block;width:33%;text-align:center;vertical-align:top;margin-bottom:8px;">'
-         +'<span style="display:block;font-size:16px;color:rgba(255,255,255,0.45);">'+(_pi+1)+'</span>'
-         +'<span style="display:block;font-size:34px;">'+st.payout[_pi]+'</span>'
+      _ph+='<div style="display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.08);">'
+         +'<span style="font-size:26px;color:rgba(255,255,255,0.6);letter-spacing:0.04em;">TOP '+(_pi+1)+':</span>'
+         +'<span style="font-size:36px;">'+st.payout[_pi]+'</span>'
          +'</div>';
     }
     document.getElementById('payout-rows').innerHTML=_ph;
