@@ -218,9 +218,9 @@ function render(st){
   clk.className='clock'+(t<=60?' danger':t<=180?' warn':'');
   document.getElementById('paused-lbl').className='paused-lbl'+(st.running?'':' show');
 
-  // Bíp đếm 3 giây cuối (khớp với số hiển thị: 3, 2, 1)
+  // Bíp đếm 3 giây cuối (khớp với số hiển thị: 3, 2, 1) — to & dài
   if(st.running && t>=1 && t<=3){
-    if(t!==_lastBeepTL){ beep(t===1?1500:900, t===1?0.4:0.16, 0.6); _lastBeepTL=t; }
+    if(t!==_lastBeepTL){ beep(t===1?1500:950, t===1?0.9:0.5, 1); _lastBeepTL=t; }
   } else {
     _lastBeepTL=0;
   }
