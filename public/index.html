@@ -1748,7 +1748,8 @@ function doSearch(){
   } else {
     // Có chữ -> tìm theo TÊN (không phân biệt hoa/thường, có/không dấu)
     const q=_normText(raw);
-    found=customers.filter(c=>_normText(c.name).includes(q));
+    found=customers.filter(c=>_normText(c.name).includes(q))
+      .sort((a,b)=>((b.stars||0)-(a.stars||0)));  // nhiều sao nhất lên trước
   }
   if(!found.length){el.innerHTML=`<div style="font-size:13px;color:var(--text3);">Không tìm thấy "${raw}"</div>`;return;}
   const LIMIT=6;
