@@ -218,6 +218,13 @@ function render(st){
   clk.className='clock'+(t<=60?' danger':t<=180?' warn':'');
   document.getElementById('paused-lbl').className='paused-lbl'+(st.running?'':' show');
 
+  // Bíp đếm 3 giây cuối (khớp với số hiển thị: 3, 2, 1)
+  if(st.running && t>=1 && t<=3){
+    if(t!==_lastBeepTL){ beep(t===1?1500:900, t===1?0.4:0.16, 0.6); _lastBeepTL=t; }
+  } else {
+    _lastBeepTL=0;
+  }
+
   // Level number
   var realN=0; for(var i=0;i<=li;i++){ if(lvs[i]&&!lvs[i].isBreak) realN++; }
   document.getElementById('c-level').textContent=realN||1;
@@ -256,11 +263,35 @@ function poll(){
 }
 poll();setInterval(poll,1000);
 
+// ── TIẾNG BÍP ĐẾM 3 GIÂY CUỐI ─────────────────────────────
+var _audioCtx=null, _lastBeepTL=0;
+function unlockAudio(){
+  try{
+    if(!_audioCtx){ var AC=window.AudioContext||window.webkitAudioContext; if(AC)_audioCtx=new AC(); }
+    if(_audioCtx&&_audioCtx.state==='suspended')_audioCtx.resume();
+  }catch(e){}
+}
+function beep(freq,dur,vol){
+  try{
+    if(!_audioCtx){ var AC=window.AudioContext||window.webkitAudioContext; if(!AC)return; _audioCtx=new AC(); }
+    if(_audioCtx.state==='suspended')_audioCtx.resume();
+    var t0=_audioCtx.currentTime;
+    var o=_audioCtx.createOscillator(), g=_audioCtx.createGain();
+    o.type='square'; o.frequency.value=freq||900;
+    o.connect(g); g.connect(_audioCtx.destination);
+    g.gain.setValueAtTime(0.0001,t0);
+    g.gain.exponentialRampToValueAtTime(vol||0.5,t0+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+(dur||0.16));
+    o.start(t0); o.stop(t0+(dur||0.16)+0.03);
+  }catch(e){}
+}
+
 // ── GIỮ MÀN HÌNH LUÔN SÁNG (chống TV tự tắt sau ~10 phút) ──
 var _noSleep=null;
 try{ if(window.NoSleep) _noSleep=new NoSleep(); }catch(e){}
 var _wakeLock=null;
 function keepAwake(){
+  unlockAudio(); // mở khoá âm thanh khi có tương tác (để bíp được)
   // 1) NoSleep: phát video muted lặp vô hạn -> TV tưởng đang xem phim, không tắt
   if(_noSleep){ try{ var p=_noSleep.enable(); if(p&&p['catch'])p['catch'](function(){}); }catch(e){} }
   // 2) Wake Lock API (trình duyệt/TV mới) — bổ sung
