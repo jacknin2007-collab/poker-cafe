@@ -342,7 +342,7 @@ select option{background:var(--surface2);color:var(--text);}
         <div class="card">
           <div class="card-title">Tìm khách</div>
           <div style="display:flex;gap:6px;margin-bottom:8px;">
-            <input id="search-phone" maxlength="4" placeholder="4 số cuối SĐT..." style="margin:0;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter')doSearch()"/>
+            <input id="search-phone" placeholder="4 số cuối SĐT hoặc tên khách..." style="margin:0;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter')doSearch()"/>
             <button class="btn btn-gold btn-sm" style="white-space:nowrap;" onclick="doSearch()">Search</button>
           </div>
           <div id="customer-result"></div>
@@ -1180,7 +1180,7 @@ async function giveTourRound(){
   renderQueue();
   saveTableState();
   const cur = document.getElementById('search-phone').value;
-  if(cur.length>=4) doSearch();
+  if(cur.trim().length>=2) doSearch();
   awardTarget = null;
 }
 
@@ -1215,7 +1215,7 @@ function giveAward(top){
   renderQueue();
   saveTableState();
   const searchBox = document.getElementById('search-phone');
-  if(searchBox && searchBox.value.length>=4) doSearch();
+  if(searchBox && searchBox.value.trim().length>=2) doSearch();
 
   // ── Đồng bộ server ở nền ──
   apiPut('/customers/'+customer.phone,{
@@ -1734,13 +1734,26 @@ function doRandSeat(tab, qi, tid){
   saveTableState();
 }
 
+function _normText(s){
+  return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').trim();
+}
 function doSearch(){
-  const val=document.getElementById('search-phone').value.trim();
+  const raw=document.getElementById('search-phone').value.trim();
   const el=document.getElementById('customer-result');
-  if(val.length<4){el.innerHTML='<div style="font-size:13px;color:var(--text3);">Nhập đủ 4 số cuối SĐT</div>';return;}
-  const found=customers.filter(c=>c.phone.slice(-4)===val);
-  if(!found.length){el.innerHTML=`<div style="font-size:13px;color:var(--text3);">Không tìm thấy "${val}"</div>`;return;}
-  el.innerHTML=found.map(c=>renderCustomerCard(c)).join('');
+  if(raw.length<2){el.innerHTML='<div style="font-size:13px;color:var(--text3);">Nhập 4 số cuối SĐT hoặc tên khách</div>';return;}
+  let found;
+  if(/^\d+$/.test(raw)){
+    // Toàn số -> tìm theo SĐT (4 số cuối hoặc chứa số)
+    found=customers.filter(c=>c.phone.slice(-4)===raw || c.phone.includes(raw));
+  } else {
+    // Có chữ -> tìm theo TÊN (không phân biệt hoa/thường, có/không dấu)
+    const q=_normText(raw);
+    found=customers.filter(c=>_normText(c.name).includes(q));
+  }
+  if(!found.length){el.innerHTML=`<div style="font-size:13px;color:var(--text3);">Không tìm thấy "${raw}"</div>`;return;}
+  const LIMIT=6;
+  el.innerHTML=found.slice(0,LIMIT).map(c=>renderCustomerCard(c)).join('')
+    +(found.length>LIMIT?`<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px;">Còn ${found.length-LIMIT} khách nữa — gõ rõ hơn để lọc</div>`:'');
 }
 
 const isInQueue=name=>[...queue,...queueTour].some(q=>q.name.trim().toLowerCase()===name.trim().toLowerCase());
