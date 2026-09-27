@@ -82,6 +82,14 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
 .bl-sep{font-family:'Bebas Neue',sans-serif;font-size:68px;color:rgba(255,255,255,0.25);padding:0 4px;}
 .next-row{font-family:'Bebas Neue',sans-serif;font-size:46px;font-weight:300;font-style:italic;color:#fff;letter-spacing:0.1em;margin-top:8px;}
 .next-row span{font-style:normal;font-weight:400;color:#fff;}
+.center{padding-bottom:40px;}
+/* 5 Ô TOP SAO CHẠY DƯỚI ĐÁY */
+.top5-bar{flex-shrink:0;display:flex;gap:12px;padding:6px 40px 20px;}
+.t5-box{flex:1;height:60px;background:rgba(0,0,0,0.5);border:2px solid rgba(255,255,255,0.14);border-radius:8px;display:flex;align-items:center;overflow:hidden;}
+.t5-rank{flex-shrink:0;width:50px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:30px;color:#f0c040;}
+.t5-scroll{flex:1;overflow:hidden;white-space:nowrap;}
+.t5-name{display:inline-block;white-space:nowrap;padding-left:100%;font-family:'Bebas Neue',sans-serif;font-size:30px;color:#fff;letter-spacing:0.06em;animation:t5run 10s linear infinite;}
+@keyframes t5run{0%{transform:translateX(0);}100%{transform:translateX(-100%);}}
 </style>
 </head>
 <body>
@@ -143,6 +151,8 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
       </div>
     </div>
   </div>
+  <!-- 5 ô: tên 5 khách nhiều sao nhất, chạy ngang -->
+  <div class="top5-bar" id="top5-bar"></div>
 </div>
 
 <script src="/nosleep.js"></script>
@@ -262,6 +272,26 @@ function poll(){
   })['catch'](function(){});
 }
 poll();setInterval(poll,1000);
+
+// ── 5 Ô TOP SAO: tên 5 khách nhiều sao nhất, chạy ngang ──
+function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function renderTop5(list){
+  var bar=document.getElementById('top5-bar'); if(!bar) return;
+  var top=(list||[]).slice().sort(function(a,b){return (b.stars||0)-(a.stars||0);}).slice(0,5);
+  var html='';
+  for(var i=0;i<5;i++){
+    var c=top[i];
+    var txt=c?(c.name+'   ⭐ '+(c.stars||0)):'—';
+    html+='<div class="t5-box"><div class="t5-rank">'+(i+1)+'</div>'
+        +'<div class="t5-scroll"><span class="t5-name">'+_esc(txt)+'</span></div></div>';
+  }
+  bar.innerHTML=html;
+}
+function loadTop5(){
+  fetch(API+'/customers?light=1').then(function(r){return r.json();})
+    .then(function(a){ renderTop5(a); })['catch'](function(){});
+}
+loadTop5(); setInterval(loadTop5, 60000);
 
 // ── TIẾNG BÍP ĐẾM 3 GIÂY CUỐI ─────────────────────────────
 var _audioCtx=null, _lastBeepTL=0;
