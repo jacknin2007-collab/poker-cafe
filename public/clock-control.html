@@ -176,7 +176,7 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;font-wei
     </div>
     <div class="f-group"><label>Late Reg mở tới Level (nhập số, vd: 6)</label><input id="f-latereg" type="number" placeholder="–"/></div>
     <div class="f-group"><label>Total Stack (tự tính hoặc nhập)</label><input id="f-tstack" type="number" value="0" placeholder="0 = tự tính"/></div>
-    <div class="f-group"><label>Payout</label><input id="f-payout" type="number" value="0" placeholder="–" oninput="updatePayoutFromInput()"/></div>
+    <div class="f-group"><label>Payout (nhập: x-x-x-x-x-x)</label><input id="f-payout" type="text" inputmode="numeric" value="" placeholder="vd: 5-3-2-1-1-1" oninput="updatePayoutFromInput()"/></div>
     <div id="payout-preview-box" style="display:none;padding:8px;background:var(--surface2);border-radius:var(--radius);margin-bottom:8px;">
       <div style="font-size:11px;color:var(--text2);font-weight:700;">Preview Payout:</div>
       <div id="payout-preview-text" style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);margin-top:4px;">–</div>
@@ -321,7 +321,6 @@ async function saveInfo(){
   const rstack=parseInt(document.getElementById('f-rstack').value)||0;
   const buyin=parseInt(document.getElementById('f-buyin').value)||0;
   const rebuy=parseInt(document.getElementById('f-rebuy').value)||0;
-  const payout=parseInt(document.getElementById('f-payout').value)||0;
   const body={
     action:'update',
     tournamentName:document.getElementById('f-name').value,
@@ -331,7 +330,7 @@ async function saveInfo(){
     startingStack:sstack, rebuyStack:rstack,
     totalStack:parseInt(document.getElementById('f-tstack').value)||0,
     lateReg:document.getElementById('f-latereg').value||'–',
-    prizePool:payout*1000000,
+    payoutManual:parsePayoutInput(), // payout nhập tay x-x-x-x-x-x (null = bỏ)
     manualStats:manualStats, // báo server: đang chỉnh tay thì đừng auto ghi đè
   };
   const r=await fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -549,16 +548,19 @@ function updatePayoutPreview(){
   if(el) el.textContent=vals.join(' - ');
 }
 
+// Parse ô payout "x-x-x-x-x-x" -> [số,...]. Rỗng -> null (không có payout tay).
+function parsePayoutInput(){
+  const raw=(document.getElementById('f-payout').value||'').trim();
+  if(!raw) return null;
+  const arr=raw.split('-').map(x=>parseInt((x||'').trim(),10)).filter(x=>!isNaN(x));
+  return arr.length?arr:null;
+}
 function updatePayoutFromInput(){
-  const payout=parseInt(document.getElementById('f-payout').value)||0;
-  if(payout<=0){
-    document.getElementById('payout-preview-box').style.display='none';
-    return;
-  }
-  const pcts=[33,25,17,11,8,6];
-  const vals=pcts.map(p=>Math.round(payout*p/100));
-  document.getElementById('payout-preview-box').style.display='block';
-  document.getElementById('payout-preview-text').textContent=vals.join(' - ');
+  const arr=parsePayoutInput();
+  const box=document.getElementById('payout-preview-box');
+  if(!arr){ box.style.display='none'; return; }
+  box.style.display='block';
+  document.getElementById('payout-preview-text').textContent=arr.map((v,i)=>'TOP '+(i+1)+': '+v).join('   ');
 }
 
 async function savePayout(){
@@ -657,7 +659,11 @@ function populateForm(){
     document.getElementById('f-prize').value=state.prizePool||0;
   }
   if(document.activeElement.id!=='f-payout'){
-    document.getElementById('f-payout').value=Math.round((state.prizePool||0)/1000000)||0;
+    // Hiện payout dạng x-x-x-x-x-x (ưu tiên nhập tay, sau đó là payout đang tính)
+    const pm = (Array.isArray(state.payoutManual)&&state.payoutManual.length) ? state.payoutManual
+             : (Array.isArray(state.payout)&&state.payout.length ? state.payout : null);
+    document.getElementById('f-payout').value = pm ? pm.join('-') : '';
+    updatePayoutFromInput();
   }
 
   // ── Ô cấu hình (Tên, Stack) — chỉ set 1 LẦN khi tải, sau đó để user tự chỉnh ──

@@ -278,6 +278,8 @@ function scheduleNextReset(){
 }
 
 function calculatePayout(){
+  // Ưu tiên payout nhập TAY (dạng x-x-x-x-x-x). Nếu không có thì tính theo prizePool.
+  if(Array.isArray(clockState.payoutManual) && clockState.payoutManual.length) return clockState.payoutManual;
   const prize = clockState.prizePool || 0;
   if(!prize) return null;
   const pcts = [33,25,17,11,8,6];
@@ -304,11 +306,8 @@ function tickClock(){
   let realLevel=0;
   for(let i=0;i<=clockState.levelIndex;i++) if(!lvs[i]?.isBreak) realLevel++;
   clockState.showPayout=(realLevel>=11);
-  if(clockState.showPayout&&(clockState.prizePool||0)>0){
-    clockState.payout=calculatePayout();
-  } else {
-    clockState.payout=null;
-  }
+  const _pay=calculatePayout();
+  clockState.payout=(clockState.showPayout&&_pay)?_pay:null;
 
   clockState.updatedAt=Date.now();
 }
@@ -361,12 +360,9 @@ app.get('/api/clock',async(req,res)=>{
   let realLevel=0;
   for(let i=0;i<=clockState.levelIndex;i++) if(!lvs[i]?.isBreak) realLevel++;
   clockState.showPayout=(realLevel>=11);
-  // Tính payout nếu đạt level 11 và có prizePool
-  if(clockState.showPayout&&(clockState.prizePool||0)>0){
-    clockState.payout=calculatePayout();
-  } else {
-    clockState.payout=null;
-  }
+  // Payout: ưu tiên nhập tay (x-x-x-x-x-x), nếu không có thì theo prizePool
+  const _pay=calculatePayout();
+  clockState.payout=(clockState.showPayout&&_pay)?_pay:null;
   res.json(clockState);
 });
 
@@ -492,6 +488,7 @@ app.post('/api/clock/reset', async (req, res) => {
   clockState.totalStack = 0;
   clockState.prizePool = 0;
   clockState.payout = null;
+  clockState.payoutManual = null;
   clockState.showPayout = false;
   clockState.lateReg = '–';
   clockState.manualStats = false; // giải mới -> quay lại đếm tự động
