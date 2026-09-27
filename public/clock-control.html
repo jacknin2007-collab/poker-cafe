@@ -461,13 +461,35 @@ function applyDurationFrom(){
   renderLevels();
 }
 
-// ── KÉO THẢ ĐỔI VỊ TRÍ LEVEL/BREAK (chạy cả chuột lẫn cảm ứng) ──
-var _lvDrag=null;
+// ── KÉO THẢ ĐỔI VỊ TRÍ LEVEL/BREAK (phải GIỮ ~0.3s mới kéo được) ──
+var _lvDrag=null;   // đang kéo THẬT (sau khi giữ đủ lâu)
+var _lvHold=null;   // đang chờ giữ đủ lâu
 function lvGripDown(e,i){
-  e.preventDefault();
   const row=e.target.closest('.level-row');
-  _lvDrag={from:i,row:row};
-  if(row) row.classList.add('lv-dragging');
+  _lvHold={from:i,row:row,x:e.clientX,y:e.clientY,
+    timer:setTimeout(lvActivate,300)}; // giữ 0.3s mới kích hoạt kéo
+  document.addEventListener('pointermove',lvHoldMove);
+  document.addEventListener('pointerup',lvHoldCancel);
+}
+function lvHoldMove(e){
+  if(!_lvHold)return;
+  // Nhấc/di quá 12px trước khi giữ đủ -> coi như chạm nhầm/cuộn -> huỷ, KHÔNG kéo
+  if(Math.abs(e.clientX-_lvHold.x)>12 || Math.abs(e.clientY-_lvHold.y)>12) lvHoldCancel();
+}
+function lvHoldCancel(){
+  if(_lvHold) clearTimeout(_lvHold.timer);
+  _lvHold=null;
+  document.removeEventListener('pointermove',lvHoldMove);
+  document.removeEventListener('pointerup',lvHoldCancel);
+}
+function lvActivate(){
+  if(!_lvHold)return;
+  const h=_lvHold; _lvHold=null;
+  document.removeEventListener('pointermove',lvHoldMove);
+  document.removeEventListener('pointerup',lvHoldCancel);
+  _lvDrag={from:h.from,row:h.row};
+  if(h.row) h.row.classList.add('lv-dragging');
+  if(navigator.vibrate){ try{navigator.vibrate(30);}catch(e){} } // rung nhẹ báo "đã giữ, kéo được"
   document.addEventListener('pointermove',lvGripMove);
   document.addEventListener('pointerup',lvGripUp);
 }
@@ -511,7 +533,7 @@ function renderLevels(){
       <div class="level-num">☕</div>
       <div class="break-label">BREAK</div>
       <input type="number" value="${lv.duration||15}" style="text-align:center;" onchange="state.levels[${i}].duration=parseInt(this.value)||15" placeholder="min"/>
-      <div class="lv-grip" onpointerdown="lvGripDown(event,${i})" title="Kéo để đổi vị trí">⠿</div>
+      <div class="lv-grip" onpointerdown="lvGripDown(event,${i})" title="Giữ rồi kéo để đổi vị trí">⠿</div>
       <button class="btn btn-red btn-sm" onclick="removeLevel(${i})">✕</button>
     </div>`;
     return `<div class="${cls}" data-idx="${i}">
@@ -520,7 +542,7 @@ function renderLevels(){
       <input type="number" value="${lv.bb}" onchange="setLevelBB(${i},this.value)" style="text-align:center;"/>
       <input type="number" value="${lv.ante||0}" onchange="state.levels[${i}].ante=parseInt(this.value)||0" style="text-align:center;"/>
       <input type="number" value="${lv.duration||20}" onchange="state.levels[${i}].duration=parseInt(this.value)||20" style="text-align:center;"/>
-      <div class="lv-grip" onpointerdown="lvGripDown(event,${i})" title="Kéo để đổi vị trí">⠿</div>
+      <div class="lv-grip" onpointerdown="lvGripDown(event,${i})" title="Giữ rồi kéo để đổi vị trí">⠿</div>
       <button class="btn btn-red btn-sm" onclick="removeLevel(${i})">✕</button>
     </div>`;
   }).join('');
