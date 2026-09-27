@@ -2246,25 +2246,45 @@ function fmtHistTime(s){
 }
 
 // Lịch sử ĐỔI ROUND & ĐỔI NƯỚC của khách
+// Tính số sao thay đổi từ 1 giao dịch (top được trao + cộng/trừ tay). null = không phải sự kiện sao.
+function _txStarDelta(note){
+  note=note||'';
+  if(note.indexOf('🥇')===0) return 5;
+  if(note.indexOf('🥈')===0) return 3;
+  if(note.indexOf('🥉')===0) return 1;
+  var m=note.match(/^Cộng\s+(\d+)\s*sao/i); if(m) return parseInt(m[1]);
+  m=note.match(/^Trừ\s+(\d+)\s*sao/i); if(m) return -parseInt(m[1]);
+  // "Trao +8 Round (Tour) = +8 TOP 1"
+  m=note.match(/=\s*\+?(\d+)\s*TOP\s*(\d+)/i);
+  if(m){ var cnt=parseInt(m[1]), rank=parseInt(m[2]); var mult=rank===1?5:rank===2?3:1; return cnt*mult; }
+  return null;
+}
 async function showRedeemHistory(phone){
   const c=customers.find(x=>x.phone===phone);if(!c)return;
-  document.getElementById('hist-title').textContent='📜 Lịch sử đổi — '+c.name;
+  document.getElementById('hist-title').textContent='📜 Lịch sử — '+c.name;
   document.getElementById('hist-body').innerHTML='<div class="loading"><div class="spinner"></div>Đang tải...</div>';
   document.getElementById('history-dialog').classList.add('show');
   const all=await apiGet('/transactions');
-  let hist=(all||[]).filter(t=>t.phone===phone && (
-    (t.note||'').indexOf('Đổi round')===0 ||
-    (t.note||'').indexOf('Đổi nước')===0));
+  let hist=(all||[]).filter(t=>{
+    const n=t.note||'';
+    return t.phone===phone && (
+      n.indexOf('Đổi round')===0 || n.indexOf('Đổi nước')===0 || _txStarDelta(n)!==null);
+  });
   // Mới nhất lên trên
   hist.sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
   document.getElementById('hist-body').innerHTML=hist.length
     ? hist.map(tx=>{
         const note=tx.note||'';
-        const isRound=note.indexOf('Đổi round')===0;
-        const icon=isRound?'🎮':'🥤', color=isRound?'var(--blue)':'var(--purple)';
-        return `<div class="tx-row"><span class="tx-time">${fmtHistTime(tx.created_at)}</span><span class="tx-amt" style="color:${color};max-width:62%;text-align:right;white-space:normal;">${icon} ${note}</span></div>`;
+        const delta=_txStarDelta(note);
+        let icon='🥤', color='var(--purple)';
+        if(note.indexOf('Đổi round')===0){ icon='🎮'; color='var(--blue)'; }
+        else if(note.indexOf('Đổi nước')===0){ icon='🥤'; color='var(--purple)'; }
+        else if(delta!==null){ icon='⭐'; color=delta>=0?'var(--green)':'var(--red)'; }
+        const deltaStr = delta!==null
+          ? `<span style="color:${delta>=0?'var(--green)':'var(--red)'};font-weight:800;white-space:nowrap;margin-left:8px;">${delta>=0?'+':''}${delta}⭐</span>` : '';
+        return `<div class="tx-row" style="align-items:flex-start;"><span class="tx-time" style="flex:1;">${fmtHistTime(tx.created_at)} · ${icon} ${note}</span>${deltaStr}</div>`;
       }).join('')
-    : '<div class="empty-msg">Chưa có lịch sử đổi round/nước</div>';
+    : '<div class="empty-msg">Chưa có lịch sử</div>';
 }
 
 // Trừ sao của khách — nhập LÍ DO rồi nhập SỐ SAO

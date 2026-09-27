@@ -894,8 +894,8 @@ app.post('/api/customers/:phone/subtract-stars', async (req, res) => {
   const raw = (Number(c.top1) || 0) * 5 + (Number(c.top2) || 0) * 3 + (Number(c.top3) || 0) * 1;
   const oldPenalty = Number(c.star_penalty) || 0;
   let penalty = oldPenalty + amount;
-  if (penalty > raw) penalty = raw; // không trừ quá số sao đang có
-  if (penalty < 0) penalty = 0;
+  if (penalty > raw) penalty = raw; // không trừ quá số sao đang có (kể cả sao thưởng)
+  // KHÔNG kẹp penalty>=0: penalty âm = sao thưởng (cộng tay), phải giữ lại
   const applied = penalty - oldPenalty; // số sao thực sự trừ lần này
   await db.prepare('UPDATE customers SET star_penalty=? WHERE phone=?').run(penalty, req.params.phone);
   // Tự động ghi log để tra lịch sử
