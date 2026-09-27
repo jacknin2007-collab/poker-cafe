@@ -83,12 +83,13 @@ body{font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:colu
 .next-row{font-family:'Bebas Neue',sans-serif;font-size:46px;font-weight:300;font-style:italic;color:#fff;letter-spacing:0.1em;margin-top:8px;}
 .next-row span{font-style:normal;font-weight:400;color:#fff;}
 .center{padding-bottom:40px;}
-/* 5 Ô TOP SAO CHẠY DƯỚI ĐÁY */
-.top5-bar{flex-shrink:0;display:flex;gap:12px;padding:6px 40px 20px;}
-.t5-box{flex:1;height:60px;background:rgba(0,0,0,0.5);border:2px solid rgba(255,255,255,0.14);border-radius:8px;display:flex;align-items:center;overflow:hidden;}
-.t5-rank{flex-shrink:0;width:50px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:30px;color:#f0c040;}
+/* 5 Ô TOP SAO CHẠY DƯỚI ĐÁY — nổi bật */
+.top5-bar{flex-shrink:0;display:flex;gap:14px;padding:6px 40px 22px;}
+.t5-box{flex:1;height:68px;background:linear-gradient(180deg,rgba(240,192,64,0.16),rgba(0,0,0,0.6));border:2px solid #f0c040;border-radius:12px;display:flex;align-items:center;overflow:hidden;box-shadow:0 0 22px rgba(240,192,64,0.35),inset 0 0 14px rgba(240,192,64,0.1);}
+.t5-box:first-child{border-color:#ffe080;box-shadow:0 0 34px rgba(240,192,64,0.75),inset 0 0 18px rgba(240,192,64,0.18);transform:scale(1.03);}
+.t5-rank{flex-shrink:0;width:58px;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:36px;color:#1a1000;background:linear-gradient(180deg,#ffe080,#d4a020);}
 .t5-scroll{flex:1;overflow:hidden;white-space:nowrap;}
-.t5-name{display:inline-block;white-space:nowrap;padding-left:100%;font-family:'Bebas Neue',sans-serif;font-size:30px;color:#fff;letter-spacing:0.06em;animation:t5run 10s linear infinite;}
+.t5-name{display:inline-block;white-space:nowrap;padding-left:100%;font-family:'Bebas Neue',sans-serif;font-size:34px;font-weight:700;color:#ffe9a8;letter-spacing:0.07em;text-shadow:0 0 12px rgba(240,192,64,0.6);animation:t5run 10s linear infinite;}
 @keyframes t5run{0%{transform:translateX(0);}100%{transform:translateX(-100%);}}
 </style>
 </head>
