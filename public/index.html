@@ -594,6 +594,9 @@ function formatAmtInput(el){
   updatePayTotal();
 }
 function getRealAmt(){return parseInt((document.getElementById('pay-amount').value||'0').replace(/[^0-9]/g,''))*1000;}
+// Hàng chờ TOUR do SERVER làm chủ (thêm/xoá nguyên tử) -> không mất khách khi 2 máy ghi cùng lúc
+function tqAdd(name){ window._localChangeAt=Date.now(); try{ fetch(API+'/queue-tour/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})}); }catch(e){} }
+function tqRemove(name){ window._localChangeAt=Date.now(); try{ fetch(API+'/queue-tour/remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})}); }catch(e){} }
 
 async function apiGet(path){
   try{const r=await fetch(API+path);return await r.json();}
@@ -1001,6 +1004,7 @@ const DG = {
       renderQueue();
       showToast(`${src.name} → ${destTable.name} ghế ${destSi+1}`);
       saveTableState();
+      if(src.qTab==='tour'){ tqRemove(src.name); if(existing) tqAdd(existing); }
     }
     DG.src = null;
   },
@@ -1033,6 +1037,7 @@ const DG = {
       renderQueue();
       showToast(`${src.name} → hàng chờ ${tab==='normal'?'thường':'tour'}`);
       saveTableState();
+      if(tab==='tour') tqAdd(src.name);
 
     } else if(src.type==='queue'){
       // Kéo từ hàng chờ section này → section kia (hoặc cùng section)
@@ -1045,6 +1050,9 @@ const DG = {
         destQ.push(item);
         renderQueue();
         showToast(`${item.name} → hàng chờ ${tab==='normal'?'thường':'tour'}`);
+        saveTableState();
+        if(src.qTab==='tour') tqRemove(item.name); // rời hàng chờ tour
+        if(tab==='tour') tqAdd(item.name);          // vào hàng chờ tour
       } else {
         // Hoàn lại nếu trùng
         if(item) srcQ.splice(src.qi,0,item);
@@ -1682,9 +1690,9 @@ function renderQueueSection(tab){
 }
 
 function removeQueueItem(tab, i){
-  if(tab==='normal') queue.splice(i,1); else queueTour.splice(i,1);
+  if(tab==='normal'){ queue.splice(i,1); saveTableState(); }
+  else { const nm=queueTour[i]&&queueTour[i].name; queueTour.splice(i,1); tqRemove(nm); }
   renderQueueSection(tab);
-  saveTableState();
 }
 
 function removeQueue(i){ removeQueueItem(activeTab, i); }
@@ -1725,13 +1733,15 @@ function doRandSeat(tab, qi, tid){
   const freeSlots=t.seats.map((s,i)=>i).filter(i=>!t.seats[i]);
   if(!freeSlots.length){showToast(t.name+' đã đầy!','error');return;}
   const randSi=freeSlots[Math.floor(Math.random()*freeSlots.length)];
-  t.seats[randSi]=q.name;
+  const nm=q.name;
+  t.seats[randSi]=nm;
   aq.splice(qi,1);
   document.getElementById('randseat-dialog').classList.remove('show');
   renderTablesLeft();
   renderQueue();
-  showToast(`${q.name} → ${t.name} ghế ${randSi+1} (random)!`);
+  showToast(`${nm} → ${t.name} ghế ${randSi+1} (random)!`);
   saveTableState();
+  if(tab==='tour') tqRemove(nm); // xoá khỏi hàng chờ tour (server làm chủ)
 }
 
 function _normText(s){
@@ -2080,7 +2090,7 @@ function doRedeemRound(phone,itemName,cost,dest){
   // Chuyển sang tab tương ứng để thấy khách
   const wantTab = toTour ? 'tour' : 'normal';
   if(activeTab!==wantTab){ switchTab(wantTab); } else { renderQueue(); }
-  saveTableState();
+  if(toTour) tqAdd(c.name); else saveTableState();
   showToast('Đã đổi round: '+itemName+' — '+c.name+' vào hàng chờ '+(toTour?'TOUR':'thường')+'!');
   clearSearch();
   apiPut('/customers/'+phone,{top1:c1,top2:c2,top3:c3,rounds:cr,drinks:cd})
@@ -2166,7 +2176,7 @@ function addToQueueConfirmed(name, phone){
   // ── Cập nhật NGAY, không chờ mạng ──
   getActiveQueue().push({name:name,table:'Hàng chờ',time:nowTime()});
   renderQueue();
-  saveTableState();
+  if(activeTab==='tour') tqAdd(name); else saveTableState();
   showToast('Đã thêm '+name+' vào hàng chờ!');
   clearSearch();
   // ── Ghi nhận buy-in tour chạy Ở NỀN (không chặn giao diện) ──
@@ -2229,7 +2239,7 @@ function addToQueuePlusDrinkConfirmed(name, phone){
   }
   getActiveQueue().push({name:name,table:'Hàng chờ',time:nowTime()});
   renderQueue();
-  saveTableState();
+  if(activeTab==='tour') tqAdd(name); else saveTableState();
   showToast('Đã thêm '+name+' vào hàng chờ + 1 nước! 🥤');
   clearSearch();
   if(activeTab==='tour'&&phone) trackTournamentBuyin(name, phone);

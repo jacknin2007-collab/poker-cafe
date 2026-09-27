@@ -252,6 +252,10 @@ async function api(path,opts={}){
   }catch(e){return null;}
 }
 
+// Hàng chờ tour do SERVER làm chủ (thêm/xoá nguyên tử) -> không mất khách khi 2 máy ghi cùng lúc
+function tqAdd(name){ window._localChangeAt=Date.now(); api('/queue-tour/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})}); }
+function tqRemove(name){ window._localChangeAt=Date.now(); api('/queue-tour/remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})}); }
+
 // ── LƯU TRẠNG THÁI: gộp + xếp hàng (mượt khi thao tác nhanh) ──
 // Gọi saveState() sau mỗi thay đổi cục bộ. Nó:
 //  - đánh dấu updatedAt + chặn poll ghi đè (window._localChangeAt)
@@ -502,8 +506,9 @@ async function doRandom(qi){
   renderQueue();
   showToast(`${item.name} → ${code}`,'p');
 
-  // Lưu lên server ở nền (state đã gồm ghế -> không cần gọi /dealer/seat riêng)
+  // Lưu ghế lên server; xoá khỏi hàng chờ tour qua endpoint riêng (server làm chủ)
   saveState();
+  tqRemove(item.name);
 }
 
 // ── QUEUE ACTIONS ──────────────────────────────────────────────
@@ -516,7 +521,7 @@ async function removeFromQueue(i){
   tableState.updatedAt=Date.now();
   showToast(name+' đã xóa khỏi hàng chờ');
   renderQueue();
-  saveState();
+  tqRemove(name); // server làm chủ hàng chờ tour
 }
 
 function suggestAQ(val){
@@ -543,7 +548,7 @@ async function confirmAddQueue(){
   document.getElementById('aq-sugg').innerHTML='';
   showToast(name+' đã vào hàng chờ tour','p');
   renderQueue();
-  saveState();
+  tqAdd(name); // server làm chủ hàng chờ tour
 }
 
 // ── REMOVE PLAYER FROM TABLE ──────────────────────────────────

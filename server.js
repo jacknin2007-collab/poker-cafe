@@ -1558,9 +1558,39 @@ function saveTableStateFile() {
 }
 
 app.post('/api/table-state', (req, res) => {
-  tableState = req.body;
+  const incoming = req.body || {};
+  // GIỮ hàng chờ tour của server (do server làm chủ qua /queue-tour/*),
+  // KHÔNG cho full-state từ app ghi đè -> tránh mất khách khi 2 máy ghi cùng lúc.
+  const keepQueueTour = (tableState && Array.isArray(tableState.queueTour)) ? tableState.queueTour : [];
+  tableState = incoming;
+  tableState.queueTour = keepQueueTour;
   saveTableStateFile();
   res.json({ ok: true });
+});
+
+// ── HÀNG CHỜ TOUR: server làm chủ (thêm/xoá nguyên tử, không mất khách) ──
+app.post('/api/queue-tour/add', (req, res) => {
+  if (!tableState) return res.status(400).json({ error: 'Chưa có table state' });
+  const name = (req.body && req.body.name != null) ? String(req.body.name).trim() : '';
+  if (!name) return res.status(400).json({ error: 'Thiếu tên' });
+  if (!Array.isArray(tableState.queueTour)) tableState.queueTour = [];
+  const dup = tableState.queueTour.some(q => q && String(q.name || '').trim().toLowerCase() === name.toLowerCase());
+  if (!dup) tableState.queueTour.push({ name, table: 'Hàng chờ', time: (req.body && req.body.time) || '' });
+  tableState.updatedAt = Date.now();
+  saveTableStateFile();
+  res.json({ ok: true, queueTour: tableState.queueTour });
+});
+app.post('/api/queue-tour/remove', (req, res) => {
+  if (!tableState) return res.status(400).json({ error: 'Chưa có table state' });
+  if (!Array.isArray(tableState.queueTour)) tableState.queueTour = [];
+  const name = (req.body && req.body.name != null) ? String(req.body.name).trim().toLowerCase() : null;
+  if (name != null) {
+    const i = tableState.queueTour.findIndex(q => q && String(q.name || '').trim().toLowerCase() === name);
+    if (i >= 0) tableState.queueTour.splice(i, 1);
+  }
+  tableState.updatedAt = Date.now();
+  saveTableStateFile();
+  res.json({ ok: true, queueTour: tableState.queueTour });
 });
 
 app.get('/api/table-state', (req, res) => {
