@@ -196,13 +196,28 @@ function render(st){
   if(st.showPayout&&st.payout&&st.payout.length){
     document.getElementById('latereg-box').style.display='none';
     document.getElementById('payout-box').style.display='block';
-    // Hiện payout dọc: "TOP n:" và số tiền NẰM CẠNH nhau, chữ trắng to
+    var _n=st.payout.length;
+    // <=6 top: 1 cột chữ to. >6 top: chia 2 cột, thanh trắng ngăn giữa (TOP 1-6 | TOP 7-12)
+    var _fl,_fv,_pad;
+    if(_n<=6){_fl=29;_fv=39;_pad=4;}else{_fl=18;_fv=23;_pad=1;}
+    function _payRow(idx){
+      return '<div style="padding:'+_pad+'px 0;white-space:nowrap;color:#fff;">'
+        +'<span style="font-size:'+_fl+'px;font-weight:700;letter-spacing:0.04em;">TOP '+(idx+1)+': </span>'
+        +'<span style="font-size:'+_fv+'px;font-weight:700;">'+st.payout[idx]+'</span>'
+        +'</div>';
+    }
     var _ph='';
-    for(var _pi=0;_pi<st.payout.length;_pi++){
-      _ph+='<div style="padding:4px 0;white-space:nowrap;color:#fff;">'
-         +'<span style="font-size:29px;font-weight:700;letter-spacing:0.04em;">TOP '+(_pi+1)+': </span>'
-         +'<span style="font-size:39px;font-weight:700;">'+st.payout[_pi]+'</span>'
-         +'</div>';
+    if(_n<=6){
+      for(var _pi=0;_pi<_n;_pi++){_ph+=_payRow(_pi);}
+    }else{
+      var _half=Math.ceil(_n/2),_c1='',_c2='',_pj;
+      for(_pj=0;_pj<_half;_pj++){_c1+=_payRow(_pj);}
+      for(_pj=_half;_pj<_n;_pj++){_c2+=_payRow(_pj);}
+      _ph='<div style="display:flex;align-items:stretch;gap:10px;">'
+        +'<div style="flex:1;min-width:0;">'+_c1+'</div>'
+        +'<div style="width:2px;background:#fff;border-radius:2px;"></div>'
+        +'<div style="flex:1;min-width:0;">'+_c2+'</div>'
+        +'</div>';
     }
     document.getElementById('payout-rows').innerHTML=_ph;
   } else {
