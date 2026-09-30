@@ -296,17 +296,23 @@ setInterval(function(){
 function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 // Hạng theo số sao (dùng rank_tiers tuỳ chỉnh nếu có, không thì mặc định)
 var _rankTiers=[{name:'Sắc',min:0},{name:'Đồng',min:5},{name:'Bạc',min:10},{name:'Vàng',min:15},{name:'Bạch Kim',min:20},{name:'Lục Bảo',min:25},{name:'Kim Cương',min:30},{name:'Cao Thủ',min:40},{name:'Đại Cao Thủ',min:50},{name:'Thách Đấu',min:60}];
+var _top5List=[];
 function rankName(stars){
   var best=_rankTiers[0];
   for(var i=0;i<_rankTiers.length;i++){ if(stars>=(_rankTiers[i].min||0)) best=_rankTiers[i]; }
   return best?best.name:'Hạng';
 }
-fetchT(API+'/app-content',10000).then(function(r){return r.json();}).then(function(o){
-  if(o&&o.rank_tiers){ try{ var t=JSON.parse(o.rank_tiers); if(t&&t.length){ t.sort(function(a,b){return (a.min||0)-(b.min||0);}); _rankTiers=t; } }catch(e){} }
-})['catch'](function(){});
+// Nạp bảng hạng (rank_tiers) GIỐNG index; xong vẽ lại top5 với hạng đúng
+function loadTiers(){
+  fetchT(API+'/app-content',10000).then(function(r){return r.json();}).then(function(o){
+    if(o&&o.rank_tiers){ try{ var t=JSON.parse(o.rank_tiers); if(t&&t.length){ t.sort(function(a,b){return (a.min||0)-(b.min||0);}); _rankTiers=t; } }catch(e){} }
+    renderTop5(); // vẽ lại theo hạng vừa nạp
+  })['catch'](function(){});
+}
 function renderTop5(list){
+  if(list) _top5List=list;
   var bar=document.getElementById('top5-bar'); if(!bar) return;
-  var top=(list||[]).slice().sort(function(a,b){return (b.stars||0)-(a.stars||0);}).slice(0,5);
+  var top=_top5List.slice().sort(function(a,b){return (b.stars||0)-(a.stars||0);}).slice(0,5);
   var html='';
   for(var i=0;i<5;i++){
     var c=top[i];
@@ -320,7 +326,9 @@ function loadTop5(){
   fetchT(API+'/customers?light=1',12000).then(function(r){return r.json();})
     .then(function(a){ renderTop5(a); })['catch'](function(){});
 }
-loadTop5(); setInterval(loadTop5, 60000);
+loadTiers(); loadTop5();
+setInterval(loadTop5, 60000);
+setInterval(loadTiers, 300000); // cập nhật bảng hạng nếu admin đổi
 
 // ── TIẾNG BÍP ĐẾM 3 GIÂY CUỐI ─────────────────────────────
 var _audioCtx=null, _lastBeepTL=0;
