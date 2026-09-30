@@ -254,13 +254,27 @@ function render(st){
   document.getElementById('c-next').textContent=nextTxt;
 }
 
+// fetch có timeout -> request treo sẽ bị bỏ, không làm màn hình đứng
+function fetchT(url, ms){
+  ms = ms || 8000;
+  if(window.AbortController){
+    var ac=new AbortController();
+    var t=setTimeout(function(){ try{ac.abort();}catch(e){} }, ms);
+    return fetch(url,{signal:ac.signal}).then(function(r){ clearTimeout(t); return r; },
+                                            function(e){ clearTimeout(t); throw e; });
+  }
+  return Promise.race([ fetch(url),
+    new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('timeout')); }, ms); }) ]);
+}
+var _lastOK = Date.now(); // lần cuối lấy được dữ liệu
 function poll(){
-  fetch(API+'/clock').then(function(r){return r.json();}).then(function(st){
+  fetchT(API+'/clock').then(function(r){return r.json();}).then(function(st){
+    _lastOK = Date.now();
     if(st.updatedAt===lastUpdate) return;
     lastUpdate=st.updatedAt;
     // Đang chỉnh tay -> dùng số từ /clock, KHÔNG lấy đè từ hàng chờ
     if(st.manualStats){ render(st); return; }
-    fetch(API+'/tournament/stats').then(function(r){return r.json();}).then(function(stats){
+    fetchT(API+'/tournament/stats').then(function(r){return r.json();}).then(function(stats){
       st.players=stats.playersOnTables||0;
       st.totalPlayers=stats.totalPlayers||0;
       st.buyIn=stats.buyIns||0;
@@ -273,6 +287,10 @@ function poll(){
   })['catch'](function(){});
 }
 poll();setInterval(poll,1000);
+// Watchdog: mất kết nối > 40s -> tự tải lại trang để nối lại (chống TV đứng/ngắt)
+setInterval(function(){
+  if(Date.now() - _lastOK > 40000){ try{ location.reload(); }catch(e){} }
+}, 5000);
 
 // ── 5 Ô TOP SAO: tên 5 khách nhiều sao nhất, chạy ngang ──
 function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -289,7 +307,7 @@ function renderTop5(list){
   bar.innerHTML=html;
 }
 function loadTop5(){
-  fetch(API+'/customers?light=1').then(function(r){return r.json();})
+  fetchT(API+'/customers?light=1',12000).then(function(r){return r.json();})
     .then(function(a){ renderTop5(a); })['catch'](function(){});
 }
 loadTop5(); setInterval(loadTop5, 60000);
