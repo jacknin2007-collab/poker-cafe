@@ -199,7 +199,7 @@ function render(st){
     var _n=st.payout.length;
     // <=6 top: 1 cột chữ to. >6 top: chia 2 cột, thanh trắng ngăn giữa (TOP 1-6 | TOP 7-12)
     var _fl,_fv,_pad;
-    if(_n<=6){_fl=29;_fv=39;_pad=4;}else{_fl=18;_fv=23;_pad=1;}
+    if(_n<=6){_fl=29;_fv=39;_pad=4;}else{_fl=23;_fv=30;_pad=3;}
     function _payRow(idx){
       return '<div style="padding:'+_pad+'px 0;white-space:nowrap;color:#fff;">'
         +'<span style="font-size:'+_fl+'px;font-weight:700;letter-spacing:0.04em;">TOP '+(idx+1)+': </span>'
