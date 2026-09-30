@@ -292,15 +292,25 @@ setInterval(function(){
   if(Date.now() - _lastOK > 40000){ try{ location.reload(); }catch(e){} }
 }, 5000);
 
-// ── 5 Ô TOP SAO: tên 5 khách nhiều sao nhất, chạy ngang ──
+// ── 5 Ô TOP SAO: Tên - Rank - Sao, chạy ngang ──
 function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Hạng theo số sao (dùng rank_tiers tuỳ chỉnh nếu có, không thì mặc định)
+var _rankTiers=[{name:'Sắc',min:0},{name:'Đồng',min:5},{name:'Bạc',min:10},{name:'Vàng',min:15},{name:'Bạch Kim',min:20},{name:'Lục Bảo',min:25},{name:'Kim Cương',min:30},{name:'Cao Thủ',min:40},{name:'Đại Cao Thủ',min:50},{name:'Thách Đấu',min:60}];
+function rankName(stars){
+  var best=_rankTiers[0];
+  for(var i=0;i<_rankTiers.length;i++){ if(stars>=(_rankTiers[i].min||0)) best=_rankTiers[i]; }
+  return best?best.name:'Hạng';
+}
+fetchT(API+'/app-content',10000).then(function(r){return r.json();}).then(function(o){
+  if(o&&o.rank_tiers){ try{ var t=JSON.parse(o.rank_tiers); if(t&&t.length){ t.sort(function(a,b){return (a.min||0)-(b.min||0);}); _rankTiers=t; } }catch(e){} }
+})['catch'](function(){});
 function renderTop5(list){
   var bar=document.getElementById('top5-bar'); if(!bar) return;
   var top=(list||[]).slice().sort(function(a,b){return (b.stars||0)-(a.stars||0);}).slice(0,5);
   var html='';
   for(var i=0;i<5;i++){
     var c=top[i];
-    var txt=c?(c.name+'   ⭐ '+(c.stars||0)):'—';
+    var txt=c?(c.name+'  -  '+rankName(c.stars||0)+'  -  ⭐'+(c.stars||0)):'—';
     html+='<div class="t5-box"><div class="t5-rank">'+(i+1)+'</div>'
         +'<div class="t5-scroll"><span class="t5-name">'+_esc(txt)+'</span></div></div>';
   }
