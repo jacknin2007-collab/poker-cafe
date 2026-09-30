@@ -176,7 +176,15 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;font-wei
     </div>
     <div class="f-group"><label>Late Reg mở tới Level (nhập số, vd: 6)</label><input id="f-latereg" type="number" placeholder="–"/></div>
     <div class="f-group"><label>Total Stack (tự tính hoặc nhập)</label><input id="f-tstack" type="number" value="0" placeholder="0 = tự tính"/></div>
-    <div class="f-group"><label>Payout (nhập: x-x-x-x-x-x)</label><input id="f-payout" type="text" inputmode="numeric" value="" placeholder="vd: 5-3-2-1-1-1" oninput="updatePayoutFromInput()"/></div>
+    <div class="f-group">
+      <label>Payout — bấm "＋ Cộng top" để thêm từng hạng</label>
+      <div style="display:flex;gap:6px;">
+        <input id="pay-add" type="number" inputmode="numeric" placeholder="Nhập tiền 1 top rồi ＋" style="flex:1;margin:0;" onkeydown="if(event.key==='Enter'){event.preventDefault();addPayoutTop();}"/>
+        <button class="btn btn-gold btn-sm" style="margin:0;flex-shrink:0;white-space:nowrap;" onclick="addPayoutTop()">＋ Cộng top</button>
+        <button class="btn btn-red btn-sm" style="margin:0;flex-shrink:0;" onclick="clearPayout()" title="Xoá hết">🗑️</button>
+      </div>
+      <input id="f-payout" type="text" value="" readonly placeholder="Chưa có payout" style="margin-top:6px;background:var(--surface2);color:var(--gold);"/>
+    </div>
     <div id="payout-preview-box" style="display:none;padding:8px;background:var(--surface2);border-radius:var(--radius);margin-bottom:8px;">
       <div style="font-size:11px;color:var(--text2);font-weight:700;">Preview Payout:</div>
       <div id="payout-preview-text" style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);margin-top:4px;">–</div>
@@ -583,6 +591,20 @@ function updatePayoutFromInput(){
   if(!arr){ box.style.display='none'; return; }
   box.style.display='block';
   document.getElementById('payout-preview-text').textContent=arr.map((v,i)=>'TOP '+(i+1)+': '+v).join('   ');
+}
+// Bấm "＋ Cộng top": thêm 1 mức payout vào cuối (TOP kế tiếp)
+function addPayoutTop(){
+  const el=document.getElementById('pay-add');
+  const v=parseInt(el.value,10);
+  if(isNaN(v)){ el.focus(); return; }
+  const cur=(document.getElementById('f-payout').value||'').trim();
+  document.getElementById('f-payout').value = cur ? (cur+'-'+v) : (''+v);
+  el.value=''; el.focus();
+  updatePayoutFromInput();
+}
+function clearPayout(){
+  document.getElementById('f-payout').value='';
+  updatePayoutFromInput();
 }
 
 async function savePayout(){
