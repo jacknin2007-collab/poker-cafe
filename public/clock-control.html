@@ -343,6 +343,7 @@ async function saveInfo(){
   };
   const r=await fetch(API+'/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   state=await r.json();renderCtrl();
+  _payoutDirty=false; // đã lưu -> cho phép đồng bộ payout từ server trở lại
   alert('Đã lưu!');
 }
 
@@ -593,17 +594,20 @@ function updatePayoutFromInput(){
   document.getElementById('payout-preview-text').textContent=arr.map((v,i)=>'TOP '+(i+1)+': '+v).join('   ');
 }
 // Bấm "＋ Cộng top": thêm 1 mức payout vào cuối (TOP kế tiếp)
+var _payoutDirty=false; // true = đang nhập dở -> poll KHÔNG ghi đè
 function addPayoutTop(){
   const el=document.getElementById('pay-add');
   const v=parseInt(el.value,10);
   if(isNaN(v)){ el.focus(); return; }
   const cur=(document.getElementById('f-payout').value||'').trim();
   document.getElementById('f-payout').value = cur ? (cur+'-'+v) : (''+v);
+  _payoutDirty=true;
   el.value=''; el.focus();
   updatePayoutFromInput();
 }
 function clearPayout(){
   document.getElementById('f-payout').value='';
+  _payoutDirty=true;
   updatePayoutFromInput();
 }
 
@@ -702,8 +706,8 @@ function populateForm(){
   if(document.activeElement.id!=='f-prize' && document.getElementById('f-prize')){
     document.getElementById('f-prize').value=state.prizePool||0;
   }
-  if(document.activeElement.id!=='f-payout'){
-    // Hiện payout dạng x-x-x-x-x-x (ưu tiên nhập tay, sau đó là payout đang tính)
+  // Chỉ đồng bộ payout từ server khi user CHƯA đang nhập dở (tránh xoá mất số vừa cộng)
+  if(!_payoutDirty){
     const pm = (Array.isArray(state.payoutManual)&&state.payoutManual.length) ? state.payoutManual
              : (Array.isArray(state.payout)&&state.payout.length ? state.payout : null);
     document.getElementById('f-payout').value = pm ? pm.join('-') : '';
