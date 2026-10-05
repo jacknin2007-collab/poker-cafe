@@ -1518,6 +1518,10 @@ app.get('/api/stock-daily', async (req, res) => {
 // ── TRẠNG THÁI BÀN (persist qua restart) ─────────────────────
 const TABLE_STATE_FILE = './table-state.json';
 let tableState = null;
+// Cờ: chỉ cho phép ghi DB sau khi đã nạp xong trạng thái bền vững từ DB lúc khởi động
+// (tránh mặc định rỗng ghi đè dữ liệu tốt trong DB khi Render restart mất file).
+let _tableStateReady = false;
+let _tblDbTimer = null;
 
 // Load từ file khi khởi động
 try {
@@ -1550,9 +1554,37 @@ if (!tableState) {
   console.log('[TABLE] Khởi tạo table state mặc định');
 }
 
+async function saveTableStateDB() {
+  if (!_tableStateReady) return;
+  try {
+    const val = JSON.stringify(tableState);
+    await db.prepare(`INSERT INTO app_content (key,value) VALUES ('table_state',?) ON CONFLICT(key) DO UPDATE SET value=?`).run(val, val);
+  } catch(e) { console.error('[TABLE SAVE DB]', e.message); }
+}
+
 function saveTableStateFile() {
   try { require('fs').writeFileSync(TABLE_STATE_FILE, JSON.stringify(tableState)); } catch(e) {}
+  // Lưu bền vững vào Postgres (debounce 1s để không ghi DB quá dày)
+  if (_tblDbTimer) clearTimeout(_tblDbTimer);
+  _tblDbTimer = setTimeout(saveTableStateDB, 1000);
 }
+
+async function loadTableStateDB() {
+  try {
+    const row = await db.prepare(`SELECT value FROM app_content WHERE key='table_state'`).get();
+    if (row && row.value) {
+      const st = JSON.parse(row.value);
+      if (st && typeof st === 'object' && Array.isArray(st.tablesNormal)) {
+        tableState = st;
+        if (!Array.isArray(tableState.queueTour)) tableState.queueTour = [];
+        console.log('[TABLE] Khôi phục table state từ DB (bền vững qua restart)');
+      }
+    }
+  } catch(e) { console.error('[TABLE LOAD DB]', e.message); }
+  _tableStateReady = true; // từ giờ mới cho phép ghi DB
+  saveTableStateFile(); // đồng bộ file cục bộ với bản DB
+}
+loadTableStateDB();
 
 app.post('/api/table-state', (req, res) => {
   const incoming = req.body || {};
