@@ -595,8 +595,27 @@ function formatAmtInput(el){
 }
 function getRealAmt(){return parseInt((document.getElementById('pay-amount').value||'0').replace(/[^0-9]/g,''))*1000;}
 // Hàng chờ TOUR do SERVER làm chủ (thêm/xoá nguyên tử) -> không mất khách khi 2 máy ghi cùng lúc
-function tqAdd(name){ window._localChangeAt=Date.now(); try{ fetch(API+'/queue-tour/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})}); }catch(e){} }
-function tqRemove(name){ window._localChangeAt=Date.now(); try{ fetch(API+'/queue-tour/remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})}); }catch(e){} }
+// Hàng chờ tour: server làm chủ. CHỜ server trả về danh sách chuẩn rồi áp vào,
+// và khóa poll (_tqBusy) trong lúc gửi -> tránh khách "vô rồi mất liền" khi mạng chậm.
+window._tqBusy = 0;
+async function tqAdd(name){
+  window._localChangeAt=Date.now(); window._tqBusy++;
+  try{
+    const r=await fetch(API+'/queue-tour/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})});
+    const j=await r.json();
+    if(j&&Array.isArray(j.queueTour)){ queueTour=j.queueTour; renderQueue(); renderPlayersPanel(); }
+  }catch(e){}
+  finally{ window._tqBusy=Math.max(0,window._tqBusy-1); window._localChangeAt=Date.now(); }
+}
+async function tqRemove(name){
+  window._localChangeAt=Date.now(); window._tqBusy++;
+  try{
+    const r=await fetch(API+'/queue-tour/remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})});
+    const j=await r.json();
+    if(j&&Array.isArray(j.queueTour)){ queueTour=j.queueTour; renderQueue(); renderPlayersPanel(); }
+  }catch(e){}
+  finally{ window._tqBusy=Math.max(0,window._tqBusy-1); window._localChangeAt=Date.now(); }
+}
 
 async function apiGet(path){
   try{const r=await fetch(API+path);return await r.json();}
@@ -711,17 +730,16 @@ async function loadAll(){
         if(found){found.status=t.status;found.seats=t.seats;found.started=t.started;}
       });
     }
-    // ⚠️ Không restore queue/queueTour từ lưu trữ — luôn bắt đầu sạch
+    // Khôi phục hàng chờ từ server (server là nguồn bền vững qua Postgres)
+    if(Array.isArray(savedState.queue)) queue = savedState.queue;
+    if(Array.isArray(savedState.queueTour)) queueTour = savedState.queueTour;
+    if(savedState.updatedAt) window._mainLastUpdate = savedState.updatedAt;
     if(savedState.activeTab){
       activeTab=savedState.activeTab;
       document.getElementById('tab-normal').classList.toggle('active',activeTab==='normal');
       document.getElementById('tab-tour').classList.toggle('active',activeTab==='tour');
     }
   }
-
-  // Reset queue/queueTour để bắt đầu sạch (không lưu người cũ từ lần trước)
-  queue = [];
-  queueTour = [];
 
   // Luôn bắt đầu với tab bàn thường
   activeTab = 'normal';
@@ -2635,12 +2653,12 @@ loadAll();
 setInterval(async()=>{
   // Vừa thao tác cục bộ hoặc đang lưu/chờ lưu? -> BỎ QUA để không ghi đè ngược.
   const recentLocal = Date.now() - (window._localChangeAt||0) < 3000;
-  if(recentLocal || _saving || _pending) return;
+  if(recentLocal || _saving || _pending || window._tqBusy) return;
 
   const state=await apiGet('/table-state');
   // KIỂM TRA LẠI sau khi mạng trả về: nếu vừa thao tác cục bộ TRONG LÚC chờ mạng
-  // (vd bấm đóng bàn), thì state nhận được là bản CŨ -> BỎ, không ghi đè ngược.
-  if(_saving||_pending||(Date.now()-(window._localChangeAt||0)<3000))return;
+  // (vd bấm đóng bàn / thêm hàng chờ), thì state nhận được là bản CŨ -> BỎ, không ghi đè ngược.
+  if(_saving||_pending||window._tqBusy||(Date.now()-(window._localChangeAt||0)<3000))return;
   if(state&&state.updatedAt&&state.updatedAt!==(window._mainLastUpdate||0)){
     window._mainLastUpdate=state.updatedAt;
     if(state.tablesNormal) state.tablesNormal.forEach(t=>{
