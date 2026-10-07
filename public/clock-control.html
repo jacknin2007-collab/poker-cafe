@@ -109,10 +109,11 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;font-wei
 <body>
 <div class="pwd-modal" id="pwd-modal">
   <div class="pwd-modal-content">
-    <div class="pwd-modal-title">🔐 Bảo vệ</div>
-    <div class="pwd-modal-subtitle">Nhập mật khẩu để tiếp tục</div>
-    <input type="password" class="pwd-input" id="pwd-input" placeholder="Mật khẩu" autocomplete="off" onkeydown="if(event.key==='Enter')checkPwd()"/>
-    <button class="pwd-btn" id="pwd-btn" onclick="checkPwd()">Tiếp tục</button>
+    <div class="pwd-modal-title">🔐 Đăng nhập</div>
+    <div class="pwd-modal-subtitle">Chọn nhân viên và nhập mật khẩu</div>
+    <select class="pwd-input" id="staff-select"><option value="">-- Chọn nhân viên --</option></select>
+    <input type="password" class="pwd-input" id="staff-password" placeholder="Mật khẩu" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="pwd-btn" id="pwd-btn" onclick="doLogin()">Đăng nhập</button>
     <div class="pwd-error" id="pwd-error"></div>
   </div>
 </div>
@@ -261,27 +262,60 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;font-wei
 </div><!-- /body -->
 
 <script>
-// Password protection
-const PASSWORD='19842007';
-function checkPwd(){
-  const pwd=document.getElementById('pwd-input').value;
-  const err=document.getElementById('pwd-error');
-  if(pwd===PASSWORD){
-    sessionStorage.setItem('pwd-auth','1');
-    document.getElementById('pwd-modal').classList.add('hidden');
-    err.textContent='';
-  } else {
-    err.textContent='Mật khẩu không đúng';
-    document.getElementById('pwd-input').value='';
-    document.getElementById('pwd-input').focus();
-  }
+// Đăng nhập bằng tài khoản nhân viên (giống app floor & dealer)
+let ccStaffName='', ccSessionId='', ccHeartbeat=null;
+
+function startHeartbeat(){
+  clearInterval(ccHeartbeat);
+  ccHeartbeat=setInterval(()=>{
+    if(ccStaffName&&ccSessionId) fetch(API+'/staff/heartbeat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:ccStaffName,sessionId:ccSessionId})});
+  },60000);
 }
-window.addEventListener('load',()=>{
-  if(!sessionStorage.getItem('pwd-auth')){
-    document.getElementById('pwd-modal').classList.remove('hidden');
-    setTimeout(()=>document.getElementById('pwd-input').focus(),100);
-  } else {
+
+async function initLogin(){
+  const err=document.getElementById('pwd-error');
+  try{
+    const r=await fetch(API+'/staff');
+    const list=await r.json();
+    const sel=document.getElementById('staff-select');
+    while(sel.options.length>1) sel.remove(1);
+    (list||[]).forEach(s=>{
+      const o=document.createElement('option');
+      o.value=s.name; o.textContent=s.name; sel.appendChild(o);
+    });
+  }catch(e){ err.textContent='Không kết nối được server!'; }
+}
+
+async function doLogin(){
+  const err=document.getElementById('pwd-error');
+  const name=document.getElementById('staff-select').value;
+  const pwd=document.getElementById('staff-password').value;
+  if(!name){ err.textContent='Vui lòng chọn nhân viên!'; return; }
+  if(!pwd){ err.textContent='Vui lòng nhập mật khẩu!'; return; }
+  try{
+    const r=await fetch(API+'/staff/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,password:pwd,app:'clock-control'})});
+    const res=await r.json();
+    if(!res||!res.ok){ err.textContent='Sai mật khẩu!'; document.getElementById('staff-password').value=''; return; }
+    ccStaffName=name; ccSessionId=res.sessionId;
+    try{ sessionStorage.setItem('cc-staff',name); sessionStorage.setItem('cc-session',res.sessionId); }catch(e){}
+    err.textContent='';
     document.getElementById('pwd-modal').classList.add('hidden');
+    startHeartbeat();
+  }catch(e){ err.textContent='Lỗi kết nối, thử lại!'; }
+}
+
+window.addEventListener('load',()=>{
+  // Đã đăng nhập trong phiên này -> vào thẳng (không hỏi lại khi lỡ refresh)
+  let savedName='', savedSession='';
+  try{ savedName=sessionStorage.getItem('cc-staff')||''; savedSession=sessionStorage.getItem('cc-session')||''; }catch(e){}
+  if(savedName&&savedSession){
+    ccStaffName=savedName; ccSessionId=savedSession;
+    document.getElementById('pwd-modal').classList.add('hidden');
+    startHeartbeat();
+  }else{
+    initLogin();
+    document.getElementById('pwd-modal').classList.remove('hidden');
+    setTimeout(()=>{const s=document.getElementById('staff-select'); if(s)s.focus();},100);
   }
 });
 
