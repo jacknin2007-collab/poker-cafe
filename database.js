@@ -298,6 +298,8 @@ async function initSchema() {
   // Mặc định mật khẩu RỖNG -> khách chưa đăng nhập được cho tới khi admin đặt mật khẩu.
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS password TEXT NOT NULL DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ALTER COLUMN password SET DEFAULT ''`); } catch (e) {}
+  // Ảnh đại diện khách gửi lên, chờ admin duyệt (rỗng = không có yêu cầu)
+  try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS pending_avatar TEXT NOT NULL DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE`); } catch (e) {}
   try { await run(`ALTER TABLE banner_images ADD COLUMN IF NOT EXISTS caption TEXT NOT NULL DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE banner_images ADD COLUMN IF NOT EXISTS top1 TEXT DEFAULT ''`); } catch (e) {}
