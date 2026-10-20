@@ -981,41 +981,6 @@ app.put('/api/customers/:phone/profile', async (req, res) => {
   res.json({ ok: true });
 });
 
-// Khách gửi ảnh đại diện mới: POST /api/customer/:phone/avatar-request { avatar }
-// Ảnh chỉ được lưu vào pending_avatar, admin duyệt rồi mới đổi avatar thật.
-app.post('/api/customer/:phone/avatar-request', async (req, res) => {
-  const phone = String(req.params.phone || '').replace(/\D/g, '');
-  const avatar = String(req.body.avatar || '');
-  if (!avatar.startsWith('data:image/')) return res.json({ ok: false, error: 'Ảnh không hợp lệ' });
-  const c = await db.prepare('SELECT phone FROM customers WHERE phone=?').get(phone);
-  if (!c) return res.status(404).json({ ok: false, error: 'Không tìm thấy khách' });
-  await db.prepare('UPDATE customers SET pending_avatar=? WHERE phone=?').run(avatar, phone);
-  res.json({ ok: true });
-});
-
-// Danh sách ảnh chờ duyệt (cho admin): GET /api/admin/avatar-requests
-app.get('/api/admin/avatar-requests', async (req, res) => {
-  const rows = await db.prepare("SELECT phone, name, pending_avatar FROM customers WHERE pending_avatar <> '' ORDER BY name").all();
-  res.json(rows.map(r => ({ phone: r.phone, name: r.name, avatar: r.pending_avatar })));
-});
-
-// Admin duyệt ảnh: POST /api/admin/avatar-requests/:phone/approve
-app.post('/api/admin/avatar-requests/:phone/approve', async (req, res) => {
-  const phone = String(req.params.phone || '').replace(/\D/g, '');
-  const c = await db.prepare('SELECT pending_avatar FROM customers WHERE phone=?').get(phone);
-  if (!c) return res.status(404).json({ error: 'Không tìm thấy khách' });
-  if (!c.pending_avatar) return res.status(409).json({ error: 'Không có ảnh chờ duyệt' });
-  await db.prepare("UPDATE customers SET avatar=pending_avatar, pending_avatar='' WHERE phone=?").run(phone);
-  res.json({ ok: true });
-});
-
-// Admin từ chối ảnh: POST /api/admin/avatar-requests/:phone/reject
-app.post('/api/admin/avatar-requests/:phone/reject', async (req, res) => {
-  const phone = String(req.params.phone || '').replace(/\D/g, '');
-  await db.prepare("UPDATE customers SET pending_avatar='' WHERE phone=?").run(phone);
-  res.json({ ok: true });
-});
-
 // PUT /api/customers/:phone/stats { top1, top2, top3, rounds, drinks }
 app.put('/api/customers/:phone/stats', async (req, res) => {
   const { top1, top2, top3, rounds, drinks } = req.body;
