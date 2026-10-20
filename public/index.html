@@ -265,13 +265,32 @@ select option{background:var(--surface2);color:var(--text);}
 <body>
 <div class="pwd-modal" id="pwd-modal">
   <div class="pwd-modal-content">
-    <div class="pwd-modal-title">🔐 Bảo vệ</div>
-    <div class="pwd-modal-subtitle">Nhập mật khẩu để tiếp tục</div>
-    <input type="password" class="pwd-input" id="pwd-input" placeholder="Mật khẩu" autocomplete="off" onkeydown="if(event.key==='Enter')checkPwd()"/>
-    <button class="pwd-btn" id="pwd-btn" onclick="checkPwd()">Tiếp tục</button>
-    <div class="pwd-error" id="pwd-error"></div>
+    <!-- Màn chính: tên máy + (mật khẩu chủ hoặc gửi yêu cầu duyệt) -->
+    <div id="gate-main">
+      <div class="pwd-modal-title">🔐 Đăng nhập thiết bị</div>
+      <div class="pwd-modal-subtitle">Nhập mật khẩu chủ để vào ngay, hoặc gửi yêu cầu cho chủ duyệt.</div>
+      <input class="pwd-input" id="dev-name" placeholder="Tên thiết bị (vd: Điện thoại Minh)" autocomplete="off"/>
+      <input type="password" class="pwd-input" id="dev-pass" placeholder="Mật khẩu chủ (nếu có)" autocomplete="off" onkeydown="if(event.key==='Enter')ownerLogin()"/>
+      <button class="pwd-btn" onclick="ownerLogin()">🔑 Mật khẩu chủ → Vào ngay</button>
+      <button class="pwd-btn" style="background:var(--surface2);color:var(--text);margin-top:10px;" onclick="requestAccess()">📨 Gửi yêu cầu cho chủ duyệt</button>
+      <div class="pwd-error" id="gate-err"></div>
+    </div>
+    <!-- Màn chờ duyệt -->
+    <div id="gate-wait" style="display:none;text-align:center;">
+      <div class="pwd-modal-title">⏳ Đang chờ chủ duyệt</div>
+      <div class="pwd-modal-subtitle">Yêu cầu của thiết bị "<span id="gate-wait-name"></span>" đã gửi.<br/>Vui lòng chờ chủ quán đồng ý…</div>
+      <div style="color:var(--text3);font-size:12px;margin-top:8px;">Màn hình sẽ tự vào khi được duyệt.</div>
+      <button class="pwd-btn" style="background:var(--surface2);color:var(--text);margin-top:16px;" onclick="gateBackToMain()">← Quay lại</button>
+    </div>
+    <!-- Màn bị từ chối -->
+    <div id="gate-denied" style="display:none;text-align:center;">
+      <div class="pwd-modal-title" style="color:var(--red);">🚫 Thiết bị bị từ chối</div>
+      <div class="pwd-modal-subtitle">Thiết bị này không được phép dùng app.<br/>Liên hệ chủ quán nếu cần.</div>
+      <button class="pwd-btn" style="background:var(--surface2);color:var(--text);margin-top:16px;" onclick="gateBackToMain()">Thử lại</button>
+    </div>
   </div>
 </div>
+
 
 
 
@@ -499,29 +518,81 @@ select option{background:var(--surface2);color:var(--text);}
 </div>
 
 <script>
-// Password protection
-const PASSWORD='19842007';
-function checkPwd(){
-  const pwd=document.getElementById('pwd-input').value;
-  const err=document.getElementById('pwd-error');
-  if(pwd===PASSWORD){
-    sessionStorage.setItem('pwd-auth','1');
-    document.getElementById('pwd-modal').classList.add('hidden');
-    err.textContent='';
-  } else {
-    err.textContent='Mật khẩu không đúng';
-    document.getElementById('pwd-input').value='';
-    document.getElementById('pwd-input').focus();
+// ── ĐĂNG NHẬP / DUYỆT THIẾT BỊ ──────────────────────────────
+// Máy mới muốn vào app phải xin chủ duyệt. Máy nhập đúng mật khẩu chủ thì
+// vào ngay + có quyền duyệt máy khác (máy chủ).
+let deviceId='', isAdminDevice=false, gatePollTimer=null;
+function getDeviceId(){
+  let id='';
+  try{ id=localStorage.getItem('gc-device-id')||''; }catch(e){}
+  if(!id){
+    id='dev-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+    try{ localStorage.setItem('gc-device-id',id); }catch(e){}
   }
+  return id;
 }
-window.addEventListener('load',()=>{
-  if(!sessionStorage.getItem('pwd-auth')){
-    document.getElementById('pwd-modal').classList.remove('hidden');
-    setTimeout(()=>document.getElementById('pwd-input').focus(),100);
-  } else {
-    document.getElementById('pwd-modal').classList.add('hidden');
+function savedDeviceName(){ try{ return localStorage.getItem('gc-device-name')||''; }catch(e){ return ''; } }
+function gateShow(section){
+  ['gate-main','gate-wait','gate-denied'].forEach(function(s){ var el=document.getElementById(s); if(el) el.style.display=(s===section)?'block':'none'; });
+}
+function gateBackToMain(){ clearInterval(gatePollTimer); gateShow('gate-main'); }
+function enterApp(admin){
+  isAdminDevice=!!admin;
+  clearInterval(gatePollTimer);
+  document.getElementById('pwd-modal').classList.add('hidden');
+}
+async function gateInit(){
+  deviceId=getDeviceId();
+  var nm=savedDeviceName(); if(nm){ var dn=document.getElementById('dev-name'); if(dn) dn.value=nm; }
+  var st=null;
+  try{ st=await (await fetch(API+'/device/status?id='+encodeURIComponent(deviceId))).json(); }catch(e){}
+  if(st && st.exists){
+    if(st.status==='approved'){ enterApp(st.isAdmin); return; }
+    if(st.status==='pending'){ document.getElementById('gate-wait-name').textContent=st.name||nm||'Thiết bị'; gateShow('gate-wait'); startGatePoll(); document.getElementById('pwd-modal').classList.remove('hidden'); return; }
+    if(st.status==='denied'){ gateShow('gate-denied'); document.getElementById('pwd-modal').classList.remove('hidden'); return; }
   }
-});
+  gateShow('gate-main');
+  document.getElementById('pwd-modal').classList.remove('hidden');
+}
+function startGatePoll(){
+  clearInterval(gatePollTimer);
+  gatePollTimer=setInterval(async function(){
+    try{
+      var st=await (await fetch(API+'/device/status?id='+encodeURIComponent(deviceId))).json();
+      if(st && st.status==='approved'){ enterApp(st.isAdmin); }
+      else if(st && st.status==='denied'){ clearInterval(gatePollTimer); gateShow('gate-denied'); }
+    }catch(e){}
+  },5000);
+}
+async function ownerLogin(){
+  var err=document.getElementById('gate-err');
+  var name=(document.getElementById('dev-name').value||'Máy chủ').trim();
+  var pass=document.getElementById('dev-pass').value;
+  if(!pass){ err.textContent='Nhập mật khẩu chủ, hoặc bấm "Gửi yêu cầu".'; return; }
+  try{ localStorage.setItem('gc-device-name',name); }catch(e){}
+  try{
+    var r=await (await fetch(API+'/device/owner-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:deviceId,name:name,password:pass})})).json();
+    if(r && r.ok){ err.textContent=''; enterApp(true); }
+    else{ err.textContent=(r&&r.error)||'Sai mật khẩu'; document.getElementById('dev-pass').value=''; }
+  }catch(e){ err.textContent='Lỗi kết nối, thử lại'; }
+}
+async function requestAccess(){
+  var err=document.getElementById('gate-err');
+  var name=(document.getElementById('dev-name').value||'').trim();
+  if(!name){ err.textContent='Nhập tên thiết bị để chủ biết là máy nào.'; return; }
+  try{ localStorage.setItem('gc-device-name',name); }catch(e){}
+  try{
+    var r=await (await fetch(API+'/device/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:deviceId,name:name})})).json();
+    if(r && r.ok){
+      if(r.status==='approved'){ enterApp(r.isAdmin); return; }
+      if(r.status==='denied'){ gateShow('gate-denied'); return; }
+      document.getElementById('gate-wait-name').textContent=name;
+      gateShow('gate-wait'); startGatePoll();
+    }else{ err.textContent=(r&&r.error)||'Lỗi gửi yêu cầu'; }
+  }catch(e){ err.textContent='Lỗi kết nối, thử lại'; }
+}
+// (Duyệt/quản lý thiết bị được làm trong app Báo cáo — report.html)
+window.addEventListener('load',gateInit);
 
 const API = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : `https://poker-cafe.onrender.com/api`;
 const OWNER_PASS='19842007';

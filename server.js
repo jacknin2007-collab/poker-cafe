@@ -1793,6 +1793,137 @@ app.get('/api/staff/active', (req, res) => {
   }
 });
 
+// ── MẬT KHẨU CHÍNH (vào index & report) — lưu DB, đổi được ─────
+let _masterPwCache = null;
+async function getMasterPassword(){
+  if(_masterPwCache != null) return _masterPwCache;
+  try{
+    const row = await db.prepare("SELECT value FROM app_content WHERE key='master_password'").get();
+    _masterPwCache = (row && row.value) ? row.value : (process.env.INDEX_MASTER_PW || '19842007');
+  }catch(e){ _masterPwCache = (process.env.INDEX_MASTER_PW || '19842007'); }
+  return _masterPwCache;
+}
+async function setMasterPassword(pw){
+  await db.prepare("INSERT INTO app_content (key,value) VALUES ('master_password',?) ON CONFLICT(key) DO UPDATE SET value=?").run(pw, pw);
+  _masterPwCache = pw;
+}
+// Xác thực thao tác quản trị: là máy admin đã duyệt, HOẶC biết mật khẩu chính (app report)
+async function deviceAuthorized(adminId, password){
+  if(await isApprovedAdmin(adminId)) return true;
+  if(password){ const mp = await getMasterPassword(); if(password === mp) return true; }
+  return false;
+}
+
+// Kiểm tra / đổi mật khẩu chính (dùng trong app report)
+app.post('/api/master-password/verify', async (req, res) => {
+  const password = (req.body && req.body.password != null) ? String(req.body.password) : '';
+  const mp = await getMasterPassword();
+  res.json({ ok: password === mp });
+});
+app.post('/api/master-password/change', async (req, res) => {
+  const current = (req.body && req.body.current != null) ? String(req.body.current) : '';
+  const next = (req.body && req.body.next != null) ? String(req.body.next).trim() : '';
+  const mp = await getMasterPassword();
+  if(current !== mp) return res.json({ ok:false, error:'Mật khẩu hiện tại không đúng' });
+  if(next.length < 4) return res.json({ ok:false, error:'Mật khẩu mới phải từ 4 ký tự' });
+  try{ await setMasterPassword(next); }catch(e){ return res.json({ ok:false, error:'Lỗi lưu' }); }
+  res.json({ ok:true });
+});
+
+// ── DUYỆT THIẾT BỊ (app index) ────────────────────────────────
+// Máy mới muốn vào index phải xin chủ duyệt. Duyệt/từ chối làm ở app report.
+function shapeDevice(d){
+  return {
+    id: d.id, name: d.name, status: d.status, isAdmin: !!d.is_admin,
+    createdAt: d.created_at, approvedAt: d.approved_at, lastSeen: d.last_seen
+  };
+}
+async function getDevice(id){
+  if(!id) return null;
+  try{ return await db.prepare('SELECT * FROM devices WHERE id=?').get(id); }catch(e){ return null; }
+}
+async function isApprovedAdmin(id){
+  const d = await getDevice(id);
+  return !!(d && d.status === 'approved' && d.is_admin);
+}
+
+// Trạng thái 1 thiết bị (máy tự hỏi khi mở / poll khi đang chờ duyệt)
+app.get('/api/device/status', async (req, res) => {
+  const id = req.query.id;
+  const d = await getDevice(id);
+  if(d){
+    try{ await db.prepare('UPDATE devices SET last_seen=CURRENT_TIMESTAMP WHERE id=?').run(id); }catch(e){}
+    return res.json({ exists:true, status:d.status, isAdmin:!!d.is_admin, name:d.name });
+  }
+  res.json({ exists:false, status:'unknown', isAdmin:false });
+});
+
+// Gửi yêu cầu duyệt (máy không có mật khẩu chủ)
+app.post('/api/device/register', async (req, res) => {
+  const id = (req.body && req.body.id) ? String(req.body.id).trim() : '';
+  const name = (req.body && req.body.name) ? String(req.body.name).trim().slice(0,60) : 'Thiết bị';
+  if(!id) return res.status(400).json({ ok:false, error:'Thiếu id' });
+  const d = await getDevice(id);
+  if(d){
+    if(d.status === 'pending' && name){ try{ await db.prepare('UPDATE devices SET name=? WHERE id=?').run(name, id); }catch(e){} }
+    return res.json({ ok:true, status:d.status, isAdmin:!!d.is_admin });
+  }
+  try{
+    await db.prepare("INSERT INTO devices (id,name,status,is_admin,created_at,last_seen) VALUES (?,?,'pending',0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)").run(id, name);
+  }catch(e){ return res.json({ ok:false, error:'Lỗi lưu' }); }
+  res.json({ ok:true, status:'pending', isAdmin:false });
+});
+
+// Vào bằng mật khẩu chủ -> duyệt ngay + cấp quyền admin cho máy này
+app.post('/api/device/owner-login', async (req, res) => {
+  const id = (req.body && req.body.id) ? String(req.body.id).trim() : '';
+  const name = (req.body && req.body.name) ? String(req.body.name).trim().slice(0,60) : 'Máy chủ';
+  const password = (req.body && req.body.password) ? String(req.body.password) : '';
+  if(!id) return res.status(400).json({ ok:false, error:'Thiếu id' });
+  const mp = await getMasterPassword();
+  if(password !== mp) return res.json({ ok:false, error:'Sai mật khẩu' });
+  const d = await getDevice(id);
+  try{
+    if(d){
+      await db.prepare("UPDATE devices SET status='approved', is_admin=1, name=?, approved_at=CURRENT_TIMESTAMP, last_seen=CURRENT_TIMESTAMP WHERE id=?").run(name || d.name, id);
+    }else{
+      await db.prepare("INSERT INTO devices (id,name,status,is_admin,created_at,approved_at,last_seen) VALUES (?,?,'approved',1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)").run(id, name);
+    }
+  }catch(e){ return res.json({ ok:false, error:'Lỗi lưu' }); }
+  res.json({ ok:true, status:'approved', isAdmin:true });
+});
+
+// Danh sách thiết bị (máy admin đã duyệt HOẶC biết mật khẩu chính - app report)
+app.get('/api/device/list', async (req, res) => {
+  if(!(await deviceAuthorized(req.query.adminId, req.query.password))) return res.status(403).json({ ok:false, error:'Không có quyền' });
+  try{
+    const rows = await db.prepare("SELECT * FROM devices ORDER BY (status='pending') DESC, created_at DESC").all();
+    res.json({ ok:true, devices: (rows||[]).map(shapeDevice) });
+  }catch(e){ res.json({ ok:true, devices:[] }); }
+});
+
+// Duyệt / từ chối-thu hồi / xoá 1 thiết bị (admin device hoặc mật khẩu chính)
+app.post('/api/device/approve', async (req, res) => {
+  const adminId = req.body && req.body.adminId, id = req.body && req.body.id, password = req.body && req.body.password;
+  if(!(await deviceAuthorized(adminId, password))) return res.status(403).json({ ok:false, error:'Không có quyền' });
+  try{ await db.prepare("UPDATE devices SET status='approved', approved_at=CURRENT_TIMESTAMP WHERE id=?").run(id); }catch(e){}
+  res.json({ ok:true });
+});
+app.post('/api/device/deny', async (req, res) => {
+  const adminId = req.body && req.body.adminId, id = req.body && req.body.id, password = req.body && req.body.password;
+  if(!(await deviceAuthorized(adminId, password))) return res.status(403).json({ ok:false, error:'Không có quyền' });
+  if(adminId && id === adminId) return res.json({ ok:false, error:'Không thể tự thu hồi máy của bạn' });
+  try{ await db.prepare("UPDATE devices SET status='denied', is_admin=0 WHERE id=?").run(id); }catch(e){}
+  res.json({ ok:true });
+});
+app.delete('/api/device/:id', async (req, res) => {
+  const adminId = req.query.adminId, id = req.params.id, password = req.query.password;
+  if(!(await deviceAuthorized(adminId, password))) return res.status(403).json({ ok:false, error:'Không có quyền' });
+  if(adminId && id === adminId) return res.json({ ok:false, error:'Không thể xoá máy của bạn' });
+  try{ await db.prepare('DELETE FROM devices WHERE id=?').run(id); }catch(e){}
+  res.json({ ok:true });
+});
+
 // ── DEALER CONFIG ─────────────────────────────────────────────
 let dealerConfig = {
   'Dealer 1': [1, 4],  // Bàn 1 (thường) + Tour 1
