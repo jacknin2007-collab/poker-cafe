@@ -640,7 +640,7 @@ app.get('/api/customers', async (req, res) => {
   // ?light=1 -> KHÔNG đọc cột avatar (base64 rất nặng) cho các lần đồng bộ định kỳ
   const light = req.query.light === '1';
   const cols = light
-    ? 'name, phone, top1, top2, top3, rounds, drinks, is_admin, email, created_at, star_penalty'
+    ? 'name, phone, top1, top2, top3, rounds, drinks, is_admin, email, created_at, star_penalty, tour_queue_count'
     : '*';
   const rows = await db.prepare('SELECT ' + cols + ' FROM customers').all();
   res.json(rows.map(c => shapeCustomer(c, light)));
@@ -874,6 +874,7 @@ function shapeCustomer(c, light) {
     top1, top2, top3,
     rounds: Number(c.rounds) || 0,
     drinks: Number(c.drinks) || 0,
+    tour_queue_count: Number(c.tour_queue_count) || 0,
     email: c.email || '',
     created_at: c.created_at ? new Date(c.created_at).toISOString() : null,
   };
@@ -1598,16 +1599,30 @@ app.post('/api/table-state', (req, res) => {
 });
 
 // ── HÀNG CHỜ TOUR: server làm chủ (thêm/xoá nguyên tử, không mất khách) ──
-app.post('/api/queue-tour/add', (req, res) => {
+app.post('/api/queue-tour/add', async (req, res) => {
   if (!tableState) return res.status(400).json({ error: 'Chưa có table state' });
   const name = (req.body && req.body.name != null) ? String(req.body.name).trim() : '';
   if (!name) return res.status(400).json({ error: 'Thiếu tên' });
+  const phone = (req.body && req.body.phone != null) ? String(req.body.phone).trim() : '';
   if (!Array.isArray(tableState.queueTour)) tableState.queueTour = [];
   const dup = tableState.queueTour.some(q => q && String(q.name || '').trim().toLowerCase() === name.toLowerCase());
-  if (!dup) tableState.queueTour.push({ name, table: 'Hàng chờ', time: (req.body && req.body.time) || '' });
+  let tourQueueCount = null;
+  if (!dup) {
+    tableState.queueTour.push({ name, table: 'Hàng chờ', time: (req.body && req.body.time) || '' });
+    // Tăng số lần khách vào hàng chờ tour (chỉ khi thực sự được thêm + có SĐT)
+    if (phone) {
+      try {
+        await db.prepare('UPDATE customers SET tour_queue_count = COALESCE(tour_queue_count,0) + 1 WHERE phone = ?').run(phone);
+        const row = await db.prepare('SELECT tour_queue_count FROM customers WHERE phone = ?').get(phone);
+        if (row) tourQueueCount = Number(row.tour_queue_count) || 0;
+      } catch (e) {}
+    }
+  } else if (phone) {
+    try { const row = await db.prepare('SELECT tour_queue_count FROM customers WHERE phone = ?').get(phone); if (row) tourQueueCount = Number(row.tour_queue_count) || 0; } catch (e) {}
+  }
   tableState.updatedAt = Date.now();
   saveTableStateFile();
-  res.json({ ok: true, queueTour: tableState.queueTour });
+  res.json({ ok: true, queueTour: tableState.queueTour, tourQueueCount });
 });
 app.post('/api/queue-tour/remove', (req, res) => {
   if (!tableState) return res.status(400).json({ error: 'Chưa có table state' });
