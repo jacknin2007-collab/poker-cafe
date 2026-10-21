@@ -89,6 +89,71 @@ input:focus,select:focus{border-color:var(--gold);}input::placeholder{color:var(
 .pwd-btn:hover{background:var(--gold-mid);transform:translateY(-2px);box-shadow:0 4px 12px rgba(240,192,64,0.3);}
 .pwd-error{color:var(--red);font-size:12px;margin-top:8px;text-align:center;font-weight:600;}
 
+/* ═══════════ GIAO DIỆN HIỆN ĐẠI (chỉ CSS, không đổi chức năng) ═══════════ */
+:root{
+  --glow-a:rgba(240,192,64,0.09);
+  --glow-b:rgba(240,192,64,0.04);
+  --accent-glow:rgba(240,192,64,0.30);
+  --card-grad:linear-gradient(165deg, rgba(255,255,255,0.035), rgba(0,0,0,0.14));
+  --hair:rgba(255,255,255,0.06);
+}
+/* Nền có chiều sâu (ánh vàng mờ ở góc) */
+body{
+  background:
+    radial-gradient(900px 480px at 50% -10%, var(--glow-a), transparent 60%),
+    radial-gradient(700px 420px at 100% 100%, var(--glow-b), transparent 55%),
+    var(--bg);
+}
+/* Header nổi khối + viền sáng mảnh */
+.header{
+  background:linear-gradient(180deg, var(--surface), #241a00);
+  border-bottom:1px solid var(--border2);
+  box-shadow:0 4px 18px rgba(0,0,0,0.4), inset 0 -1px 0 var(--hair);
+}
+.h-sub{letter-spacing:0.12em;}
+/* Thẻ & ô số liệu: nền gradient, bo tròn, nổi nhẹ */
+.card{
+  background:var(--card-grad), var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:0 3px 14px rgba(0,0,0,0.3);
+}
+.metric-card{
+  background:var(--card-grad), var(--surface2);
+  border:1px solid var(--border2);
+  border-radius:12px;
+  box-shadow:inset 0 1px 0 var(--hair);
+}
+.metric-val{text-shadow:0 1px 10px rgba(0,0,0,0.4);}
+.card-title{color:var(--gold-mid);}
+/* Nút: gradient + phản hồi khi chạm */
+.btn{transition:transform .12s ease, box-shadow .15s ease, background .15s ease; box-shadow:0 2px 8px rgba(0,0,0,0.25);}
+.btn:active{transform:scale(0.98);opacity:1;}
+.btn-gold{
+  background:linear-gradient(180deg, var(--gold-light), var(--gold-mid));
+  border-color:var(--gold-mid); color:#1a1000;
+  box-shadow:0 3px 12px var(--accent-glow);
+}
+/* Tab: chuyển mượt (màu do JS tô) */
+#tab-reports,#tab-staff,#tab-devices{transition:all .15s ease;border-radius:10px;}
+/* Ô nhập: chiều sâu + viền sáng khi focus */
+input,select{
+  height:40px;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,0.28);
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+input:focus,select:focus{
+  border-color:var(--gold);
+  box-shadow:0 0 0 3px var(--glow-a), inset 0 1px 2px rgba(0,0,0,0.2);
+}
+/* Thanh trạng thái & ô sửa khách: bo tròn, có chiều sâu */
+.status-bar{border-radius:10px;background:var(--card-grad), var(--surface2);border-color:var(--border2);}
+.edit-panel{border-radius:10px;}
+.edit-cell{box-shadow:inset 0 1px 0 var(--hair);}
+/* Thanh cuộn mảnh */
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--gold-mid);}
+
 </style>
 </head>
 <body>
