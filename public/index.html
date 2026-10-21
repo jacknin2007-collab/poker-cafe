@@ -2026,8 +2026,12 @@ function renderCustomerCard(c){
   const statusMsg=onTable?`⚠ Đang chơi tại ${tableName}`:inQueue?'⏳ Đang trong hàng chờ':'';
   const hasAvatar=c.avatar&&typeof c.avatar==='string'&&c.avatar.trim().length>0&&c.avatar.startsWith('data:image');
   const avatarHtml=hasAvatar?`<img src="${c.avatar}" style="width:74px;height:74px;border-radius:50%;display:block;margin:0 auto 10px;object-fit:cover;border:3px solid var(--gold-mid);box-shadow:0 0 16px rgba(240,192,64,0.3);">`:bigAvatar(c.name);
+  const tqc=c.tour_queue_count||0;
   return `<div class="cust-card">
-    ${avatarHtml}
+    <div style="position:relative;width:74px;margin:0 auto;">
+      ${avatarHtml}
+      <div title="Số lần vào hàng chờ tour hôm nay" style="position:absolute;top:-4px;right:-12px;min-width:24px;height:22px;padding:0 7px;border-radius:12px;background:${tqc>0?'var(--purple)':'var(--surface2)'};color:${tqc>0?'#140720':'var(--text3)'};font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;gap:1px;border:2px solid var(--surface);box-shadow:${tqc>0?'0 0 10px rgba(192,128,255,0.55)':'none'};white-space:nowrap;">🏆${tqc}</div>
+    </div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
       <div style="flex:1;min-width:0;">
         <div class="cust-name" style="margin-bottom:2px;">${c.name} <span style="font-size:13px;color:var(--text3);">(${last4})</span></div>
@@ -2045,10 +2049,6 @@ function renderCustomerCard(c){
       <div class="stat-box top3"><div class="stat-icon">🥉</div><div class="stat-label">TOP 3</div><div class="stat-value">${c.top3||0}</div></div>
       <div class="stat-box rounds"><div class="stat-icon">🎮</div><div class="stat-label">ROUND</div><div class="stat-value">${c.rounds||0}</div></div>
       <div class="stat-box drinks"><div class="stat-icon">🥤</div><div class="stat-label">NƯỚC</div><div class="stat-value">${c.drinks||0}</div></div>
-    </div>
-    <div style="background:linear-gradient(135deg,var(--purple-bg),#120620);border:1px solid var(--purple-border);border-radius:var(--radius);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <span style="font-size:13px;font-weight:700;color:var(--purple);">🏆 Số lần vào hàng chờ tour</span>
-      <span style="font-size:22px;font-weight:900;color:var(--purple);text-shadow:0 0 10px rgba(192,128,255,0.4);">${c.tour_queue_count||0} <span style="font-size:13px;font-weight:700;">lần</span></span>
     </div>
     <div style="background:linear-gradient(135deg,#2a1a00,#1a1000);border:1px solid var(--gold-mid);border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
       <div style="display:flex;align-items:center;gap:10px;">

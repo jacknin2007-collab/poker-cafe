@@ -640,7 +640,7 @@ app.get('/api/customers', async (req, res) => {
   // ?light=1 -> KHÔNG đọc cột avatar (base64 rất nặng) cho các lần đồng bộ định kỳ
   const light = req.query.light === '1';
   const cols = light
-    ? 'name, phone, top1, top2, top3, rounds, drinks, is_admin, email, created_at, star_penalty, tour_queue_count'
+    ? 'name, phone, top1, top2, top3, rounds, drinks, is_admin, email, created_at, star_penalty, tour_queue_count, tour_queue_date'
     : '*';
   const rows = await db.prepare('SELECT ' + cols + ' FROM customers').all();
   res.json(rows.map(c => shapeCustomer(c, light)));
@@ -860,6 +860,12 @@ async function calcStarsFromHistory(phone) {
 }
 
 // Chuẩn hoá dữ liệu khách trả về cho app (tính stars, ẩn mật khẩu)
+// Ngày hiện tại theo giờ VN (UTC+7), dạng 'YYYY-MM-DD' — dùng để reset bộ đếm theo ngày
+function vnDateStr(d) {
+  const t = d ? new Date(d) : new Date();
+  return new Date(t.getTime() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
 function shapeCustomer(c, light) {
   const top1 = Number(c.top1) || 0;
   const top2 = Number(c.top2) || 0;
@@ -874,7 +880,8 @@ function shapeCustomer(c, light) {
     top1, top2, top3,
     rounds: Number(c.rounds) || 0,
     drinks: Number(c.drinks) || 0,
-    tour_queue_count: Number(c.tour_queue_count) || 0,
+    // Chỉ tính cho HÔM NAY (reset theo ngày): nếu ngày lưu khác hôm nay -> 0
+    tour_queue_count: ((c.tour_queue_date || '') === vnDateStr()) ? (Number(c.tour_queue_count) || 0) : 0,
     email: c.email || '',
     created_at: c.created_at ? new Date(c.created_at).toISOString() : null,
   };
@@ -1609,16 +1616,25 @@ app.post('/api/queue-tour/add', async (req, res) => {
   let tourQueueCount = null;
   if (!dup) {
     tableState.queueTour.push({ name, table: 'Hàng chờ', time: (req.body && req.body.time) || '' });
-    // Tăng số lần khách vào hàng chờ tour (chỉ khi thực sự được thêm + có SĐT)
+    // Tăng số lần vào hàng chờ tour TRONG NGÀY (reset theo ngày VN)
     if (phone) {
       try {
-        await db.prepare('UPDATE customers SET tour_queue_count = COALESCE(tour_queue_count,0) + 1 WHERE phone = ?').run(phone);
-        const row = await db.prepare('SELECT tour_queue_count FROM customers WHERE phone = ?').get(phone);
-        if (row) tourQueueCount = Number(row.tour_queue_count) || 0;
+        const today = vnDateStr();
+        const row = await db.prepare('SELECT tour_queue_count, tour_queue_date FROM customers WHERE phone = ?').get(phone);
+        if (row) {
+          const sameDay = (row.tour_queue_date || '') === today;
+          const newCount = sameDay ? (Number(row.tour_queue_count) || 0) + 1 : 1;
+          await db.prepare('UPDATE customers SET tour_queue_count = ?, tour_queue_date = ? WHERE phone = ?').run(newCount, today, phone);
+          tourQueueCount = newCount;
+        }
       } catch (e) {}
     }
   } else if (phone) {
-    try { const row = await db.prepare('SELECT tour_queue_count FROM customers WHERE phone = ?').get(phone); if (row) tourQueueCount = Number(row.tour_queue_count) || 0; } catch (e) {}
+    try {
+      const today = vnDateStr();
+      const row = await db.prepare('SELECT tour_queue_count, tour_queue_date FROM customers WHERE phone = ?').get(phone);
+      if (row) tourQueueCount = ((row.tour_queue_date || '') === today) ? (Number(row.tour_queue_count) || 0) : 0;
+    } catch (e) {}
   }
   tableState.updatedAt = Date.now();
   saveTableStateFile();
