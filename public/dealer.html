@@ -104,6 +104,66 @@ input:focus{border-color:var(--gold);}input::placeholder{color:var(--text3);}
 .pwd-btn{width:100%;padding:12px;font-size:14px;font-weight:700;border:none;border-radius:8px;background:var(--gold);color:#1a1000;cursor:pointer;font-family:inherit;transition:all 0.15s;}
 .pwd-btn:hover{background:var(--gold-mid);transform:translateY(-2px);box-shadow:0 4px 12px rgba(240,192,64,0.3);}
 .pwd-error{color:var(--red);font-size:12px;margin-top:8px;text-align:center;font-weight:600;}
+
+/* ═══════════ GIAO DIỆN HIỆN ĐẠI (chỉ CSS, không đổi chức năng) ═══════════ */
+:root{
+  --glow-a:rgba(240,192,64,0.09);
+  --glow-b:rgba(240,192,64,0.04);
+  --accent-glow:rgba(240,192,64,0.30);
+  --card-grad:linear-gradient(165deg, rgba(255,255,255,0.035), rgba(0,0,0,0.14));
+  --hair:rgba(255,255,255,0.06);
+}
+/* Nền có chiều sâu (ánh vàng mờ) */
+body{
+  background:
+    radial-gradient(900px 480px at 50% -10%, var(--glow-a), transparent 60%),
+    radial-gradient(700px 420px at 100% 100%, var(--glow-b), transparent 55%),
+    var(--bg);
+}
+/* Header nổi khối */
+.header{
+  background:linear-gradient(180deg, var(--surface), #241a00);
+  border-bottom:1px solid var(--border2);
+  box-shadow:0 4px 18px rgba(0,0,0,0.4), inset 0 -1px 0 var(--hair);
+}
+/* Thẻ: nền gradient + bo tròn + nổi nhẹ */
+.card{
+  background:var(--card-grad), var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:0 3px 14px rgba(0,0,0,0.32);
+}
+/* Nút: gradient + phản hồi khi chạm */
+.btn{transition:transform .12s ease, box-shadow .15s ease, background .15s ease; box-shadow:0 2px 8px rgba(0,0,0,0.25);}
+.btn:active{transform:scale(0.98);opacity:1;}
+.btn-gold{
+  background:linear-gradient(180deg, #ffe080, var(--gold-mid));
+  border-color:var(--gold-mid); color:#1a1000;
+  box-shadow:0 3px 12px var(--accent-glow);
+}
+/* Ô nhập: chiều sâu + viền sáng khi focus */
+input,select{
+  height:40px;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,0.28);
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+input:focus,select:focus{
+  border-color:var(--gold);
+  box-shadow:0 0 0 3px var(--glow-a), inset 0 1px 2px rgba(0,0,0,0.2);
+}
+/* Tab đang chọn phát sáng (vàng, hoặc tím khi là tab tour) */
+.tab-btn{transition:all .15s ease;border-radius:10px;}
+.tab-btn.active{box-shadow:0 4px 14px var(--accent-glow);}
+.tab-btn.active.tour{box-shadow:0 4px 14px rgba(192,128,255,0.32);}
+/* Ghế & nút top: bo tròn, phản hồi khi chạm */
+.seat{transition:transform .12s ease, border-color .15s ease, background .15s ease;border-radius:10px;}
+.seat.occ{background:var(--card-grad), var(--gold-dim);box-shadow:inset 0 0 0 1px rgba(240,192,64,0.22);}
+.seat:active{transform:scale(0.97);}
+.top-btn{transition:transform .12s ease, box-shadow .15s ease;border-radius:10px;}
+.top-btn:active{transform:scale(0.97);}
+.status-bar{border-radius:10px;background:var(--card-grad), var(--surface2);}
+.sheet{box-shadow:0 -10px 40px rgba(0,0,0,0.5);}
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 </style>
 </head>
 <body>
