@@ -679,7 +679,6 @@ async function requestAccess(){
 window.addEventListener('load',gateInit);
 
 const API = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : `https://poker-cafe.onrender.com/api`;
-const OWNER_PASS='19842007';
 let reportUnlocked=false;
 
 const tablesNormal=[
@@ -921,10 +920,13 @@ function tryReport(){
   document.getElementById('pass-err').textContent='';
   document.getElementById('pass-dialog').classList.add('show');
 }
-function checkPass(){
-  if(document.getElementById('pass-input').value===OWNER_PASS){
+async function checkPass(){
+  const pw=document.getElementById('pass-input').value;
+  let r=null;
+  try{ r=await (await fetch(API+'/master-password/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})})).json(); }catch(e){}
+  if(r&&r.ok){
     reportUnlocked=true;document.getElementById('pass-dialog').classList.remove('show');showPage('report');
-  }else document.getElementById('pass-err').textContent='Sai mật khẩu!';
+  }else document.getElementById('pass-err').textContent=(r?'Sai mật khẩu!':'Lỗi kết nối, thử lại');
 }
 function lockReport(){reportUnlocked=false;showPage('customers');}
 
