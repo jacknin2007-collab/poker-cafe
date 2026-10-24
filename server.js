@@ -932,6 +932,34 @@ app.post('/api/customers/:phone/add-stars', async (req, res) => {
   res.json({ ok: true, customer: shapeCustomer(updated) });
 });
 
+// Reset mùa: đưa SAO của TẤT CẢ khách về 0 (top 1/2/3, round, nước giữ nguyên).
+// Mật khẩu admin được app kiểm tra trước khi gọi. Lưu star_penalty cũ vào season_reset_backup trước khi reset.
+// POST /api/admin/reset-season { confirm: "RESET", password: <mật khẩu tài khoản admin> }
+app.post('/api/admin/reset-season', requireAdmin, async (req, res) => {
+  if (!req.body || req.body.confirm !== 'RESET') {
+    return res.status(400).json({ ok: false, error: 'Thiếu xác nhận reset' });
+  }
+  if (!(await verifyAdminPassword(String(req.body.password || '')))) {
+    return res.status(403).json({ ok: false, error: 'Mật khẩu admin không đúng' });
+  }
+  try {
+    // Một lệnh duy nhất: sao lưu + đặt penalty = tổng điểm top => sao = 0. Lỗi thì không đổi gì.
+    const r = await db.prepare(`
+      WITH backup AS (
+        INSERT INTO season_reset_backup (phone, star_penalty_before)
+        SELECT phone, COALESCE(star_penalty, 0) FROM customers
+        RETURNING 1
+      )
+      UPDATE customers SET star_penalty = COALESCE(top1, 0) * 5 + COALESCE(top2, 0) * 3 + COALESCE(top3, 0) * 1
+    `).run();
+    console.log(`[SEASON] Reset mùa: ${r.changes} khách về 0 sao`);
+    res.json({ ok: true, reset: r.changes });
+  } catch (e) {
+    console.error('[ERROR] reset-season:', e.message);
+    res.status(500).json({ ok: false, error: 'Reset thất bại, dữ liệu không đổi' });
+  }
+});
+
 // Đăng nhập khách: POST /api/customer/login { phone, password }
 app.post('/api/customer/login', async (req, res) => {
   const phone = String(req.body.phone || '').replace(/\D/g, '');
@@ -954,10 +982,122 @@ app.get('/api/customer/:phone', async (req, res) => {
   res.json(shapeCustomer(c));
 });
 
-// Danh sách khách cho app admin (kèm mật khẩu để admin quản lý): GET /api/customers/app-list
+// Danh sách khách công khai (bảng xếp hạng, trang chủ): KHÔNG có mật khẩu
 app.get('/api/customers/app-list', async (req, res) => {
   const rows = await db.prepare('SELECT * FROM customers ORDER BY name').all();
+  res.json(rows.map(r => shapeCustomer(r)));
+});
+
+// ── TÀI KHOẢN ADMIN CỦA APP: một phiên duy nhất, đăng nhập mới sẽ đá phiên cũ, có nhật ký IP ──
+const crypto = require('crypto');
+function hashWithSalt(text, salt) {
+  return crypto.scryptSync(text, salt, 32).toString('hex');
+}
+function clientIp(req) {
+  const xf = req.headers['x-forwarded-for'];
+  return ((xf ? String(xf).split(',')[0] : req.socket.remoteAddress) || '').trim();
+}
+async function getKV(key) {
+  const row = await db.prepare('SELECT value FROM app_content WHERE key=?').get(key);
+  return row ? row.value : null;
+}
+async function setKV(key, value) {
+  await db.prepare('INSERT INTO app_content (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=?').run(key, value, value);
+}
+// Lưu tài khoản admin (SĐT + mật khẩu băm) trên server
+async function setAdminCredential(phone, password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  await setKV('admin_cred', JSON.stringify({ phone, salt, hash: hashWithSalt(password, salt) }));
+}
+async function checkAdminCredential(phone, password) {
+  const raw = await getKV('admin_cred');
+  if (!raw) return null; // chưa có tài khoản admin trên server
+  const c = JSON.parse(raw);
+  const ok = c.phone === phone && hashWithSalt(password, c.salt) === c.hash;
+  return ok;
+}
+// Kiểm tra mật khẩu admin (dùng cho reset mùa, đổi thông tin đăng nhập)
+async function verifyAdminPassword(password) {
+  const raw = await getKV('admin_cred');
+  if (!raw || !password) return false;
+  const c = JSON.parse(raw);
+  return hashWithSalt(password, c.salt) === c.hash;
+}
+// Tạo tài khoản admin từ biến môi trường ADMIN_PHONE / ADMIN_PASSWORD, chỉ khi server chưa có tài khoản
+async function seedAdminFromEnv() {
+  const phone = (process.env.ADMIN_PHONE || '').trim();
+  const password = process.env.ADMIN_PASSWORD || '';
+  if (!phone || password.length < 4) return;
+  if ((await getKV('admin_cred')) !== null) return;
+  await setAdminCredential(phone, password);
+  console.log('[ADMIN] Đã tạo tài khoản admin từ biến môi trường');
+}
+// Middleware: chỉ phiên admin đang hoạt động mới được gọi /api/admin/* (trừ đăng nhập)
+async function requireAdmin(req, res, next) {
+  const h = req.headers.authorization || '';
+  const token = h.startsWith('Bearer ') ? h.slice(7) : '';
+  const session = await getKV('admin_session');
+  if (!token || !session) return res.status(401).json({ ok: false, error: 'SESSION_EXPIRED' });
+  const s = JSON.parse(session);
+  if (crypto.createHash('sha256').update(token).digest('hex') !== s.tokenHash) {
+    return res.status(401).json({ ok: false, error: 'SESSION_EXPIRED' });
+  }
+  next();
+}
+
+// Đăng nhập admin: POST /api/admin/login { phone, password, device }
+app.post('/api/admin/login', async (req, res) => {
+  const phone = String((req.body && req.body.phone) || '').trim();
+  const password = String((req.body && req.body.password) || '');
+  const device = String((req.body && req.body.device) || '').slice(0, 120);
+  const ok = await checkAdminCredential(phone, password);
+  // Không tự nhận tài khoản mới từ người gọi: server phải được đặt tài khoản admin trước (biến môi trường)
+  if (ok === null) return res.status(503).json({ ok: false, error: 'Máy chủ chưa có tài khoản admin' });
+  if (!ok) return res.status(403).json({ ok: false, error: 'Sai tên đăng nhập hoặc mật khẩu admin' });
+  const token = crypto.randomBytes(32).toString('hex');
+  const ip = clientIp(req);
+  // Ghi đè phiên cũ: thiết bị đang đăng nhập admin trước đó sẽ bị đăng xuất
+  await setKV('admin_session', JSON.stringify({
+    tokenHash: crypto.createHash('sha256').update(token).digest('hex'),
+    phone, ip, device, at: new Date().toISOString(),
+  }));
+  await db.prepare('INSERT INTO admin_login_log (phone, ip, device) VALUES (?,?,?)').run(phone, ip, device);
+  res.json({ ok: true, token });
+});
+
+// Đổi tên đăng nhập / mật khẩu admin: POST /api/admin/change-credential { currentPassword, phone, password }
+app.post('/api/admin/change-credential', requireAdmin, async (req, res) => {
+  const phone = String((req.body && req.body.phone) || '').trim();
+  const password = String((req.body && req.body.password) || '');
+  const currentPassword = String((req.body && req.body.currentPassword) || '');
+  if (!(await verifyAdminPassword(currentPassword))) {
+    return res.status(403).json({ ok: false, error: 'Mật khẩu hiện tại không đúng' });
+  }
+  if (!phone || password.length < 4) return res.status(400).json({ ok: false, error: 'Thông tin không hợp lệ' });
+  await setAdminCredential(phone, password);
+  res.json({ ok: true });
+});
+
+// Đăng xuất admin: POST /api/admin/logout
+app.post('/api/admin/logout', requireAdmin, async (req, res) => {
+  await setKV('admin_session', '');
+  res.json({ ok: true });
+});
+
+// Danh sách khách KÈM mật khẩu (chỉ admin đang đăng nhập): GET /api/admin/customers
+app.get('/api/admin/customers', requireAdmin, async (req, res) => {
+  const rows = await db.prepare('SELECT * FROM customers ORDER BY name').all();
   res.json(rows.map(r => ({ ...shapeCustomer(r), password: r.password })));
+});
+
+// Bảo mật: phiên hiện tại + nhật ký đăng nhập (IP, thiết bị, thời gian): GET /api/admin/security
+app.get('/api/admin/security', requireAdmin, async (req, res) => {
+  const session = JSON.parse((await getKV('admin_session')) || '{}');
+  const logs = await db.prepare('SELECT phone, ip, device, created_at FROM admin_login_log ORDER BY id DESC LIMIT 50').all();
+  res.json({
+    current: { phone: session.phone || '', ip: session.ip || '', device: session.device || '', at: session.at || '' },
+    logs: logs.map(l => ({ phone: l.phone, ip: l.ip, device: l.device, at: new Date(l.created_at).toISOString() })),
+  });
 });
 
 // Khách tự đổi mật khẩu: POST /api/customer/change-password { phone, oldPassword, newPassword }
@@ -1830,8 +1970,8 @@ async function getMasterPassword(){
   if(_masterPwCache != null) return _masterPwCache;
   try{
     const row = await db.prepare("SELECT value FROM app_content WHERE key='master_password'").get();
-    _masterPwCache = (row && row.value) ? row.value : (process.env.INDEX_MASTER_PW || '19842007');
-  }catch(e){ _masterPwCache = (process.env.INDEX_MASTER_PW || '19842007'); }
+    _masterPwCache = (row && row.value) ? row.value : (process.env.INDEX_MASTER_PW || '');
+  }catch(e){ _masterPwCache = (process.env.INDEX_MASTER_PW || ''); }
   return _masterPwCache;
 }
 async function setMasterPassword(pw){
@@ -2180,6 +2320,7 @@ app.use(express.static('public'));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log('Server dang chay tai cong ' + PORT);
+  seedAdminFromEnv().catch(e => console.error('[ERROR] seed admin:', e.message));
   console.log('✓ All routes configured: /dealer, /floor, /report, /clock, /clock-control');
   // Khởi động 2 bot Discord (nếu có token)
   startDiscordBot();

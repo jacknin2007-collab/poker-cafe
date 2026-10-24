@@ -309,6 +309,21 @@ async function initSchema() {
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS email TEXT NOT NULL DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS avatar TEXT NOT NULL DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS star_penalty INTEGER DEFAULT 0`); } catch (e) {}
+  // Nhật ký đăng nhập tài khoản admin (IP, thiết bị, thời gian)
+  await run(`CREATE TABLE IF NOT EXISTS admin_login_log (
+    id SERIAL PRIMARY KEY,
+    phone TEXT NOT NULL,
+    ip TEXT NOT NULL DEFAULT '',
+    device TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMP DEFAULT NOW()
+  )`);
+  // Sao lưu sao của khách trước mỗi lần reset mùa (để khôi phục nếu cần)
+  await run(`CREATE TABLE IF NOT EXISTS season_reset_backup (
+    id SERIAL PRIMARY KEY,
+    reset_at TIMESTAMP DEFAULT NOW(),
+    phone TEXT NOT NULL,
+    star_penalty_before INTEGER NOT NULL
+  )`);
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS tour_queue_count INTEGER DEFAULT 0`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS tour_queue_date TEXT DEFAULT ''`); } catch (e) {}
 
