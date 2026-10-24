@@ -530,18 +530,6 @@ input:focus,select:focus,textarea:focus{
 </div>
 <div class="toast" id="toast"></div>
 
-<div class="overlay" id="reset-dialog">
-  <div class="dialog">
-    <div class="dlg-title">🔄 Reset dữ liệu ngày</div>
-    <div class="dlg-body">Nhập mật khẩu để xác nhận reset. Thao tác này sẽ xoá toàn bộ giao dịch hôm nay và reset tiêu thụ kho.</div>
-    <input id="reset-pass-input" type="password" placeholder="Mật khẩu reset..." onkeydown="if(event.key==='Enter')confirmResetDay()"/>
-    <div id="reset-pass-err" style="font-size:13px;color:var(--red);margin-bottom:8px;"></div>
-    <div class="dlg-btns">
-      <button class="btn btn-red" onclick="confirmResetDay()">Xác nhận Reset</button>
-      <button class="btn" onclick="document.getElementById('reset-dialog').classList.remove('show')">Huỷ</button>
-    </div>
-  </div>
-</div>
 
 <div class="overlay" id="award-dialog">
   <div class="dialog" style="width:320px;">
@@ -929,34 +917,6 @@ async function checkPass(){
   }else document.getElementById('pass-err').textContent=(r?'Sai mật khẩu!':'Lỗi kết nối, thử lại');
 }
 function lockReport(){reportUnlocked=false;showPage('customers');}
-
-function tryResetDay(){
-  document.getElementById('reset-pass-input').value='';
-  document.getElementById('reset-pass-err').textContent='';
-  document.getElementById('reset-dialog').classList.add('show');
-  setTimeout(()=>document.getElementById('reset-pass-input').focus(),100);
-}
-async function confirmResetDay(){
-  const RESET_PASS='20071984';
-  const val=document.getElementById('reset-pass-input').value;
-  if(val!==RESET_PASS){
-    document.getElementById('reset-pass-err').textContent='Sai mật khẩu!';
-    return;
-  }
-  document.getElementById('reset-dialog').classList.remove('show');
-  // Reset giao dịch hôm nay trong bộ nhớ
-  const today=todayISO();
-  transactions=transactions.filter(t=>(t.created_at||'').slice(0,10)!==today);
-  // Reset tiêu thụ kho
-  stock.forEach(s=>{s.consumed=0;});
-  dailyConsumed={};dailyConsumedDate=new Date().toISOString().slice(0,10);
-  try{sessionStorage.removeItem('gcTableState');}catch(e){}
-  // Reset queue và bàn chơi
-  queue=[];
-  tables.forEach(t=>{t.status='idle';t.seats=Array(9).fill('');t.started=null;});
-  renderTablesLeft();renderQueue();renderStock();renderReport();
-  showToast('Đã reset dữ liệu ngày!');
-}
 
 function seatPositions(cx,cy,rx,ry,n){
   return Array.from({length:n},(_,i)=>{
