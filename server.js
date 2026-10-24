@@ -1023,15 +1023,6 @@ async function verifyAdminPassword(password) {
   const c = JSON.parse(raw);
   return hashWithSalt(password, c.salt) === c.hash;
 }
-// Tạo tài khoản admin từ biến môi trường ADMIN_PHONE / ADMIN_PASSWORD, chỉ khi server chưa có tài khoản
-async function seedAdminFromEnv() {
-  const phone = (process.env.ADMIN_PHONE || '').trim();
-  const password = process.env.ADMIN_PASSWORD || '';
-  if (!phone || password.length < 4) return;
-  if ((await getKV('admin_cred')) !== null) return;
-  await setAdminCredential(phone, password);
-  console.log('[ADMIN] Đã tạo tài khoản admin từ biến môi trường');
-}
 // Middleware: chỉ phiên admin đang hoạt động mới được gọi /api/admin/* (trừ đăng nhập)
 async function requireAdmin(req, res, next) {
   const h = req.headers.authorization || '';
@@ -1045,15 +1036,25 @@ async function requireAdmin(req, res, next) {
   next();
 }
 
-// Đăng nhập admin: POST /api/admin/login { phone, password, device }
+// Đăng nhập admin: POST /api/admin/login { phone, password, device, setupKey? }
+// Lần đầu (server chưa có tài khoản admin): app gửi kèm setupKey = mật khẩu chủ của web (riêng, chỉ chủ quán biết)
+// để tạo tài khoản admin. Mật khẩu admin chỉ nằm trên điện thoại và trên server dưới dạng đã băm.
 app.post('/api/admin/login', async (req, res) => {
   const phone = String((req.body && req.body.phone) || '').trim();
   const password = String((req.body && req.body.password) || '');
   const device = String((req.body && req.body.device) || '').slice(0, 120);
+  const setupKey = String((req.body && req.body.setupKey) || '');
   const ok = await checkAdminCredential(phone, password);
-  // Không tự nhận tài khoản mới từ người gọi: server phải được đặt tài khoản admin trước (biến môi trường)
-  if (ok === null) return res.status(503).json({ ok: false, error: 'Máy chủ chưa có tài khoản admin' });
-  if (!ok) return res.status(403).json({ ok: false, error: 'Sai tên đăng nhập hoặc mật khẩu admin' });
+  if (ok === null) {
+    if (!setupKey) return res.status(503).json({ ok: false, code: 'NEED_ADMIN_SETUP', error: 'Chưa thiết lập tài khoản admin' });
+    const mp = await getMasterPassword();
+    if (!mp || setupKey !== mp) return res.status(403).json({ ok: false, code: 'BAD_SETUP_KEY', error: 'Mật khẩu chủ web không đúng' });
+    if (!phone || password.length < 4) return res.status(400).json({ ok: false, error: 'Thông tin không hợp lệ (mật khẩu tối thiểu 4 ký tự)' });
+    await setAdminCredential(phone, password);
+    console.log('[ADMIN] Đã thiết lập tài khoản admin từ app');
+  } else if (!ok) {
+    return res.status(403).json({ ok: false, error: 'Sai tên đăng nhập hoặc mật khẩu admin' });
+  }
   const token = crypto.randomBytes(32).toString('hex');
   const ip = clientIp(req);
   // Ghi đè phiên cũ: thiết bị đang đăng nhập admin trước đó sẽ bị đăng xuất
@@ -2320,7 +2321,6 @@ app.use(express.static('public'));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log('Server dang chay tai cong ' + PORT);
-  seedAdminFromEnv().catch(e => console.error('[ERROR] seed admin:', e.message));
   console.log('✓ All routes configured: /dealer, /floor, /report, /clock, /clock-control');
   // Khởi động 2 bot Discord (nếu có token)
   startDiscordBot();
