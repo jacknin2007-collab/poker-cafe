@@ -932,31 +932,6 @@ app.post('/api/customers/:phone/add-stars', async (req, res) => {
   res.json({ ok: true, customer: shapeCustomer(updated) });
 });
 
-// Reset mùa: đưa SAO của TẤT CẢ khách về 0 (rank về hạng đầu).
-// Chỉ đụng star_penalty: top 1/2/3, round và nước giữ nguyên.
-// Sao lưu star_penalty cũ vào season_reset_backup. POST /api/admin/reset-season { confirm: "RESET" }
-app.post('/api/admin/reset-season', async (req, res) => {
-  if (!req.body || req.body.confirm !== 'RESET') {
-    return res.status(400).json({ ok: false, error: 'Thiếu xác nhận reset' });
-  }
-  try {
-    // Một lệnh duy nhất: sao lưu + đặt penalty = tổng điểm top => sao = 0. Lỗi thì không đổi gì.
-    const r = await db.prepare(`
-      WITH backup AS (
-        INSERT INTO season_reset_backup (phone, star_penalty_before)
-        SELECT phone, COALESCE(star_penalty, 0) FROM customers
-        RETURNING 1
-      )
-      UPDATE customers SET star_penalty = COALESCE(top1, 0) * 5 + COALESCE(top2, 0) * 3 + COALESCE(top3, 0) * 1
-    `).run();
-    console.log(`[SEASON] Reset mùa: ${r.changes} khách về 0 sao`);
-    res.json({ ok: true, reset: r.changes });
-  } catch (e) {
-    console.error('[ERROR] reset-season:', e.message);
-    res.status(500).json({ ok: false, error: 'Reset thất bại, dữ liệu không đổi' });
-  }
-});
-
 // Đăng nhập khách: POST /api/customer/login { phone, password }
 app.post('/api/customer/login', async (req, res) => {
   const phone = String(req.body.phone || '').replace(/\D/g, '');
