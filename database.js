@@ -309,6 +309,13 @@ async function initSchema() {
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS email TEXT NOT NULL DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS avatar TEXT NOT NULL DEFAULT ''`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS star_penalty INTEGER DEFAULT 0`); } catch (e) {}
+  // Sao lưu sao của khách trước mỗi lần reset mùa (để khôi phục nếu cần)
+  await run(`CREATE TABLE IF NOT EXISTS season_reset_backup (
+    id SERIAL PRIMARY KEY,
+    reset_at TIMESTAMP DEFAULT NOW(),
+    phone TEXT NOT NULL,
+    star_penalty_before INTEGER NOT NULL
+  )`);
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS tour_queue_count INTEGER DEFAULT 0`); } catch (e) {}
   try { await run(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS tour_queue_date TEXT DEFAULT ''`); } catch (e) {}
 

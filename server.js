@@ -932,6 +932,31 @@ app.post('/api/customers/:phone/add-stars', async (req, res) => {
   res.json({ ok: true, customer: shapeCustomer(updated) });
 });
 
+// Reset mùa: đưa SAO của TẤT CẢ khách về 0 (rank về hạng đầu).
+// Chỉ đụng star_penalty: top 1/2/3, round và nước giữ nguyên.
+// Sao lưu star_penalty cũ vào season_reset_backup. POST /api/admin/reset-season { confirm: "RESET" }
+app.post('/api/admin/reset-season', async (req, res) => {
+  if (!req.body || req.body.confirm !== 'RESET') {
+    return res.status(400).json({ ok: false, error: 'Thiếu xác nhận reset' });
+  }
+  try {
+    // Một lệnh duy nhất: sao lưu + đặt penalty = tổng điểm top => sao = 0. Lỗi thì không đổi gì.
+    const r = await db.prepare(`
+      WITH backup AS (
+        INSERT INTO season_reset_backup (phone, star_penalty_before)
+        SELECT phone, COALESCE(star_penalty, 0) FROM customers
+        RETURNING 1
+      )
+      UPDATE customers SET star_penalty = COALESCE(top1, 0) * 5 + COALESCE(top2, 0) * 3 + COALESCE(top3, 0) * 1
+    `).run();
+    console.log(`[SEASON] Reset mùa: ${r.changes} khách về 0 sao`);
+    res.json({ ok: true, reset: r.changes });
+  } catch (e) {
+    console.error('[ERROR] reset-season:', e.message);
+    res.status(500).json({ ok: false, error: 'Reset thất bại, dữ liệu không đổi' });
+  }
+});
+
 // Đăng nhập khách: POST /api/customer/login { phone, password }
 app.post('/api/customer/login', async (req, res) => {
   const phone = String(req.body.phone || '').replace(/\D/g, '');
@@ -954,10 +979,11 @@ app.get('/api/customer/:phone', async (req, res) => {
   res.json(shapeCustomer(c));
 });
 
-// Danh sách khách cho app admin (kèm mật khẩu để admin quản lý): GET /api/customers/app-list
+// Danh sách khách (công khai, KHÔNG kèm mật khẩu): GET /api/customers/app-list
 app.get('/api/customers/app-list', async (req, res) => {
   const rows = await db.prepare('SELECT * FROM customers ORDER BY name').all();
-  res.json(rows.map(r => ({ ...shapeCustomer(r), password: r.password })));
+  // Không trả mật khẩu ra ngoài: chỉ cho biết đã đặt mật khẩu hay chưa
+  res.json(rows.map(r => ({ ...shapeCustomer(r), has_password: !!(r.password && r.password !== '') })));
 });
 
 // Khách tự đổi mật khẩu: POST /api/customer/change-password { phone, oldPassword, newPassword }
@@ -1859,6 +1885,19 @@ app.post('/api/master-password/change', async (req, res) => {
   if(next.length < 4) return res.json({ ok:false, error:'Mật khẩu mới phải từ 4 ký tự' });
   try{ await setMasterPassword(next); }catch(e){ return res.json({ ok:false, error:'Lỗi lưu' }); }
   res.json({ ok:true });
+});
+
+// Admin xem mật khẩu của các khách đã đặt: cần mật khẩu chính của máy chủ.
+// POST /api/admin/customer-passwords { master_password } -> { ok, passwords: { phone: password } }
+app.post('/api/admin/customer-passwords', async (req, res) => {
+  const pw = (req.body && req.body.master_password != null) ? String(req.body.master_password) : '';
+  if (pw === '' || pw !== await getMasterPassword()) {
+    return res.status(403).json({ ok: false, error: 'Mật khẩu chính không đúng' });
+  }
+  const rows = await db.prepare("SELECT phone, password FROM customers WHERE password IS NOT NULL AND password <> ''").all();
+  const passwords = {};
+  for (const r of rows) passwords[r.phone] = r.password;
+  res.json({ ok: true, passwords });
 });
 
 // ── DUYỆT THIẾT BỊ (app index) ────────────────────────────────
