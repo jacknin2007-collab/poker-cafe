@@ -1271,6 +1271,21 @@ app.post('/api/notifications', async (req, res) => {
   }
 });
 
+// Admin xoá thông báo khỏi server (mất khỏi chuông của mọi khách): DELETE /api/admin/notifications/:id
+app.delete('/api/admin/notifications/:id', requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ ok: false, error: 'Mã thông báo không hợp lệ' });
+  try {
+    await db.prepare('DELETE FROM notification_reads WHERE notification_id=?').run(id);
+    const r = await db.prepare('DELETE FROM notifications WHERE id=?').run(id);
+    if (!r.changes) return res.status(404).json({ ok: false, error: 'Không tìm thấy thông báo' });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[ERROR] delete notification:', e.message);
+    res.status(500).json({ ok: false, error: 'Xoá thất bại, thử lại sau' });
+  }
+});
+
 // Mark notification as read: PUT /api/notifications/:id/read { phone }
 app.put('/api/notifications/:id/read', async (req, res) => {
   const notiId = parseInt(req.params.id);
