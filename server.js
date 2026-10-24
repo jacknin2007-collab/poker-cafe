@@ -979,11 +979,10 @@ app.get('/api/customer/:phone', async (req, res) => {
   res.json(shapeCustomer(c));
 });
 
-// Danh sách khách (công khai, KHÔNG kèm mật khẩu): GET /api/customers/app-list
+// Danh sách khách cho app admin (kèm mật khẩu để admin quản lý): GET /api/customers/app-list
 app.get('/api/customers/app-list', async (req, res) => {
   const rows = await db.prepare('SELECT * FROM customers ORDER BY name').all();
-  // Không trả mật khẩu ra ngoài: chỉ cho biết đã đặt mật khẩu hay chưa
-  res.json(rows.map(r => ({ ...shapeCustomer(r), has_password: !!(r.password && r.password !== '') })));
+  res.json(rows.map(r => ({ ...shapeCustomer(r), password: r.password })));
 });
 
 // Khách tự đổi mật khẩu: POST /api/customer/change-password { phone, oldPassword, newPassword }
@@ -1885,19 +1884,6 @@ app.post('/api/master-password/change', async (req, res) => {
   if(next.length < 4) return res.json({ ok:false, error:'Mật khẩu mới phải từ 4 ký tự' });
   try{ await setMasterPassword(next); }catch(e){ return res.json({ ok:false, error:'Lỗi lưu' }); }
   res.json({ ok:true });
-});
-
-// Admin xem mật khẩu của các khách đã đặt: cần mật khẩu chính của máy chủ.
-// POST /api/admin/customer-passwords { master_password } -> { ok, passwords: { phone: password } }
-app.post('/api/admin/customer-passwords', async (req, res) => {
-  const pw = (req.body && req.body.master_password != null) ? String(req.body.master_password) : '';
-  if (pw === '' || pw !== await getMasterPassword()) {
-    return res.status(403).json({ ok: false, error: 'Mật khẩu chính không đúng' });
-  }
-  const rows = await db.prepare("SELECT phone, password FROM customers WHERE password IS NOT NULL AND password <> ''").all();
-  const passwords = {};
-  for (const r of rows) passwords[r.phone] = r.password;
-  res.json({ ok: true, passwords });
 });
 
 // ── DUYỆT THIẾT BỊ (app index) ────────────────────────────────
