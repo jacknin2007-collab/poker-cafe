@@ -766,6 +766,19 @@ async function updatePerformanceAndRankings(phone) {
   }
 }
 
+// Tên Tour của hôm nay theo lịch hiện tại (thứ 2=1 ... CN=7, giờ Việt Nam). Null nếu chưa có lịch.
+async function currentTourTitle() {
+  try {
+    const vn = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+    const jsDay = vn.getDay(); // 0=CN
+    const wd = jsDay === 0 ? 7 : jsDay;
+    const row = await db.prepare('SELECT title FROM schedules WHERE weekday=? ORDER BY id LIMIT 1').get(wd);
+    return row && row.title ? String(row.title) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 app.put('/api/customers/:phone', async (req, res) => {
   const { top1, top2, top3, rounds, drinks } = req.body;
   const old = await db.prepare('SELECT top1,top2,top3,rounds,drinks FROM customers WHERE phone=?').get(req.params.phone);
@@ -775,13 +788,15 @@ app.put('/api/customers/:phone', async (req, res) => {
     const units = { 1: 5, 2: 3, 3: 1 };
     const news = { 1: Number(top1) || 0, 2: Number(top2) || 0, 3: Number(top3) || 0 };
     const olds = { 1: Number(old.top1) || 0, 2: Number(old.top2) || 0, 3: Number(old.top3) || 0 };
+    // Tên Tour chốt tại thời điểm trao top: lấy từ lịch của thứ hôm nay (giờ Việt Nam)
+    const tourTitle = await currentTourTitle();
     for (const rank of [1, 2, 3]) {
       const delta = news[rank] - olds[rank];
       const count = Math.abs(delta);
       for (let k = 0; k < count && k < 50; k++) {
         try {
-          await db.prepare('INSERT INTO match_history (phone, top_rank, points) VALUES (?, ?, ?)')
-            .run(req.params.phone, rank, units[rank]);
+          await db.prepare('INSERT INTO match_history (phone, top_rank, points, tour_title) VALUES (?, ?, ?, ?)')
+            .run(req.params.phone, rank, units[rank], tourTitle);
         } catch (e) {}
       }
     }
@@ -1343,7 +1358,7 @@ app.get('/api/customer/:phone/history', async (req, res) => {
   const phone = String(req.params.phone || '').replace(/\D/g, '');
   try {
     const rows = await db.prepare(
-      'SELECT id, top_rank, points, created_at, match_type FROM match_history WHERE phone=? ORDER BY id DESC LIMIT 200'
+      'SELECT id, top_rank, points, created_at, match_type, tour_title FROM match_history WHERE phone=? ORDER BY id DESC LIMIT 200'
     ).all(phone);
     res.json(rows);
   } catch (e) { res.json([]); }

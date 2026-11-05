@@ -352,6 +352,14 @@ async function initSchema() {
     // Column already exists
   }
 
+  // Ghi cứng tên Tour lúc trao top (không đổi khi sửa lịch thi đấu sau này)
+  try {
+    await run(`ALTER TABLE match_history ADD COLUMN IF NOT EXISTS tour_title TEXT`);
+    console.log('✓ Added tour_title column to match_history');
+  } catch (e) {
+    // Column already exists
+  }
+
 }
 
 module.exports = db;
