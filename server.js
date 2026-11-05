@@ -1639,6 +1639,24 @@ app.delete('/api/round-menu/:name', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── DANH SÁCH TOUR (note trong app Báo cáo; app Index chọn khi cộng/trừ sao) ──
+app.get('/api/tour-notes', async (req, res) => {
+  try { res.json(await db.prepare('SELECT * FROM tour_notes ORDER BY id DESC').all()); }
+  catch (e) { res.json([]); }
+});
+app.post('/api/tour-notes', async (req, res) => {
+  const name = (req.body.name || '').toString().trim().slice(0, 100);
+  if (!name) return res.status(400).json({ error: 'Thiếu tên tour' });
+  try {
+    await db.prepare(`INSERT INTO tour_notes (name) VALUES (?) ON CONFLICT(name) DO NOTHING`).run(name);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false, error: 'Lỗi lưu' }); }
+});
+app.delete('/api/tour-notes/:name', async (req, res) => {
+  await db.prepare('DELETE FROM tour_notes WHERE name=?').run(decodeURIComponent(req.params.name));
+  res.json({ ok: true });
+});
+
 app.post('/api/stock', async (req, res) => {
   const { name, qty, price, cost } = req.body;
   await db.prepare(`INSERT INTO stock (name,qty,price,cost) VALUES (?,?,?,?)

@@ -2439,29 +2439,45 @@ async function showRedeemHistory(phone){
 }
 
 // Trừ sao của khách — nhập LÍ DO rồi nhập SỐ SAO
-function subtractStars(phone){
+// Escape cho value/option; và nạp danh sách Tour (do admin note ở app Báo cáo)
+function _escH(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+async function _loadTourOptions(){ try{ return (await (await fetch(API+'/tour-notes')).json())||[]; }catch(e){ return []; } }
+function _tourFieldHtml(tours,inp){
+  if(!tours.length) return `<div style="margin-top:10px;color:var(--red);font-size:13px;font-weight:600;">Chưa có Tour nào. Vào app Báo cáo → "🏆 Danh sách Tour" để note Tour trước.</div>`;
+  return `<select id="dlg-tour" style="margin-top:10px;${inp}"><option value="">-- Chọn Tour --</option>`
+    + tours.map(t=>`<option value="${_escH(t.name)}">${_escH(t.name)}</option>`).join('') + `</select>`;
+}
+
+async function subtractStars(phone){
   const c=customers.find(x=>x.phone===phone);if(!c)return;
+  const tours=await _loadTourOptions();
+  const hasTours=tours.length>0;
   const inp='width:100%;height:38px;padding:0 10px;font-size:14px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);color:var(--text);font-family:inherit;outline:none;';
   document.getElementById('dlg-title').textContent='− Trừ sao';
   document.getElementById('dlg-body').innerHTML=
     `Trừ sao của <b>${c.name}</b> <span style="color:var(--text3);">— đang có ${c.stars||0} ⭐</span>`
-    +`<input id="dlg-reason" placeholder="Lí do trừ sao..." style="margin-top:10px;${inp}"/>`
+    +_tourFieldHtml(tours,inp)
+    +`<input id="dlg-reason" placeholder="Lí do (tuỳ chọn)..." style="margin-top:8px;${inp}"/>`
     +`<input id="dlg-amount" type="number" min="1" placeholder="Trừ bao nhiêu sao?" style="margin-top:8px;${inp}"/>`;
   const bEl=document.getElementById('dlg-btns');bEl.innerHTML='';
   const ok=document.createElement('button');ok.className='btn btn-red';ok.textContent='− Trừ sao';
   ok.addEventListener('click',()=>{
-    const reason=(document.getElementById('dlg-reason')?.value||'').trim();
+    const tour=(document.getElementById('dlg-tour')?.value||'').trim();
+    const note=(document.getElementById('dlg-reason')?.value||'').trim();
     const n=parseInt(document.getElementById('dlg-amount')?.value)||0;
-    closeDialog();
+    if(!hasTours){showToast('Chưa có Tour — thêm ở app Báo cáo trước!','error');return;}
+    if(!tour){showToast('Phải chọn Tour!','error');return;}
     if(n<=0){showToast('Nhập số sao cần trừ!','error');return;}
+    closeDialog();
+    const reason='Tour: '+tour+(note?(' — '+note):'');
     const cur=c.stars||0;
     const applied=Math.min(n,cur); // không trừ quá số sao đang có
     // Cập nhật NGAY
     c.stars=Math.max(0,cur-applied);
     c.star_penalty=(c.star_penalty||0)+applied;
-    showToast('Đã trừ '+applied+' sao của '+c.name+(reason?(' — '+reason):''));
+    showToast('Đã trừ '+applied+' sao của '+c.name+' ['+tour+']');
     doSearch();
-    // Lưu server (kèm lí do, tự ghi log để tra lịch sử)
+    // Lưu server (kèm Tour + lí do, tự ghi log để tra lịch sử)
     fetch(API+'/customers/'+phone+'/subtract-stars',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:n,reason:reason})})
       .then(r=>r.json()).then(res=>{ if(res&&res.customer){ Object.assign(c,res.customer); doSearch(); } })
       .catch(()=>showToast('Lỗi lưu — kiểm tra mạng','error'));
@@ -2469,31 +2485,38 @@ function subtractStars(phone){
   const ca=document.createElement('button');ca.className='btn';ca.textContent='Huỷ';ca.addEventListener('click',closeDialog);
   bEl.appendChild(ok);bEl.appendChild(ca);
   document.getElementById('confirm-dialog').classList.add('show');
-  setTimeout(()=>{const i=document.getElementById('dlg-reason');if(i)i.focus();},60);
+  setTimeout(()=>{const i=document.getElementById('dlg-tour');if(i)i.focus();},60);
 }
 
 // Cộng sao cho khách — nhập LÍ DO rồi nhập SỐ SAO (giống trừ, nhưng cộng)
-function addStars(phone){
+async function addStars(phone){
   const c=customers.find(x=>x.phone===phone);if(!c)return;
+  const tours=await _loadTourOptions();
+  const hasTours=tours.length>0;
   const inp='width:100%;height:38px;padding:0 10px;font-size:14px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);color:var(--text);font-family:inherit;outline:none;';
   document.getElementById('dlg-title').textContent='+ Cộng sao';
   document.getElementById('dlg-body').innerHTML=
     `Cộng sao cho <b>${c.name}</b> <span style="color:var(--text3);">— đang có ${c.stars||0} ⭐</span>`
-    +`<input id="dlg-reason" placeholder="Lí do cộng sao..." style="margin-top:10px;${inp}"/>`
+    +_tourFieldHtml(tours,inp)
+    +`<input id="dlg-reason" placeholder="Lí do (tuỳ chọn)..." style="margin-top:8px;${inp}"/>`
     +`<input id="dlg-amount" type="number" min="1" placeholder="Cộng bao nhiêu sao?" style="margin-top:8px;${inp}"/>`;
   const bEl=document.getElementById('dlg-btns');bEl.innerHTML='';
   const ok=document.createElement('button');ok.className='btn btn-gold';ok.textContent='+ Cộng sao';
   ok.addEventListener('click',()=>{
-    const reason=(document.getElementById('dlg-reason')?.value||'').trim();
+    const tour=(document.getElementById('dlg-tour')?.value||'').trim();
+    const note=(document.getElementById('dlg-reason')?.value||'').trim();
     const n=parseInt(document.getElementById('dlg-amount')?.value)||0;
-    closeDialog();
+    if(!hasTours){showToast('Chưa có Tour — thêm ở app Báo cáo trước!','error');return;}
+    if(!tour){showToast('Phải chọn Tour!','error');return;}
     if(n<=0){showToast('Nhập số sao cần cộng!','error');return;}
+    closeDialog();
+    const reason='Tour: '+tour+(note?(' — '+note):'');
     // Cập nhật NGAY
     c.stars=(c.stars||0)+n;
     c.star_penalty=(c.star_penalty||0)-n;
-    showToast('Đã cộng '+n+' sao cho '+c.name+(reason?(' — '+reason):''));
+    showToast('Đã cộng '+n+' sao cho '+c.name+' ['+tour+']');
     doSearch();
-    // Lưu server (kèm lí do, tự ghi log)
+    // Lưu server (kèm Tour + lí do, tự ghi log)
     fetch(API+'/customers/'+phone+'/add-stars',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:n,reason:reason})})
       .then(r=>r.json()).then(res=>{ if(res&&res.customer){ Object.assign(c,res.customer); doSearch(); } })
       .catch(()=>showToast('Lỗi lưu — kiểm tra mạng','error'));
@@ -2501,7 +2524,7 @@ function addStars(phone){
   const ca=document.createElement('button');ca.className='btn';ca.textContent='Huỷ';ca.addEventListener('click',closeDialog);
   bEl.appendChild(ok);bEl.appendChild(ca);
   document.getElementById('confirm-dialog').classList.add('show');
-  setTimeout(()=>{const i=document.getElementById('dlg-reason');if(i)i.focus();},60);
+  setTimeout(()=>{const i=document.getElementById('dlg-tour');if(i)i.focus();},60);
 }
 
 async function addStock(){

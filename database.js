@@ -120,6 +120,13 @@ async function initSchema() {
     cost INTEGER DEFAULT 1
   )`);
 
+  // Danh sách Tour do admin note trong app Báo cáo; app Index chọn khi cộng/trừ sao
+  await run(`CREATE TABLE IF NOT EXISTS tour_notes (
+    id SERIAL PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`);
+
   await run(`CREATE TABLE IF NOT EXISTS tour_buyin (
     id SERIAL PRIMARY KEY,
     phone TEXT NOT NULL,
