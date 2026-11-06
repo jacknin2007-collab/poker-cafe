@@ -1128,6 +1128,29 @@ app.post('/api/customer/change-password', async (req, res) => {
   res.json({ ok: true });
 });
 
+// Khách tự xoá tài khoản (yêu cầu của Apple): POST /api/customer/delete-account { phone, password }
+// Xoá thông tin cá nhân và dữ liệu hiển thị trong app. Giữ giao dịch / buy-in của quán (kế toán).
+app.post('/api/customer/delete-account', async (req, res) => {
+  const phone = String(req.body.phone || '').replace(/\D/g, '');
+  const password = String(req.body.password || '');
+  if (!phone || !password) return res.json({ ok: false, error: 'Thiếu SĐT hoặc mật khẩu' });
+  try {
+    const c = await db.prepare('SELECT * FROM customers WHERE phone=? AND password=? LIMIT 1').get(phone, password);
+    if (!c) return res.json({ ok: false, error: 'Mật khẩu không đúng' });
+    if (c.is_admin) return res.json({ ok: false, error: 'Tài khoản quản trị không thể xoá từ app khách' });
+    await db.prepare('DELETE FROM notification_reads WHERE phone=?').run(phone);
+    await db.prepare('DELETE FROM match_history WHERE phone=?').run(phone);
+    await db.prepare('DELETE FROM rewards WHERE phone=?').run(phone);
+    await db.prepare('DELETE FROM rankings WHERE phone=?').run(phone);
+    await db.prepare('DELETE FROM performance_stats WHERE phone=?').run(phone);
+    await db.prepare('DELETE FROM customers WHERE phone=?').run(phone);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[DELETE_ACCOUNT]', e.message);
+    res.json({ ok: false, error: 'Lỗi hệ thống, thử lại sau' });
+  }
+});
+
 // Admin sửa hồ sơ khách (tên / mật khẩu / quyền admin):
 // PUT /api/customers/:phone/profile { name, password, is_admin }
 app.put('/api/customers/:phone/profile', async (req, res) => {
