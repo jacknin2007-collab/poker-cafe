@@ -1643,9 +1643,10 @@ app.post('/api/transactions', async (req, res) => {
   const { payer, phone, amount, table_name, note } = req.body;
   // Chống lưu trùng: kiểm tra giao dịch tương tự trong vòng 10 giây
   const cutoff = new Date(Date.now() - 10000).toISOString().slice(0, 19).replace('T', ' ');
+  // Chỉ chặn khi cùng người, cùng số tiền VÀ cùng ghi chú (để không chặn 2 lần cộng khác nhau trong 10 giây)
   const recent = await db.prepare(
-    `SELECT id FROM transactions WHERE payer=? AND amount=? AND created_at >= ?`
-  ).get(payer, amount, cutoff);
+    `SELECT id FROM transactions WHERE payer=? AND amount=? AND COALESCE(note,'')=COALESCE(?,'') AND created_at >= ?`
+  ).get(payer, amount, note == null ? null : String(note), cutoff);
   if(recent){
     console.log(`[TX] Bỏ qua trùng lặp — ${payer} ${amount}đ`);
     return res.json({ id: recent.id, duplicate: true });

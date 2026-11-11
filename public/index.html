@@ -2371,6 +2371,11 @@ function addToQueuePlusDrinkConfirmed(name, phone){
       top1:customer.top1||0,top2:customer.top2||0,top3:customer.top3||0,
       rounds:customer.rounds||0,drinks:customer.drinks
     }).then(r=>{ if(!r) showToast('Lỗi lưu nước — kiểm tra mạng','error'); return refreshCustomers(); }).catch(()=>{});
+    // Ghi vào sổ giao dịch để khách thấy trong lịch sử vé
+    apiPost('/transactions',{
+      payer:name, phone:customer.phone, amount:0,
+      table_name:'Hàng chờ', note:'Cộng 1 Nước: tour chưa sử dụng'
+    }).catch(()=>{});
   }
   // ── Thêm vào hàng chờ (nếu chưa có) ──
   if(getActiveQueue().find(q=>q.name===name)){
