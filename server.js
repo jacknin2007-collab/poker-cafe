@@ -1376,13 +1376,28 @@ app.delete('/api/banner-images/:id', async (req, res) => {
   }
 });
 
+// Đọc ?days=: số ngày (mặc định defaultDays); "all" = không giới hạn (trả null)
+function daysParam(value, defaultDays) {
+  if (String(value || '').toLowerCase() === 'all') return null;
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 3650) : defaultDays;
+}
+// Mốc "từ ngày" dạng 'YYYY-MM-DD HH:MM:SS' (UTC), so sánh được với created_at của cả hai bảng
+function sinceText(days) {
+  return new Date(Date.now() - days * 86400000).toISOString().slice(0, 19).replace('T', ' ');
+}
+
 // ── LỊCH SỬ ĐẤU (lịch sử được trao top của 1 khách) ─────────────
+// Mặc định chỉ trả 30 ngày gần đây để app đỡ tốn dung lượng (?days=N đổi số ngày, ?days=all lấy hết)
 app.get('/api/customer/:phone/history', async (req, res) => {
   const phone = String(req.params.phone || '').replace(/\D/g, '');
+  const days = daysParam(req.query.days, 30);
+  const since = days ? sinceText(days) : null;
   try {
     const rows = await db.prepare(
-      'SELECT id, top_rank, points, created_at, match_type, tour_title FROM match_history WHERE phone=? ORDER BY id DESC LIMIT 200'
-    ).all(phone);
+      `SELECT id, top_rank, points, created_at, match_type, tour_title FROM match_history
+       WHERE phone=?${since ? ' AND created_at >= ?' : ''} ORDER BY id DESC LIMIT 200`
+    ).all(...(since ? [phone, since] : [phone]));
     res.json(rows);
   } catch (e) { res.json([]); }
 });
@@ -1635,8 +1650,18 @@ app.get('/api/bounty', async (req, res) => {
 });
 
 // TRANSACTIONS
+// Không truyền phone: như cũ (500 dòng gần nhất của cả quầy, dùng cho quản lý)
+// Có phone: chỉ giao dịch của khách đó, mặc định 30 ngày gần đây (?days=all để lấy hết)
 app.get('/api/transactions', async (req, res) => {
-  res.json(await db.prepare('SELECT * FROM transactions ORDER BY id DESC LIMIT 500').all());
+  const phone = String(req.query.phone || '').trim();
+  if (!phone) {
+    return res.json(await db.prepare('SELECT * FROM transactions ORDER BY id DESC LIMIT 500').all());
+  }
+  const days = daysParam(req.query.days, 30);
+  const since = days ? sinceText(days) : null;
+  res.json(await db.prepare(
+    `SELECT * FROM transactions WHERE phone=?${since ? ' AND created_at >= ?' : ''} ORDER BY id DESC LIMIT 500`
+  ).all(...(since ? [phone, since] : [phone])));
 });
 
 app.post('/api/transactions', async (req, res) => {
